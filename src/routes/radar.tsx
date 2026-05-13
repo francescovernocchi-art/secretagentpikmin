@@ -5,7 +5,7 @@ import { PageShell } from "@/components/PageShell";
 import { Radar } from "@/components/Radar";
 import { Camera, QrCode, Sparkles, ScanLine } from "lucide-react";
 
-export const Route = createFileRoute("/_app/radar")({
+export const Route = createFileRoute("/radar")({
   component: RadarPage,
 });
 

@@ -4,9 +4,13 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { BottomNav } from "@/components/BottomNav";
+import { getSession } from "@/lib/session";
 
 import appCss from "../styles.css?url";
 
@@ -114,10 +118,26 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const router = useRouter();
+  const isApp = pathname !== "/";
+
+  useEffect(() => {
+    if (isApp && typeof window !== "undefined" && !getSession()) {
+      router.navigate({ to: "/" });
+    }
+  }, [isApp, pathname, router]);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      {isApp ? (
+        <div className="grid-bg min-h-screen">
+          <Outlet />
+          <BottomNav />
+        </div>
+      ) : (
+        <Outlet />
+      )}
     </QueryClientProvider>
   );
 }

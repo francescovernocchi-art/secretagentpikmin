@@ -6,7 +6,7 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { Plus, Heart } from "lucide-react";
 
-export const Route = createFileRoute("/_app/ricordi")({
+export const Route = createFileRoute("/ricordi")({
   component: RicordiPage,
 });
 

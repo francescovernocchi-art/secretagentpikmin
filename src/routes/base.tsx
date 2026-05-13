@@ -7,7 +7,7 @@ import { PageShell } from "@/components/PageShell";
 import { Radar } from "@/components/Radar";
 import { Battery, MessageSquare, Target, Trophy, LogOut, ShieldCheck } from "lucide-react";
 
-export const Route = createFileRoute("/_app/base")({
+export const Route = createFileRoute("/base")({
   component: BasePage,
 });
 
