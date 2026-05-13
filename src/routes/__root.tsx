@@ -118,10 +118,26 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const router = useRouter();
+  const isApp = pathname !== "/";
+
+  useEffect(() => {
+    if (isApp && typeof window !== "undefined" && !getSession()) {
+      router.navigate({ to: "/" });
+    }
+  }, [isApp, pathname, router]);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      {isApp ? (
+        <div className="grid-bg min-h-screen">
+          <Outlet />
+          <BottomNav />
+        </div>
+      ) : (
+        <Outlet />
+      )}
     </QueryClientProvider>
   );
 }
