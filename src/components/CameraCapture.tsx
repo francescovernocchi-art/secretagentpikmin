@@ -31,6 +31,8 @@ export function CameraCapture({
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [attempt, setAttempt] = useState(0);
 
   // start / stop camera
   useEffect(() => {
@@ -108,24 +110,58 @@ export function CameraCapture({
     setPreview(URL.createObjectURL(file));
   };
 
+  const uploadWithProgress = (path: string, blob: Blob) =>
+    new Promise<void>((resolve, reject) => {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/captures/${path}`;
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url, true);
+      xhr.setRequestHeader("Authorization", `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`);
+      xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+      xhr.setRequestHeader("x-upsert", "false");
+      xhr.setRequestHeader("Content-Type", blob.type || "image/jpeg");
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error(`HTTP ${xhr.status}: ${xhr.responseText}`));
+      };
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.ontimeout = () => reject(new Error("Timeout"));
+      xhr.timeout = 30000;
+      xhr.send(blob);
+    });
+
   const upload = async () => {
     if (!pendingBlob) return;
     setBusy(true);
-    try {
-      const ext = pendingBlob.type.includes("png") ? "png" : "jpg";
-      const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("captures")
-        .upload(path, pendingBlob, { contentType: pendingBlob.type || "image/jpeg", upsert: false });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from("captures").getPublicUrl(path);
-      onCaptured(data.publicUrl);
-      reset();
-      onClose();
-    } catch (e: any) {
-      setError(e?.message || "Upload fallito");
-    } finally {
-      setBusy(false);
+    setError(null);
+    setProgress(0);
+    const ext = pendingBlob.type.includes("png") ? "png" : "jpg";
+    const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const maxAttempts = 3;
+    for (let i = 1; i <= maxAttempts; i++) {
+      setAttempt(i);
+      try {
+        await uploadWithProgress(path, pendingBlob);
+        const { data } = supabase.storage.from("captures").getPublicUrl(path);
+        onCaptured(data.publicUrl);
+        setProgress(100);
+        reset();
+        setBusy(false);
+        setAttempt(0);
+        onClose();
+        return;
+      } catch (e: any) {
+        if (i === maxAttempts) {
+          setError(`${e?.message || "Upload fallito"} (dopo ${maxAttempts} tentativi)`);
+          setBusy(false);
+          setAttempt(0);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 600 * i));
+        setProgress(0);
+      }
     }
   };
 
@@ -219,19 +255,41 @@ export function CameraCapture({
                 />
               </>
             ) : (
-              <>
-                <button onClick={reset} className="panel px-4 py-3 text-sm text-muted-foreground flex items-center gap-2">
-                  <RefreshCcw className="h-4 w-4" /> Rifai
-                </button>
-                <button
-                  onClick={upload}
-                  disabled={busy}
-                  className="btn-neon flex-1 py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
-                >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  {busy ? "Caricamento…" : "Conferma"}
-                </button>
-              </>
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={reset}
+                    disabled={busy}
+                    className="panel px-4 py-3 text-sm text-muted-foreground flex items-center gap-2 disabled:opacity-40"
+                  >
+                    <RefreshCcw className="h-4 w-4" /> Rifai
+                  </button>
+                  <button
+                    onClick={upload}
+                    disabled={busy}
+                    className="btn-neon flex-1 py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    {busy ? `Caricamento… ${progress}%` : "Conferma"}
+                  </button>
+                </div>
+                {busy && (
+                  <div className="space-y-1">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/15">
+                      <div
+                        className="h-full bg-primary transition-all duration-200 shadow-[0_0_12px_var(--color-primary)]"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    {attempt > 1 && (
+                      <p className="text-[10px] uppercase tracking-widest text-primary/70">
+                        Tentativo {attempt}/3…
+                      </p>
+                    )}
+                  </div>
+                )}
+                {error && <p className="text-xs text-destructive">{error}</p>}
+              </div>
             )}
           </div>
         </motion.div>
