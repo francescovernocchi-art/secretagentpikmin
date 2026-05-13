@@ -14,7 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      memories: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          title: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          title: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          sender: string
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          sender: string
+          type?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          sender?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      missions: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          difficulty: string
+          id: string
+          proof: string | null
+          status: string
+          title: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          difficulty?: string
+          id?: string
+          proof?: string | null
+          status?: string
+          title: string
+          xp?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          difficulty?: string
+          id?: string
+          proof?: string | null
+          status?: string
+          title?: string
+          xp?: number
+        }
+        Relationships: []
+      }
+      rewards: {
+        Row: {
+          agent: string
+          badge: string
+          created_at: string
+          icon: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          agent?: string
+          badge: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          agent?: string
+          badge?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
