@@ -110,24 +110,58 @@ export function CameraCapture({
     setPreview(URL.createObjectURL(file));
   };
 
+  const uploadWithProgress = (path: string, blob: Blob) =>
+    new Promise<void>((resolve, reject) => {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/captures/${path}`;
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url, true);
+      xhr.setRequestHeader("Authorization", `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`);
+      xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+      xhr.setRequestHeader("x-upsert", "false");
+      xhr.setRequestHeader("Content-Type", blob.type || "image/jpeg");
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error(`HTTP ${xhr.status}: ${xhr.responseText}`));
+      };
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.ontimeout = () => reject(new Error("Timeout"));
+      xhr.timeout = 30000;
+      xhr.send(blob);
+    });
+
   const upload = async () => {
     if (!pendingBlob) return;
     setBusy(true);
-    try {
-      const ext = pendingBlob.type.includes("png") ? "png" : "jpg";
-      const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("captures")
-        .upload(path, pendingBlob, { contentType: pendingBlob.type || "image/jpeg", upsert: false });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from("captures").getPublicUrl(path);
-      onCaptured(data.publicUrl);
-      reset();
-      onClose();
-    } catch (e: any) {
-      setError(e?.message || "Upload fallito");
-    } finally {
-      setBusy(false);
+    setError(null);
+    setProgress(0);
+    const ext = pendingBlob.type.includes("png") ? "png" : "jpg";
+    const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const maxAttempts = 3;
+    for (let i = 1; i <= maxAttempts; i++) {
+      setAttempt(i);
+      try {
+        await uploadWithProgress(path, pendingBlob);
+        const { data } = supabase.storage.from("captures").getPublicUrl(path);
+        onCaptured(data.publicUrl);
+        setProgress(100);
+        reset();
+        setBusy(false);
+        setAttempt(0);
+        onClose();
+        return;
+      } catch (e: any) {
+        if (i === maxAttempts) {
+          setError(`${e?.message || "Upload fallito"} (dopo ${maxAttempts} tentativi)`);
+          setBusy(false);
+          setAttempt(0);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 600 * i));
+        setProgress(0);
+      }
     }
   };
 
