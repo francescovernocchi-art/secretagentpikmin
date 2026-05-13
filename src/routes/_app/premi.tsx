@@ -1,0 +1,96 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { getSession } from "@/lib/session";
+import { PageShell } from "@/components/PageShell";
+import { Plus, Trophy } from "lucide-react";
+
+export const Route = createFileRoute("/_app/premi")({
+  component: PremiPage,
+});
+
+interface Reward {
+  id: string;
+  agent: string;
+  badge: string;
+  title: string;
+  icon: string | null;
+  created_at: string;
+}
+
+const PRESETS = [
+  { title: "Esploratore Verde", icon: "🌿", badge: "explorer" },
+  { title: "Cercatore Pikmin", icon: "🟢", badge: "seeker" },
+  { title: "Agente Speciale", icon: "🕶️", badge: "agent" },
+  { title: "Custode della Base", icon: "🛡️", badge: "guardian" },
+];
+
+function PremiPage() {
+  const session = typeof window !== "undefined" ? getSession() : null;
+  const isAdmin = session?.role === "papa";
+  const [rewards, setRewards] = useState<Reward[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("rewards")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setRewards((data ?? []) as Reward[]));
+  }, []);
+
+  const grant = async (p: typeof PRESETS[number]) => {
+    const { data } = await supabase.from("rewards").insert({ ...p, agent: "lorenzo" }).select().single();
+    if (data) setRewards((r) => [data as Reward, ...r]);
+  };
+
+  return (
+    <PageShell title="Premi & Badge" subtitle="Onorificenze segrete">
+      <div className="panel-strong p-4 flex items-center gap-3">
+        <Trophy className="h-8 w-8 text-primary text-glow" />
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Totale</p>
+          <p className="font-display text-2xl text-glow">{rewards.length} medaglie</p>
+        </div>
+      </div>
+
+      {isAdmin && (
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Assegna premio</p>
+          <div className="grid grid-cols-2 gap-2">
+            {PRESETS.map((p) => (
+              <button key={p.title} onClick={() => grant(p)} className="panel p-3 text-left flex items-center gap-2">
+                <span className="text-2xl">{p.icon}</span>
+                <span className="text-sm">{p.title}</span>
+                <Plus className="h-4 w-4 ml-auto text-primary" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        {rewards.map((r, i) => (
+          <motion.div
+            key={r.id}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.04 }}
+            className="panel p-4 flex flex-col items-center text-center gap-2 glow-soft"
+          >
+            <span className="text-4xl animate-float-slow">{r.icon ?? "🏅"}</span>
+            <p className="font-display text-sm text-glow">{r.title}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {new Date(r.created_at).toLocaleDateString("it-IT")}
+            </p>
+          </motion.div>
+        ))}
+        {rewards.length === 0 && (
+          <p className="col-span-2 text-center text-xs text-muted-foreground py-10">
+            Nessun premio ancora. Completa missioni per sbloccarli.
+          </p>
+        )}
+      </div>
+    </PageShell>
+  );
+}
