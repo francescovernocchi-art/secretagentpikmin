@@ -4,9 +4,13 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { BottomNav } from "@/components/BottomNav";
+import { getSession } from "@/lib/session";
 
 import appCss from "../styles.css?url";
 
