@@ -31,6 +31,8 @@ export function CameraCapture({
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [attempt, setAttempt] = useState(0);
 
   // start / stop camera
   useEffect(() => {
