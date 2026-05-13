@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
-import { Plus, Heart } from "lucide-react";
+import { CameraCapture } from "@/components/CameraCapture";
+import { Plus, Heart, Camera } from "lucide-react";
 
 export const Route = createFileRoute("/ricordi")({
   component: RicordiPage,
@@ -22,6 +23,7 @@ function RicordiPage() {
   const session = typeof window !== "undefined" ? getSession() : null;
   const [memories, setMemories] = useState<Memory[]>([]);
   const [open, setOpen] = useState(false);
+  const [camOpen, setCamOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [image, setImage] = useState("");
@@ -67,15 +69,36 @@ function RicordiPage() {
             rows={3}
             className="w-full rounded-xl bg-night/60 border border-border px-3 py-2 text-sm outline-none focus:border-primary"
           />
-          <input
-            placeholder="URL foto (opzionale)"
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
-            className="w-full rounded-xl bg-night/60 border border-border px-3 py-2 text-sm outline-none focus:border-primary"
-          />
+          {image ? (
+            <div className="relative">
+              <img src={image} alt="anteprima" className="w-full rounded-xl border border-primary/30 max-h-48 object-cover" />
+              <button
+                onClick={() => setImage("")}
+                className="absolute top-2 right-2 panel px-2 py-1 text-[10px] uppercase tracking-widest"
+              >
+                Rimuovi
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setCamOpen(true)}
+              className="w-full panel p-3 flex items-center justify-center gap-2 text-sm text-primary"
+            >
+              <Camera className="h-4 w-4" /> Scatta una foto
+            </button>
+          )}
           <button onClick={create} className="btn-neon w-full py-2 text-sm">Salva ricordo</button>
         </motion.div>
       )}
+
+      <CameraCapture
+        open={camOpen}
+        onClose={() => setCamOpen(false)}
+        onCaptured={(url) => setImage(url)}
+        overlayLabel="// Ricordo"
+        folder="memories"
+      />
+
 
       <div className="relative pl-5">
         <span className="absolute left-2 top-2 bottom-2 w-px bg-primary/30" />

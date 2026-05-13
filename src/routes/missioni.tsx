@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
-import { Plus, Check, Trophy, Sparkles, X } from "lucide-react";
+import { CameraCapture } from "@/components/CameraCapture";
+import { Plus, Check, Trophy, Sparkles, X, Camera } from "lucide-react";
 
 export const Route = createFileRoute("/missioni")({
   component: MissioniPage,
@@ -113,9 +114,20 @@ function MissioniPage() {
                   <h3 className="font-display text-lg text-glow leading-tight">{m.title}</h3>
                   {m.description && <p className="text-sm text-muted-foreground mt-1">{m.description}</p>}
                   {m.proof && (
-                    <p className="text-xs text-primary mt-2 flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" /> Prova: {m.proof}
-                    </p>
+                    <div className="mt-2">
+                      <p className="text-xs text-primary flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" /> Prova
+                      </p>
+                      {m.proof.startsWith("http") ? (
+                        <img
+                          src={m.proof}
+                          alt="prova"
+                          className="mt-1 rounded-lg border border-primary/30 max-h-40 object-cover"
+                        />
+                      ) : (
+                        <p className="text-xs text-muted-foreground">{m.proof}</p>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="text-right">
@@ -189,6 +201,7 @@ function StatusBadge({ s }: { s: string }) {
 function CompleteButton({ onComplete }: { onComplete: (proof: string) => void }) {
   const [proof, setProof] = useState("");
   const [open, setOpen] = useState(false);
+  const [camOpen, setCamOpen] = useState(false);
   if (!open)
     return (
       <button onClick={() => setOpen(true)} className="btn-neon px-3 py-1.5 text-xs flex items-center gap-1">
@@ -196,16 +209,35 @@ function CompleteButton({ onComplete }: { onComplete: (proof: string) => void })
       </button>
     );
   return (
-    <div className="w-full flex gap-2">
-      <input
-        value={proof}
-        onChange={(e) => setProof(e.target.value)}
-        placeholder="Prova della missione…"
-        className="flex-1 rounded-lg bg-night/60 border border-border px-2 py-1.5 text-xs outline-none focus:border-primary"
+    <div className="w-full space-y-2">
+      {proof.startsWith("http") && (
+        <img src={proof} alt="prova" className="rounded-lg border border-primary/30 max-h-32 object-cover" />
+      )}
+      <div className="flex gap-2">
+        <input
+          value={proof.startsWith("http") ? "📷 foto allegata" : proof}
+          onChange={(e) => setProof(e.target.value)}
+          placeholder="Prova della missione…"
+          className="flex-1 rounded-lg bg-night/60 border border-border px-2 py-1.5 text-xs outline-none focus:border-primary"
+        />
+        <button
+          onClick={() => setCamOpen(true)}
+          className="panel px-2 text-primary"
+          aria-label="Foto"
+        >
+          <Camera className="h-4 w-4" />
+        </button>
+        <button onClick={() => proof && onComplete(proof)} className="btn-neon px-3 text-xs">
+          OK
+        </button>
+      </div>
+      <CameraCapture
+        open={camOpen}
+        onClose={() => setCamOpen(false)}
+        onCaptured={(url) => setProof(url)}
+        overlayLabel="// Prova missione"
+        folder="missions"
       />
-      <button onClick={() => proof && onComplete(proof)} className="btn-neon px-3 text-xs">
-        OK
-      </button>
     </div>
   );
 }
