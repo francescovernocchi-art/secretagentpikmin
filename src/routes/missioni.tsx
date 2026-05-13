@@ -6,7 +6,7 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { Plus, Check, Trophy, Sparkles, X } from "lucide-react";
 
-export const Route = createFileRoute("/_app/missioni")({
+export const Route = createFileRoute("/missioni")({
   component: MissioniPage,
 });
 

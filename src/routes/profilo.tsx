@@ -5,7 +5,7 @@ import { getSession, clearSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { LogOut, Shield } from "lucide-react";
 
-export const Route = createFileRoute("/_app/profilo")({
+export const Route = createFileRoute("/profilo")({
   component: ProfiloPage,
 });
 
