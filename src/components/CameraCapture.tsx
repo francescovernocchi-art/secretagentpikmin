@@ -255,19 +255,41 @@ export function CameraCapture({
                 />
               </>
             ) : (
-              <>
-                <button onClick={reset} className="panel px-4 py-3 text-sm text-muted-foreground flex items-center gap-2">
-                  <RefreshCcw className="h-4 w-4" /> Rifai
-                </button>
-                <button
-                  onClick={upload}
-                  disabled={busy}
-                  className="btn-neon flex-1 py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
-                >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  {busy ? "Caricamento…" : "Conferma"}
-                </button>
-              </>
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={reset}
+                    disabled={busy}
+                    className="panel px-4 py-3 text-sm text-muted-foreground flex items-center gap-2 disabled:opacity-40"
+                  >
+                    <RefreshCcw className="h-4 w-4" /> Rifai
+                  </button>
+                  <button
+                    onClick={upload}
+                    disabled={busy}
+                    className="btn-neon flex-1 py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    {busy ? `Caricamento… ${progress}%` : "Conferma"}
+                  </button>
+                </div>
+                {busy && (
+                  <div className="space-y-1">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/15">
+                      <div
+                        className="h-full bg-primary transition-all duration-200 shadow-[0_0_12px_var(--color-primary)]"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    {attempt > 1 && (
+                      <p className="text-[10px] uppercase tracking-widest text-primary/70">
+                        Tentativo {attempt}/3…
+                      </p>
+                    )}
+                  </div>
+                )}
+                {error && <p className="text-xs text-destructive">{error}</p>}
+              </div>
             )}
           </div>
         </motion.div>
