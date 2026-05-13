@@ -6,7 +6,7 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { Send, Mic, Sparkles } from "lucide-react";
 
-export const Route = createFileRoute("/_app/chat")({
+export const Route = createFileRoute("/chat")({
   component: ChatPage,
 });
 
