@@ -9,38 +9,141 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRicordiRouteImport } from './routes/_app/ricordi'
+import { Route as AppRadarRouteImport } from './routes/_app/radar'
+import { Route as AppProfiloRouteImport } from './routes/_app/profilo'
+import { Route as AppPremiRouteImport } from './routes/_app/premi'
+import { Route as AppMissioniRouteImport } from './routes/_app/missioni'
+import { Route as AppChatRouteImport } from './routes/_app/chat'
+import { Route as AppBaseRouteImport } from './routes/_app/base'
 
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRicordiRoute = AppRicordiRouteImport.update({
+  id: '/ricordi',
+  path: '/ricordi',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRadarRoute = AppRadarRouteImport.update({
+  id: '/radar',
+  path: '/radar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfiloRoute = AppProfiloRouteImport.update({
+  id: '/profilo',
+  path: '/profilo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPremiRoute = AppPremiRouteImport.update({
+  id: '/premi',
+  path: '/premi',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMissioniRoute = AppMissioniRouteImport.update({
+  id: '/missioni',
+  path: '/missioni',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChatRoute = AppChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBaseRoute = AppBaseRouteImport.update({
+  id: '/base',
+  path: '/base',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/base': typeof AppBaseRoute
+  '/chat': typeof AppChatRoute
+  '/missioni': typeof AppMissioniRoute
+  '/premi': typeof AppPremiRoute
+  '/profilo': typeof AppProfiloRoute
+  '/radar': typeof AppRadarRoute
+  '/ricordi': typeof AppRicordiRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/base': typeof AppBaseRoute
+  '/chat': typeof AppChatRoute
+  '/missioni': typeof AppMissioniRoute
+  '/premi': typeof AppPremiRoute
+  '/profilo': typeof AppProfiloRoute
+  '/radar': typeof AppRadarRoute
+  '/ricordi': typeof AppRicordiRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/base': typeof AppBaseRoute
+  '/_app/chat': typeof AppChatRoute
+  '/_app/missioni': typeof AppMissioniRoute
+  '/_app/premi': typeof AppPremiRoute
+  '/_app/profilo': typeof AppProfiloRoute
+  '/_app/radar': typeof AppRadarRoute
+  '/_app/ricordi': typeof AppRicordiRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/base'
+    | '/chat'
+    | '/missioni'
+    | '/premi'
+    | '/profilo'
+    | '/radar'
+    | '/ricordi'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/base'
+    | '/chat'
+    | '/missioni'
+    | '/premi'
+    | '/profilo'
+    | '/radar'
+    | '/ricordi'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/_app/base'
+    | '/_app/chat'
+    | '/_app/missioni'
+    | '/_app/premi'
+    | '/_app/profilo'
+    | '/_app/radar'
+    | '/_app/ricordi'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +151,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/ricordi': {
+      id: '/_app/ricordi'
+      path: '/ricordi'
+      fullPath: '/ricordi'
+      preLoaderRoute: typeof AppRicordiRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/radar': {
+      id: '/_app/radar'
+      path: '/radar'
+      fullPath: '/radar'
+      preLoaderRoute: typeof AppRadarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profilo': {
+      id: '/_app/profilo'
+      path: '/profilo'
+      fullPath: '/profilo'
+      preLoaderRoute: typeof AppProfiloRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/premi': {
+      id: '/_app/premi'
+      path: '/premi'
+      fullPath: '/premi'
+      preLoaderRoute: typeof AppPremiRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/missioni': {
+      id: '/_app/missioni'
+      path: '/missioni'
+      fullPath: '/missioni'
+      preLoaderRoute: typeof AppMissioniRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/chat': {
+      id: '/_app/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof AppChatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/base': {
+      id: '/_app/base'
+      path: '/base'
+      fullPath: '/base'
+      preLoaderRoute: typeof AppBaseRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppBaseRoute: typeof AppBaseRoute
+  AppChatRoute: typeof AppChatRoute
+  AppMissioniRoute: typeof AppMissioniRoute
+  AppPremiRoute: typeof AppPremiRoute
+  AppProfiloRoute: typeof AppProfiloRoute
+  AppRadarRoute: typeof AppRadarRoute
+  AppRicordiRoute: typeof AppRicordiRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppBaseRoute: AppBaseRoute,
+  AppChatRoute: AppChatRoute,
+  AppMissioniRoute: AppMissioniRoute,
+  AppPremiRoute: AppPremiRoute,
+  AppProfiloRoute: AppProfiloRoute,
+  AppRadarRoute: AppRadarRoute,
+  AppRicordiRoute: AppRicordiRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
