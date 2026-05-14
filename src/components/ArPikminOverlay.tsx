@@ -62,12 +62,18 @@ function pickKind(): TargetKind {
   return "mission";
 }
 
-function pickTarget(baselineAlpha: number, ingredientPool: IngredientRow[]): Target {
+function pickTarget(
+  baselineAlpha: number,
+  ingredientPool: IngredientRow[],
+  opts: { centered?: boolean } = {},
+): Target {
   const kind = pickKind();
-  const offset = (Math.random() * 140 - 70 + 360) % 360;
+  // Primo target: davanti all'utente (offset 0). Successivi: ±18° così
+  // restano nel frame (la finestra visibile è ±22°) e l'utente li trova subito.
+  const offset = opts.centered ? 0 : Math.random() * 36 - 18;
   const base = {
-    alpha: (baselineAlpha + offset) % 360,
-    beta: Math.random() * 24 - 12,
+    alpha: ((baselineAlpha + offset) % 360 + 360) % 360,
+    beta: opts.centered ? 0 : Math.random() * 12 - 6,
   };
   if (kind === "pikmin") {
     const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
