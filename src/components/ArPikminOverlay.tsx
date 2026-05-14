@@ -121,9 +121,12 @@ export function ArPikminOverlay() {
   // Watchdog interval id
   const watchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [stalled, setStalled] = useState(false);
+  // Pool ingredienti caricato dal DB (con fallback statico)
+  const ingredientPoolRef = useRef<IngredientRow[]>(FALLBACK_INGREDIENTS);
+  const [grantBusy, setGrantBusy] = useState(false);
 
   const spawnTarget = (baselineAlpha: number) => {
-    const t = pickTarget(baselineAlpha);
+    const t = pickTarget(baselineAlpha, ingredientPoolRef.current);
     targetBornAtRef.current = Date.now();
     lastSeenAtRef.current = 0;
     setTarget(t);
@@ -181,7 +184,7 @@ export function ArPikminOverlay() {
         const lookingAway = lock < 0.15 && Math.abs(dA) > 60;
 
         if (aged && cooledDown && lookingAway) {
-          const fresh = pickTarget(baselineRef.current ?? alpha);
+          const fresh = pickTarget(baselineRef.current ?? alpha, ingredientPoolRef.current);
           targetBornAtRef.current = now;
           lastSeenAtRef.current = 0;
           return fresh;
@@ -219,7 +222,7 @@ export function ArPikminOverlay() {
           setNoSensor(true);
           if (!target) {
             const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
-            setTarget({ src: p.src, name: p.name, alpha: 0, beta: 0 });
+            setTarget({ kind: "pikmin", src: p.src, name: p.name, alpha: 0, beta: 0 });
           }
           setPos({ x: 30 + Math.random() * 40, y: 30 + Math.random() * 30, visible: true, lock: 1 });
         }
@@ -250,7 +253,7 @@ export function ArPikminOverlay() {
         // Nessun sensore disponibile → fallback statico
         setNoSensor(true);
         const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
-        setTarget({ src: p.src, name: p.name, alpha: 0, beta: 0 });
+        setTarget({ kind: "pikmin", src: p.src, name: p.name, alpha: 0, beta: 0 });
         setPos({ x: 30 + Math.random() * 40, y: 30 + Math.random() * 30, visible: true, lock: 1 });
       }
     }, 1800);
