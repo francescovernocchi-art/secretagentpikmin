@@ -656,6 +656,7 @@ function MappaPage() {
     <PageShell
       title="Mappa Drop"
       subtitle={isPapa ? "Piazza drop sul territorio" : "Localizza e recupera i drop del Comandante"}
+      action={<PikminCounter compact />}
     >
       <div className="space-y-3">
         {/* Mappa */}
