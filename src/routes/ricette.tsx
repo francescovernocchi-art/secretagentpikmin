@@ -117,6 +117,11 @@ function RecipesPage() {
         { event: "*", schema: "public", table: "recipes" },
         () => load(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "recipe_unlocks" },
+        () => load(),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
