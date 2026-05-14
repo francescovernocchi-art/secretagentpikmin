@@ -121,6 +121,10 @@ export function ArPikminOverlay() {
   // Watchdog interval id
   const watchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [stalled, setStalled] = useState(false);
+  // Ultima bussola valida ricevuta (per ricalibrare in foreground senza salti)
+  const lastValidAlphaRef = useRef<number | null>(null);
+  // Quando true, il prossimo evento allinea baseline+target all'ultima bussola
+  const pendingSoftRecalibrateRef = useRef(false);
   // Pool ingredienti caricato dal DB (con fallback statico)
   const ingredientPoolRef = useRef<IngredientRow[]>(FALLBACK_INGREDIENTS);
   const [grantBusy, setGrantBusy] = useState(false);
@@ -160,9 +164,26 @@ export function ArPikminOverlay() {
 
       if (baselineRef.current == null) {
         baselineRef.current = alpha;
+        lastValidAlphaRef.current = alpha;
         spawnTarget(alpha);
         return;
       }
+
+      // Soft recalibrate: il device era in background o i sensori si sono
+      // resettati. Riallineiamo baseline + target.alpha al drift della
+      // bussola così il Pikmin resta dove l'utente lo stava guardando.
+      if (pendingSoftRecalibrateRef.current && lastValidAlphaRef.current != null) {
+        const drift = deltaDeg(alpha, lastValidAlphaRef.current); // alpha - last
+        if (Math.abs(drift) > 0.5) {
+          baselineRef.current = ((baselineRef.current + drift) % 360 + 360) % 360;
+          setTarget((t) =>
+            t ? { ...t, alpha: ((t.alpha + drift) % 360 + 360) % 360 } : t,
+          );
+        }
+        pendingSoftRecalibrateRef.current = false;
+      }
+
+      lastValidAlphaRef.current = alpha;
       setTarget((t) => {
         if (!t) return t;
         const dA = deltaDeg(alpha, t.alpha); // - = ruotare a destra
@@ -232,8 +253,15 @@ export function ArPikminOverlay() {
 
   const handleVisibility = () => {
     if (document.visibilityState !== "visible") return;
-    // tornando in foreground iOS spesso "perde" l'orientamento: reset baseline
-    baselineRef.current = null;
+    // Tornando in foreground iOS spesso "perde" l'orientamento.
+    // Invece di azzerare baseline (che farebbe saltare il Pikmin in una
+    // posizione casuale), chiediamo una ricalibrazione "morbida": al primo
+    // nuovo evento allineiamo baseline e target.alpha al drift della bussola.
+    if (baselineRef.current != null && lastValidAlphaRef.current != null) {
+      pendingSoftRecalibrateRef.current = true;
+    } else {
+      baselineRef.current = null;
+    }
     lastEventAtRef.current = Date.now();
     attach();
   };
