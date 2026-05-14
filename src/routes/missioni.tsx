@@ -25,6 +25,7 @@ interface Mission {
   created_at: string;
   created_by: string;
   reward_part_key: string | null;
+  coin_reward: number;
 }
 
 interface ShipPartLite {
