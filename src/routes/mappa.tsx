@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { grantIngredients } from "@/lib/ingredients";
 import { collectShipPart } from "@/lib/ship";
+import { spendPikmin, pikminCostFor, RARITY_LABEL, RARITY_COLOR } from "@/lib/pikmin";
+import { PikminCounter } from "@/components/PikminCounter";
 import "leaflet/dist/leaflet.css";
 
 export const Route = createFileRoute("/mappa")({
@@ -96,7 +98,7 @@ function MappaPage() {
   };
   const [agentPositions, setAgentPositions] = useState<AgentPos[]>([]);
 
-  type ShipPartLite = { key: string; name: string; emoji: string };
+  type ShipPartLite = { key: string; name: string; emoji: string; rarity: string };
   const [shipParts, setShipParts] = useState<ShipPartLite[]>([]);
   const [collectedPartKeys, setCollectedPartKeys] = useState<Set<string>>(new Set());
 
@@ -291,7 +293,7 @@ function MappaPage() {
   useEffect(() => {
     const load = async () => {
       const [{ data: parts }, { data: got }] = await Promise.all([
-        supabase.from("ship_parts").select("key, name, emoji").order("sort_order"),
+        supabase.from("ship_parts").select("key, name, emoji, rarity").order("sort_order"),
         supabase.from("ship_parts_collected").select("part_key"),
       ]);
       setShipParts((parts ?? []) as ShipPartLite[]);
@@ -456,6 +458,7 @@ function MappaPage() {
     name: string;
     payload_key: string | null;
     xp: number;
+    rarity?: string;
   };
   const allTemplates: DropTpl[] = useMemo(() => {
     const baseTpls = DROP_TEMPLATES.map((t) => ({ ...t })) as DropTpl[];
@@ -467,6 +470,7 @@ function MappaPage() {
         name: p.name,
         payload_key: p.key,
         xp: 40,
+        rarity: p.rarity,
       }));
     return [...baseTpls, ...shipTpls];
   }, [shipParts, collectedPartKeys]);
@@ -519,6 +523,27 @@ function MappaPage() {
         return;
       }
     }
+
+    // Pre-check Pikmin per i pezzi navicella: serve un costo in base alla rarità
+    let shipCost = 0;
+    let shipPartMeta: ShipPartLite | undefined;
+    if (d.kind === "ship_part" && d.payload_key) {
+      shipPartMeta = shipParts.find((p) => p.key === d.payload_key);
+      shipCost = pikminCostFor(shipPartMeta?.rarity);
+      const ok = confirm(
+        `Per recuperare "${d.name}" servono ${shipCost} 🌱 Pikmin (rarità ${RARITY_LABEL[shipPartMeta?.rarity ?? "comune"]}).\n\nSpedire la squadra?`,
+      );
+      if (!ok) return;
+      try {
+        await spendPikmin(shipCost, "ship_part", role, { drop_id: d.id, part_key: d.payload_key });
+      } catch (e: any) {
+        toast.error("Pikmin insufficienti", {
+          description: e?.message ?? `Servono ${shipCost} 🌱 Pikmin per spedire la squadra.`,
+        });
+        return;
+      }
+    }
+
     setCollecting(d.id);
     try {
       const { error } = await supabase
@@ -555,7 +580,9 @@ function MappaPage() {
             dropId: d.id,
           });
           if (!res.alreadyCollected) {
-            toast.success(`🚀 Pezzo navicella recuperato: ${d.emoji} ${d.name}`);
+            toast.success(`🚀 Pezzo navicella recuperato: ${d.emoji} ${d.name}`, {
+              description: `Squadra spedita: −${shipCost} 🌱 Pikmin`,
+            });
             navigator.vibrate?.([80, 60, 80, 60, 200]);
           }
         } catch (e: any) {
@@ -629,6 +656,7 @@ function MappaPage() {
     <PageShell
       title="Mappa Drop"
       subtitle={isPapa ? "Piazza drop sul territorio" : "Localizza e recupera i drop del Comandante"}
+      action={<PikminCounter compact />}
     >
       <div className="space-y-3">
         {/* Mappa */}
@@ -825,7 +853,9 @@ function MappaPage() {
                     {currentTpl.emoji} {currentTpl.name}
                   </b>
                   <span className="text-muted-foreground">
-                    {currentTpl.kind === "ship_part" ? " · pezzo navicella · raggio 5m" : " · raggio 5m"}
+                    {currentTpl.kind === "ship_part"
+                      ? ` · pezzo ${RARITY_LABEL[currentTpl.rarity ?? "comune"].toLowerCase()} · costo ${pikminCostFor(currentTpl.rarity)} 🌱 · raggio 5m`
+                      : " · raggio 5m"}
                   </span>
                 </p>
               )}
@@ -896,7 +926,14 @@ function MappaPage() {
                 >
                   <span className="text-2xl">{d.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground truncate">{d.name}</p>
+                    <p className="text-sm text-foreground truncate flex items-center gap-1.5">
+                      {d.name}
+                      {d.kind === "ship_part" && d.payload_key && (
+                        <span className={`text-[9px] uppercase tracking-wider ${RARITY_COLOR[shipParts.find((p) => p.key === d.payload_key)?.rarity ?? "comune"]}`}>
+                          🚀 {pikminCostFor(shipParts.find((p) => p.key === d.payload_key)?.rarity)} 🌱
+                        </span>
+                      )}
+                    </p>
                     <p className="text-[10px] text-muted-foreground">
                       {Math.round(dist)}m {inRange ? "· nel raggio!" : `· entro ${d.radius_m}m`}
                       {fuzzy ? ` · GPS ±${Math.round(acc)}m` : ""}

@@ -10,6 +10,8 @@ import { consumeIngredient, grantIngredients } from "@/lib/ingredients";
 import { inventDiscovery } from "@/lib/lab.functions";
 import { ResultIcon } from "@/components/ResultIcon";
 import { IconGalleryPicker } from "@/components/IconGalleryPicker";
+import { addPikmin } from "@/lib/pikmin";
+import { PikminCounter } from "@/components/PikminCounter";
 import { FlaskConical, Sparkles, X, Plus, BookPlus, BookOpen, Upload } from "lucide-react";
 import {
   AlertDialog,
@@ -260,6 +262,10 @@ function LabPage() {
       if (saved) {
         setFlash(saved as Discovery);
         setDiscoveries((d) => [saved as Discovery, ...d]);
+        // Bonus pikmin per la squadra: +3 se è una scoperta nuova (AI), +1 da ricetta nota
+        try {
+          await addPikmin(result.is_ai ? 3 : 1, "lab", agent, { discovery_id: (saved as any).id });
+        } catch {}
       }
       setSlots([]);
       await load();
@@ -292,6 +298,7 @@ function LabPage() {
       subtitle="Esperimenti segreti · combina ingredienti"
       action={
         <div className="flex items-center gap-2">
+          <PikminCounter compact />
           <Link
             to="/ricette"
             className="panel px-3 py-2 text-xs flex items-center gap-1"

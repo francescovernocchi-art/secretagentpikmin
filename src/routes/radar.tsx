@@ -6,6 +6,9 @@ import { Radar } from "@/components/Radar";
 import { CameraCapture } from "@/components/CameraCapture";
 import { supabase } from "@/integrations/supabase/client";
 import { grantIngredients, rollIngredients } from "@/lib/ingredients";
+import { addPikmin } from "@/lib/pikmin";
+import { getSession } from "@/lib/session";
+import { PikminCounter } from "@/components/PikminCounter";
 import { Camera, ScanLine, Sparkles, FlaskConical } from "lucide-react";
 
 export const Route = createFileRoute("/radar")({
@@ -40,10 +43,19 @@ function RadarPage() {
     const newDrops = rollIngredients("radar");
     await grantIngredients("lorenzo", newDrops);
     setDrops(newDrops);
+    // +1 Pikmin alla squadra
+    const session = getSession();
+    try {
+      await addPikmin(1, "radar", session?.name ?? "lorenzo");
+    } catch {}
   };
 
   return (
-    <PageShell title="Radar Pikmin" subtitle="Scanner di prossimità · live">
+    <PageShell
+      title="Radar Pikmin"
+      subtitle="Scanner di prossimità · live"
+      action={<PikminCounter compact />}
+    >
       <div className="panel-strong scanline relative overflow-hidden p-6 flex flex-col items-center gap-4">
         <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">// Scansione zona</p>
         <Radar size={260} />

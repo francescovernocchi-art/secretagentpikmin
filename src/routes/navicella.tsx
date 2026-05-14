@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
+import { PikminCounter } from "@/components/PikminCounter";
+import { pikminCostFor, RARITY_LABEL, RARITY_COLOR } from "@/lib/pikmin";
 import { Rocket, Plus, Pencil, Trash2, X, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -28,6 +30,7 @@ interface Part {
   emoji: string;
   description: string | null;
   sort_order: number;
+  rarity: string;
 }
 
 interface Collected {
@@ -82,14 +85,17 @@ function ShipPage() {
       title="Navicella"
       subtitle="Recupera i pezzi · ripara per partire"
       action={
-        isPapa && (
-          <button
-            onClick={() => setCreating(true)}
-            className="btn-neon px-3 py-2 text-xs flex items-center gap-1"
-          >
-            <Plus className="h-4 w-4" /> Pezzo
-          </button>
-        )
+        <div className="flex items-center gap-2">
+          <PikminCounter compact />
+          {isPapa && (
+            <button
+              onClick={() => setCreating(true)}
+              className="btn-neon px-3 py-2 text-xs flex items-center gap-1"
+            >
+              <Plus className="h-4 w-4" /> Pezzo
+            </button>
+          )}
+        </div>
       }
     >
       {/* Stato navicella */}
@@ -175,6 +181,10 @@ function ShipPage() {
                 <p className="font-display text-sm text-glow leading-tight truncate">
                   {p.name}
                 </p>
+                <p className={`text-[9px] uppercase tracking-wider flex items-center gap-1 ${RARITY_COLOR[p.rarity ?? "comune"]}`}>
+                  <span>{RARITY_LABEL[p.rarity ?? "comune"]}</span>
+                  <span className="text-muted-foreground">· {pikminCostFor(p.rarity)} 🌱</span>
+                </p>
                 {p.description && (
                   <p className="text-[10px] text-muted-foreground line-clamp-2">
                     {p.description}
@@ -236,6 +246,7 @@ function PartEditor({
   const [emoji, setEmoji] = useState(part?.emoji ?? "🛠️");
   const [description, setDescription] = useState(part?.description ?? "");
   const [sortOrder, setSortOrder] = useState(part?.sort_order ?? existing.length + 1);
+  const [rarity, setRarity] = useState<string>(part?.rarity ?? "comune");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -249,6 +260,7 @@ function PartEditor({
     if (!name.trim() || name.trim().length > 60) return "Nome richiesto (max 60).";
     if (!emoji.trim() || emoji.trim().length > 8) return "Emoji richiesta (max 8 caratteri).";
     if (description.trim().length > 200) return "Descrizione max 200 caratteri.";
+    if (!["comune", "raro", "leggendario"].includes(rarity)) return "Rarità non valida.";
     return null;
   };
 
@@ -266,6 +278,7 @@ function PartEditor({
       emoji: emoji.trim(),
       description: description.trim() || null,
       sort_order: Number(sortOrder) || 0,
+      rarity,
     };
     const { error: dbErr } = isNew
       ? await supabase.from("ship_parts").insert(payload)
@@ -355,6 +368,28 @@ function PartEditor({
             rows={2}
             className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm resize-none"
           />
+        </Field>
+
+        <Field label="Rarità · costo Pikmin per recuperarlo">
+          <div className="grid grid-cols-3 gap-1.5">
+            {(["comune", "raro", "leggendario"] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRarity(r)}
+                className={`rounded-lg border px-2 py-2 text-[11px] flex flex-col items-center gap-0.5 ${
+                  rarity === r
+                    ? "border-primary bg-primary/15 text-glow"
+                    : "border-primary/15 bg-night/60 text-muted-foreground"
+                }`}
+              >
+                <span className={`uppercase tracking-wider ${RARITY_COLOR[r]}`}>
+                  {RARITY_LABEL[r]}
+                </span>
+                <span className="text-foreground">{pikminCostFor(r)} 🌱</span>
+              </button>
+            ))}
+          </div>
         </Field>
 
         <Field label={`Ordine (${sortOrder})`}>
