@@ -16,6 +16,7 @@ import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PremiRouteImport } from './routes/premi'
 import { Route as NavicellaRouteImport } from './routes/navicella'
 import { Route as MissioniRouteImport } from './routes/missioni'
+import { Route as MercatoRouteImport } from './routes/mercato'
 import { Route as MappaRouteImport } from './routes/mappa'
 import { Route as LabRouteImport } from './routes/lab'
 import { Route as InventarioRouteImport } from './routes/inventario'
@@ -57,6 +58,11 @@ const NavicellaRoute = NavicellaRouteImport.update({
 const MissioniRoute = MissioniRouteImport.update({
   id: '/missioni',
   path: '/missioni',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MercatoRoute = MercatoRouteImport.update({
+  id: '/mercato',
+  path: '/mercato',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MappaRoute = MappaRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
+  '/mercato': typeof MercatoRoute
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
   '/premi': typeof PremiRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
+  '/mercato': typeof MercatoRoute
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
   '/premi': typeof PremiRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
+  '/mercato': typeof MercatoRoute
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
   '/premi': typeof PremiRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/inventario'
     | '/lab'
     | '/mappa'
+    | '/mercato'
     | '/missioni'
     | '/navicella'
     | '/premi'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/inventario'
     | '/lab'
     | '/mappa'
+    | '/mercato'
     | '/missioni'
     | '/navicella'
     | '/premi'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/inventario'
     | '/lab'
     | '/mappa'
+    | '/mercato'
     | '/missioni'
     | '/navicella'
     | '/premi'
@@ -203,6 +215,7 @@ export interface RootRouteChildren {
   InventarioRoute: typeof InventarioRoute
   LabRoute: typeof LabRoute
   MappaRoute: typeof MappaRoute
+  MercatoRoute: typeof MercatoRoute
   MissioniRoute: typeof MissioniRoute
   NavicellaRoute: typeof NavicellaRoute
   PremiRoute: typeof PremiRoute
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/missioni'
       fullPath: '/missioni'
       preLoaderRoute: typeof MissioniRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mercato': {
+      id: '/mercato'
+      path: '/mercato'
+      fullPath: '/mercato'
+      preLoaderRoute: typeof MercatoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mappa': {
@@ -323,6 +343,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventarioRoute: InventarioRoute,
   LabRoute: LabRoute,
   MappaRoute: MappaRoute,
+  MercatoRoute: MercatoRoute,
   MissioniRoute: MissioniRoute,
   NavicellaRoute: NavicellaRoute,
   PremiRoute: PremiRoute,

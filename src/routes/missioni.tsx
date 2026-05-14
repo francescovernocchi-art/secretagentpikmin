@@ -7,7 +7,8 @@ import { PageShell } from "@/components/PageShell";
 import { CameraCapture } from "@/components/CameraCapture";
 import { grantIngredients, rollIngredients } from "@/lib/ingredients";
 import { collectShipPart } from "@/lib/ship";
-import { Plus, Check, Trophy, Sparkles, X, Camera, Rocket } from "lucide-react";
+import { addCoins } from "@/lib/coins";
+import { Plus, Check, Trophy, Sparkles, X, Camera, Rocket, Coins } from "lucide-react";
 
 export const Route = createFileRoute("/missioni")({
   component: MissioniPage,
@@ -24,6 +25,7 @@ interface Mission {
   created_at: string;
   created_by: string;
   reward_part_key: string | null;
+  coin_reward: number;
 }
 
 interface ShipPartLite {
@@ -154,6 +156,11 @@ function MissioniPage() {
                 <div className="text-right">
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">XP</p>
                   <p className="font-display text-xl text-primary text-glow">+{m.xp}</p>
+                  {m.coin_reward > 0 && (
+                    <p className="mt-1 text-[10px] text-amber-300 flex items-center gap-1 justify-end">
+                      <Coins className="h-3 w-3" /> +{m.coin_reward}
+                    </p>
+                  )}
                   {partByKey(m.reward_part_key) && (
                     <p className="mt-1 text-[10px] text-amber-300 flex items-center gap-1 justify-end">
                       <Rocket className="h-3 w-3" />
@@ -184,6 +191,9 @@ function MissioniPage() {
                       });
                       const drops = rollIngredients("mission");
                       await grantIngredients("lorenzo", drops);
+                      if (m.coin_reward > 0) {
+                        await addCoins("lorenzo", m.coin_reward, "mission_reward", { mission_id: m.id });
+                      }
                       if (m.reward_part_key) {
                         try {
                           await collectShipPart({
@@ -301,6 +311,7 @@ function NewMissionSheet({
   const [xp, setXp] = useState(20);
   const [difficulty, setDifficulty] = useState("facile");
   const [rewardPartKey, setRewardPartKey] = useState<string>("");
+  const [coinReward, setCoinReward] = useState<number>(10);
 
   const create = async (preset?: typeof SAMPLES[number]) => {
     const payload = preset ?? { title, description, xp, difficulty };
@@ -310,6 +321,7 @@ function NewMissionSheet({
       status: "nuova",
       created_by: "papa",
       reward_part_key: !preset && rewardPartKey ? rewardPartKey : null,
+      coin_reward: !preset ? coinReward : 5,
     });
     onClose();
   };
@@ -370,6 +382,16 @@ function NewMissionSheet({
             </select>
           </label>
         </div>
+        <label className="block text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><Coins className="h-3 w-3 text-amber-300" /> Monete in premio</span>
+          <input
+            type="number"
+            min={0}
+            value={coinReward}
+            onChange={(e) => setCoinReward(Math.max(0, Number(e.target.value)))}
+            className="mt-1 w-full rounded-xl bg-night/60 border border-border px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+        </label>
         {availableParts.length > 0 && (
           <label className="block text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><Rocket className="h-3 w-3 text-amber-300" /> Ricompensa: pezzo navicella (opzionale)</span>
