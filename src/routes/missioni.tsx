@@ -7,7 +7,8 @@ import { PageShell } from "@/components/PageShell";
 import { CameraCapture } from "@/components/CameraCapture";
 import { grantIngredients, rollIngredients } from "@/lib/ingredients";
 import { collectShipPart } from "@/lib/ship";
-import { Plus, Check, Trophy, Sparkles, X, Camera, Rocket } from "lucide-react";
+import { addCoins } from "@/lib/coins";
+import { Plus, Check, Trophy, Sparkles, X, Camera, Rocket, Coins } from "lucide-react";
 
 export const Route = createFileRoute("/missioni")({
   component: MissioniPage,
