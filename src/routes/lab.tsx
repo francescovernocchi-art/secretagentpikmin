@@ -9,6 +9,7 @@ import { PageShell } from "@/components/PageShell";
 import { consumeIngredient, grantIngredients } from "@/lib/ingredients";
 import { inventDiscovery } from "@/lib/lab.functions";
 import { ResultIcon } from "@/components/ResultIcon";
+import { IconGalleryPicker } from "@/components/IconGalleryPicker";
 import { FlaskConical, Sparkles, X, Plus, BookPlus, BookOpen, Upload } from "lucide-react";
 import {
   AlertDialog,
