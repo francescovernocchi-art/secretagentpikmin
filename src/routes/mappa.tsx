@@ -852,7 +852,9 @@ function MappaPage() {
                     {currentTpl.emoji} {currentTpl.name}
                   </b>
                   <span className="text-muted-foreground">
-                    {currentTpl.kind === "ship_part" ? " · pezzo navicella · raggio 5m" : " · raggio 5m"}
+                    {currentTpl.kind === "ship_part"
+                      ? ` · pezzo ${RARITY_LABEL[currentTpl.rarity ?? "comune"].toLowerCase()} · costo ${pikminCostFor(currentTpl.rarity)} 🌱 · raggio 5m`
+                      : " · raggio 5m"}
                   </span>
                 </p>
               )}
