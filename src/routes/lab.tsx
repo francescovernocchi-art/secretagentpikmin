@@ -667,17 +667,27 @@ function IngredientSelect({
   );
 }
 
-function Slot({ ing, onClear }: { ing: Ingredient | null; onClear: () => void }) {
+function Slot({
+  ing,
+  onClear,
+  compact = false,
+}: {
+  ing: Ingredient | null;
+  onClear: () => void;
+  compact?: boolean;
+}) {
+  const size = compact ? "h-20 w-20" : "h-24 w-24";
+  const emojiSize = compact ? "text-3xl" : "text-4xl";
   return (
     <div
-      className={`relative h-24 w-24 rounded-2xl border-2 border-dashed flex items-center justify-center ${
+      className={`relative ${size} rounded-2xl border-2 border-dashed flex items-center justify-center ${
         ing ? "border-primary bg-primary/10" : "border-primary/30 bg-night/40"
       }`}
     >
       {ing ? (
         <>
           <div className="text-center">
-            <div className="text-4xl">{ing.emoji}</div>
+            <div className={emojiSize}>{ing.emoji}</div>
             <div className="text-[10px] mt-1 px-1 line-clamp-1">{ing.name}</div>
           </div>
           <button
