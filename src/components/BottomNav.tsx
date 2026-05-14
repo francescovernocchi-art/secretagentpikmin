@@ -1,15 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, MessageSquare, Target, Trophy, Album, User, FlaskConical } from "lucide-react";
+import { Radio, MessageSquare, Target, Trophy, Album, User, FlaskConical, Map } from "lucide-react";
 import { motion } from "framer-motion";
 
 const items = [
   { to: "/base", icon: Radio, label: "Base" },
   { to: "/chat", icon: MessageSquare, label: "Chat" },
-  { to: "/missioni", icon: Target, label: "Missioni" },
+  { to: "/missioni", icon: Target, label: "Mission" },
   { to: "/radar", icon: Radio, label: "Radar" },
+  { to: "/mappa", icon: Map, label: "Mappa" },
   { to: "/lab", icon: FlaskConical, label: "Lab" },
   { to: "/premi", icon: Trophy, label: "Premi" },
-  { to: "/ricordi", icon: Album, label: "Ricordi" },
   { to: "/profilo", icon: User, label: "Agente" },
 ] as const;
 
