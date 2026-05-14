@@ -31,6 +31,18 @@ type Drop = {
   created_at: string;
 };
 
+type CollectEvent = {
+  id: string;
+  drop_id: string;
+  name: string;
+  emoji: string;
+  mode: "auto" | "manual";
+  dist_m: number;
+  acc_m: number;
+  radius_m: number;
+  at: string;
+};
+
 const DROP_TEMPLATES = [
   { kind: "ingredient", emoji: "🔴", name: "Seme Rosso", payload_key: "seed_red", xp: 5 },
   { kind: "ingredient", emoji: "🟡", name: "Seme Giallo", payload_key: "seed_yellow", xp: 5 },
