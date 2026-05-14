@@ -20,7 +20,7 @@ type Agent = {
   created_at: string;
 };
 
-const EMOJI_CHOICES = ["🕶️", "🧒", "👩", "👨", "👵", "👴", "🧑‍🚀", "🦸", "🧙", "🐱", "🐶", "🤖"];
+const EMOJI_CHOICES = ["🕶️", "🧑", "👩", "👨", "👵", "👴", "🧑‍🚀", "🥷", "🛰️", "🐺", "🦊", "🤖"];
 
 function AgentiPage() {
   const session = typeof window !== "undefined" ? getSession() : null;
@@ -275,7 +275,7 @@ function AgentiPage() {
                         : "border-border bg-background/40"
                     }`}
                   >
-                    <p className="text-xs text-foreground font-medium">🧒 Collector</p>
+                    <p className="text-xs text-foreground font-medium">🎯 Operativo</p>
                     <p className="text-[10px] text-muted-foreground">
                       Raccoglie drop, completa missioni
                     </p>
