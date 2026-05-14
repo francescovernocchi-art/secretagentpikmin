@@ -23,7 +23,7 @@ export async function addCoins(agent: string, amount: number, reason: string, me
   } else {
     await supabase.from("agent_coins").insert({ agent, coins: next });
   }
-  await supabase.from("coin_transactions").insert({ agent, amount, reason, meta: meta ?? null });
+  await supabase.from("coin_transactions").insert({ agent, amount, reason, meta: (meta ?? null) as never });
 }
 
 /** Spende monete; ritorna true se è andata a buon fine. */
