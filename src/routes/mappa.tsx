@@ -523,6 +523,27 @@ function MappaPage() {
         return;
       }
     }
+
+    // Pre-check Pikmin per i pezzi navicella: serve un costo in base alla rarità
+    let shipCost = 0;
+    let shipPartMeta: ShipPartLite | undefined;
+    if (d.kind === "ship_part" && d.payload_key) {
+      shipPartMeta = shipParts.find((p) => p.key === d.payload_key);
+      shipCost = pikminCostFor(shipPartMeta?.rarity);
+      const ok = confirm(
+        `Per recuperare "${d.name}" servono ${shipCost} 🌱 Pikmin (rarità ${RARITY_LABEL[shipPartMeta?.rarity ?? "comune"]}).\n\nSpedire la squadra?`,
+      );
+      if (!ok) return;
+      try {
+        await spendPikmin(shipCost, "ship_part", role, { drop_id: d.id, part_key: d.payload_key });
+      } catch (e: any) {
+        toast.error("Pikmin insufficienti", {
+          description: e?.message ?? `Servono ${shipCost} 🌱 Pikmin per spedire la squadra.`,
+        });
+        return;
+      }
+    }
+
     setCollecting(d.id);
     try {
       const { error } = await supabase
