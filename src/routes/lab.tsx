@@ -298,6 +298,7 @@ function LabPage() {
       subtitle="Esperimenti segreti · combina ingredienti"
       action={
         <div className="flex items-center gap-2">
+          <PikminCounter compact />
           <Link
             to="/ricette"
             className="panel px-3 py-2 text-xs flex items-center gap-1"
