@@ -47,6 +47,13 @@ export function ArPikminOverlay() {
   const targetBornAtRef = useRef<number>(0);
   // Ultima volta in cui il target è stato “visto” (lock alto)
   const lastSeenAtRef = useRef<number>(0);
+  // Ultimo evento sensore valido ricevuto
+  const lastEventAtRef = useRef<number>(0);
+  // Cleanup correntemente attivo
+  const detachRef = useRef<(() => void) | null>(null);
+  // Watchdog interval id
+  const watchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [stalled, setStalled] = useState(false);
 
   const spawnTarget = (baselineAlpha: number) => {
     const t = pickTarget(baselineAlpha);
@@ -55,19 +62,41 @@ export function ArPikminOverlay() {
     setTarget(t);
   };
 
+  // Estrae un alpha utilizzabile da un evento, gestendo i quirk iOS.
+  const readAlpha = (e: DeviceOrientationEvent): number | null => {
+    // iOS Safari: webkitCompassHeading è una bussola "vera" 0-360 (cw).
+    // Convertiamo a stile alpha (ccw, 0 = nord) per coerenza con il resto.
+    const wk = (e as any).webkitCompassHeading;
+    if (typeof wk === "number" && !Number.isNaN(wk)) {
+      return (360 - wk) % 360;
+    }
+    if (e.alpha != null && !Number.isNaN(e.alpha)) return e.alpha;
+    return null;
+  };
+
   const attach = () => {
+    // Pulisci eventuale listener precedente per evitare doppioni dopo un retry
+    detachRef.current?.();
+
     const handler = (e: DeviceOrientationEvent) => {
-      if (e.alpha == null) return;
+      const alpha = readAlpha(e);
+      if (alpha == null) return;
+      const beta = e.beta != null && !Number.isNaN(e.beta) ? e.beta : 0;
+
       gotEventRef.current = true;
+      lastEventAtRef.current = Date.now();
+      if (stalled) setStalled(false);
+      if (noSensor) setNoSensor(false);
+
       if (baselineRef.current == null) {
-        baselineRef.current = e.alpha;
-        spawnTarget(e.alpha);
+        baselineRef.current = alpha;
+        spawnTarget(alpha);
         return;
       }
       setTarget((t) => {
         if (!t) return t;
-        const dA = deltaDeg(e.alpha!, t.alpha); // - = ruotare a destra
-        const dB = (e.beta ?? 0) - t.beta;
+        const dA = deltaDeg(alpha, t.alpha); // - = ruotare a destra
+        const dB = beta - t.beta;
         // mappa: 25° = bordo schermo
         const x = Math.max(0, Math.min(100, 50 - (dA / 25) * 50));
         const y = Math.max(0, Math.min(100, 50 + (dB / 25) * 50));
@@ -76,13 +105,8 @@ export function ArPikminOverlay() {
         setPos({ x, y, visible, lock });
 
         const now = Date.now();
-        // Se l'utente lo sta guardando o quasi, "ricarica" il timer di hold
         if (lock > 0.55) lastSeenAtRef.current = now;
 
-        // Possiamo cambiare target SOLO se:
-        //  - è scaduto il tempo minimo di vita
-        //  - non è stato visto di recente
-        //  - l'utente non sta puntando neanche vagamente verso di lui
         const aged = now - targetBornAtRef.current > TARGET_MIN_LIFETIME_MS;
         const cooledDown =
           lastSeenAtRef.current === 0 ||
@@ -90,8 +114,7 @@ export function ArPikminOverlay() {
         const lookingAway = lock < 0.15 && Math.abs(dA) > 60;
 
         if (aged && cooledDown && lookingAway) {
-          // Reroll silenzioso: nuovo Pikmin in una direzione diversa
-          const fresh = pickTarget(baselineRef.current ?? e.alpha!);
+          const fresh = pickTarget(baselineRef.current ?? alpha);
           targetBornAtRef.current = now;
           lastSeenAtRef.current = 0;
           return fresh;
@@ -99,10 +122,51 @@ export function ArPikminOverlay() {
         return t;
       });
     };
+
+    // iOS preferisce "deviceorientation"; altri device espongono anche la
+    // variante assoluta. Ascoltiamo entrambe e deduplichiamo via timestamp.
     window.addEventListener("deviceorientation", handler, true);
-    return () => window.removeEventListener("deviceorientation", handler, true);
+    window.addEventListener("deviceorientationabsolute" as any, handler, true);
+
+    const detach = () => {
+      window.removeEventListener("deviceorientation", handler, true);
+      window.removeEventListener("deviceorientationabsolute" as any, handler, true);
+    };
+    detachRef.current = detach;
+    return detach;
   };
 
+  // Watchdog: se i sensori smettono di emettere (background, lock schermo,
+  // permesso revocato su iOS), ri-attacchiamo i listener e riproviamo.
+  const startWatchdog = () => {
+    watchdogRef.current && clearInterval(watchdogRef.current);
+    watchdogRef.current = setInterval(() => {
+      if (!gotEventRef.current) return; // gestito dal fallback iniziale
+      const silentFor = Date.now() - lastEventAtRef.current;
+      if (silentFor > 2500) {
+        setStalled(true);
+        // riprova: stacca, riattacca, e forza un re-spawn al prossimo evento
+        attach();
+        // dopo 4s di silenzio totale → fallback senza sensore
+        if (silentFor > 4500 && !noSensor) {
+          setNoSensor(true);
+          if (!target) {
+            const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
+            setTarget({ src: p.src, name: p.name, alpha: 0, beta: 0 });
+          }
+          setPos({ x: 30 + Math.random() * 40, y: 30 + Math.random() * 30, visible: true, lock: 1 });
+        }
+      }
+    }, 1200);
+  };
+
+  const handleVisibility = () => {
+    if (document.visibilityState !== "visible") return;
+    // tornando in foreground iOS spesso "perde" l'orientamento: reset baseline
+    baselineRef.current = null;
+    lastEventAtRef.current = Date.now();
+    attach();
+  };
 
   useEffect(() => {
     const anyEvt = (DeviceOrientationEvent as any);
@@ -110,20 +174,28 @@ export function ArPikminOverlay() {
       setNeedsPermission(true);
       return;
     }
-    const detach = attach();
-    const t = setTimeout(() => {
+    attach();
+    startWatchdog();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const fallbackTimer = setTimeout(() => {
       if (!gotEventRef.current) {
-        // Nessun sensore → fallback: pikmin in posizione random fissa, “lock” simulato
+        // Nessun sensore disponibile → fallback statico
         setNoSensor(true);
         const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
         setTarget({ src: p.src, name: p.name, alpha: 0, beta: 0 });
         setPos({ x: 30 + Math.random() * 40, y: 30 + Math.random() * 30, visible: true, lock: 1 });
       }
     }, 1800);
+
     return () => {
-      detach();
-      clearTimeout(t);
+      detachRef.current?.();
+      detachRef.current = null;
+      watchdogRef.current && clearInterval(watchdogRef.current);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearTimeout(fallbackTimer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const enable = async () => {
@@ -131,12 +203,30 @@ export function ArPikminOverlay() {
       const res = await (DeviceOrientationEvent as any).requestPermission();
       if (res === "granted") {
         setNeedsPermission(false);
+        gotEventRef.current = false;
+        lastEventAtRef.current = Date.now();
         attach();
+        startWatchdog();
+        document.addEventListener("visibilitychange", handleVisibility);
+      } else {
+        // Permesso negato → modalità fallback
+        setNeedsPermission(false);
+        setNoSensor(true);
       }
     } catch {
       setNeedsPermission(false);
+      setNoSensor(true);
     }
   };
+
+  const recalibrate = () => {
+    baselineRef.current = null;
+    setStalled(false);
+    gotEventRef.current = false;
+    lastEventAtRef.current = Date.now();
+    attach();
+  };
+
 
   // Indicatore direzionale (freccia che punta verso il pikmin quando fuori frame)
   const arrow = useMemo(() => {
