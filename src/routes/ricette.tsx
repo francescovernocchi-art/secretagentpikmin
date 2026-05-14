@@ -54,6 +54,7 @@ interface Recipe {
   result_emoji: string;
   description: string | null;
   xp: number;
+  locked?: boolean;
 }
 interface Discovery {
   id: string;
