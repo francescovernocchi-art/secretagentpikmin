@@ -1,9 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession, clearSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
-import { LogOut, Shield } from "lucide-react";
+import { LogOut, Shield, Users } from "lucide-react";
 
 export const Route = createFileRoute("/profilo")({
   component: ProfiloPage,
