@@ -382,6 +382,17 @@ function MappaPage() {
       }
       toast.success(`${d.emoji} Raccolto! +${d.xp} XP${d.note ? ` — "${d.note}"` : ""}`);
       navigator.vibrate?.([60, 40, 120]);
+      logEvent({
+        id: crypto.randomUUID(),
+        drop_id: d.id,
+        name: d.name,
+        emoji: d.emoji,
+        mode: opts?.manual ? "manual" : "auto",
+        dist_m: Math.round(dist),
+        acc_m: Math.round(me.acc),
+        radius_m: d.radius_m,
+        at: new Date().toISOString(),
+      });
     } catch (e: any) {
       toast.error("Cattura fallita: " + (e?.message ?? "?"));
     } finally {
