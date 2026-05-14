@@ -8,7 +8,8 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { consumeIngredient, grantIngredients } from "@/lib/ingredients";
 import { inventDiscovery } from "@/lib/lab.functions";
-import { FlaskConical, Sparkles, X, Plus, BookPlus, BookOpen } from "lucide-react";
+import { ResultIcon } from "@/components/ResultIcon";
+import { FlaskConical, Sparkles, X, Plus, BookPlus, BookOpen, Upload } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
