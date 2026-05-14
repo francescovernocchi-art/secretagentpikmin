@@ -26,6 +26,11 @@ function deltaDeg(a: number, b: number) {
   return d;
 }
 
+// Quanto a lungo un target resta valido prima di poter cambiare
+const TARGET_MIN_LIFETIME_MS = 8000;
+// Tempo extra durante il quale il target resta bloccato dopo essere stato visto
+const TARGET_HOLD_AFTER_SEEN_MS = 5000;
+
 export function ArPikminOverlay() {
   const [target, setTarget] = useState<Target | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number; visible: boolean; lock: number }>({
@@ -38,6 +43,17 @@ export function ArPikminOverlay() {
   const [noSensor, setNoSensor] = useState(false);
   const baselineRef = useRef<number | null>(null);
   const gotEventRef = useRef(false);
+  // Timestamp di nascita del target corrente
+  const targetBornAtRef = useRef<number>(0);
+  // Ultima volta in cui il target è stato “visto” (lock alto)
+  const lastSeenAtRef = useRef<number>(0);
+
+  const spawnTarget = (baselineAlpha: number) => {
+    const t = pickTarget(baselineAlpha);
+    targetBornAtRef.current = Date.now();
+    lastSeenAtRef.current = 0;
+    setTarget(t);
+  };
 
   const attach = () => {
     const handler = (e: DeviceOrientationEvent) => {
@@ -45,7 +61,7 @@ export function ArPikminOverlay() {
       gotEventRef.current = true;
       if (baselineRef.current == null) {
         baselineRef.current = e.alpha;
-        setTarget(pickTarget(e.alpha));
+        spawnTarget(e.alpha);
         return;
       }
       setTarget((t) => {
@@ -58,12 +74,35 @@ export function ArPikminOverlay() {
         const lock = Math.max(0, 1 - Math.hypot(dA / 25, dB / 25));
         const visible = Math.abs(dA) < 22 && Math.abs(dB) < 22;
         setPos({ x, y, visible, lock });
+
+        const now = Date.now();
+        // Se l'utente lo sta guardando o quasi, "ricarica" il timer di hold
+        if (lock > 0.55) lastSeenAtRef.current = now;
+
+        // Possiamo cambiare target SOLO se:
+        //  - è scaduto il tempo minimo di vita
+        //  - non è stato visto di recente
+        //  - l'utente non sta puntando neanche vagamente verso di lui
+        const aged = now - targetBornAtRef.current > TARGET_MIN_LIFETIME_MS;
+        const cooledDown =
+          lastSeenAtRef.current === 0 ||
+          now - lastSeenAtRef.current > TARGET_HOLD_AFTER_SEEN_MS;
+        const lookingAway = lock < 0.15 && Math.abs(dA) > 60;
+
+        if (aged && cooledDown && lookingAway) {
+          // Reroll silenzioso: nuovo Pikmin in una direzione diversa
+          const fresh = pickTarget(baselineRef.current ?? e.alpha!);
+          targetBornAtRef.current = now;
+          lastSeenAtRef.current = 0;
+          return fresh;
+        }
         return t;
       });
     };
     window.addEventListener("deviceorientation", handler, true);
     return () => window.removeEventListener("deviceorientation", handler, true);
   };
+
 
   useEffect(() => {
     const anyEvt = (DeviceOrientationEvent as any);
