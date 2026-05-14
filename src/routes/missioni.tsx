@@ -156,6 +156,11 @@ function MissioniPage() {
                 <div className="text-right">
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">XP</p>
                   <p className="font-display text-xl text-primary text-glow">+{m.xp}</p>
+                  {m.coin_reward > 0 && (
+                    <p className="mt-1 text-[10px] text-amber-300 flex items-center gap-1 justify-end">
+                      <Coins className="h-3 w-3" /> +{m.coin_reward}
+                    </p>
+                  )}
                   {partByKey(m.reward_part_key) && (
                     <p className="mt-1 text-[10px] text-amber-300 flex items-center gap-1 justify-end">
                       <Rocket className="h-3 w-3" />
