@@ -30,6 +30,7 @@ interface Part {
   emoji: string;
   description: string | null;
   sort_order: number;
+  rarity: string;
 }
 
 interface Collected {
