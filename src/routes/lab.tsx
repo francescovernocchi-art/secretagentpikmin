@@ -225,9 +225,18 @@ function LabPage() {
       subtitle="Esperimenti segreti · combina ingredienti"
       action={
         session?.role === "papa" && (
-          <button onClick={giveStarter} className="panel px-3 py-2 text-xs flex items-center gap-1">
-            <Plus className="h-3.5 w-3.5" /> Kit
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowRecipeForm(true)}
+              className="panel px-3 py-2 text-xs flex items-center gap-1"
+              title="Aggiungi ricetta"
+            >
+              <BookPlus className="h-3.5 w-3.5" /> Ricetta
+            </button>
+            <button onClick={giveStarter} className="panel px-3 py-2 text-xs flex items-center gap-1">
+              <Plus className="h-3.5 w-3.5" /> Kit
+            </button>
+          </div>
         )
       }
     >
