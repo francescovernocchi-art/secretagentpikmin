@@ -30,8 +30,8 @@ function LoginPage() {
     const next = pin + k;
     setPin(next);
     if (next.length === 4) {
-      setTimeout(() => {
-        const s = loginWithPin(next);
+      setTimeout(async () => {
+        const s = await loginWithPin(next);
         if (s) navigate({ to: "/base" });
         else {
           setError(true);

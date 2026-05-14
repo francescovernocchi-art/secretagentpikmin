@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export type Role = "papa" | "lorenzo";
 
 const KEY = "pikmin.session.v1";
@@ -5,14 +7,10 @@ const KEY = "pikmin.session.v1";
 export interface Session {
   role: Role;
   name: string;
+  emoji?: string;
+  agentId?: string;
   loggedAt: number;
 }
-
-// PIN segreti famiglia. Cambia in produzione.
-export const PINS: Record<string, { role: Role; name: string }> = {
-  "0077": { role: "papa", name: "Papà" },
-  "1234": { role: "lorenzo", name: "Lorenzo" },
-};
 
 export function getSession(): Session | null {
   if (typeof window === "undefined") return null;
@@ -32,10 +30,20 @@ export function clearSession() {
   localStorage.removeItem(KEY);
 }
 
-export function loginWithPin(pin: string): Session | null {
-  const found = PINS[pin];
-  if (!found) return null;
-  const session: Session = { ...found, loggedAt: Date.now() };
+export async function loginWithPin(pin: string): Promise<Session | null> {
+  const { data, error } = await supabase
+    .from("agents")
+    .select("id, name, role, emoji")
+    .eq("pin", pin)
+    .maybeSingle();
+  if (error || !data) return null;
+  const session: Session = {
+    role: data.role as Role,
+    name: data.name,
+    emoji: data.emoji ?? undefined,
+    agentId: data.id,
+    loggedAt: Date.now(),
+  };
   setSession(session);
   return session;
 }

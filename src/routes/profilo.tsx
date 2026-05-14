@@ -1,9 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession, clearSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
-import { LogOut, Shield } from "lucide-react";
+import { LogOut, Shield, Users } from "lucide-react";
 
 export const Route = createFileRoute("/profilo")({
   component: ProfiloPage,
@@ -68,6 +68,15 @@ function ProfiloPage() {
         <Stat label="Badge" value={stats.badges} />
         <Stat label="XP" value={stats.xp} />
       </div>
+
+      {session?.role === "papa" && (
+        <Link
+          to="/agenti"
+          className="panel w-full p-4 flex items-center justify-center gap-2 text-primary"
+        >
+          <Users className="h-4 w-4" /> Gestisci agenti famiglia
+        </Link>
+      )}
 
       <button
         onClick={() => {

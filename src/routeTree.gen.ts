@@ -20,6 +20,7 @@ import { Route as LabRouteImport } from './routes/lab'
 import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BaseRouteImport } from './routes/base'
+import { Route as AgentiRouteImport } from './routes/agenti'
 import { Route as IndexRouteImport } from './routes/index'
 
 const RicordiRoute = RicordiRouteImport.update({
@@ -77,6 +78,11 @@ const BaseRoute = BaseRouteImport.update({
   path: '/base',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentiRoute = AgentiRouteImport.update({
+  id: '/agenti',
+  path: '/agenti',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -85,6 +91,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agenti': typeof AgentiRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agenti': typeof AgentiRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
@@ -114,6 +122,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agenti': typeof AgentiRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agenti'
     | '/base'
     | '/chat'
     | '/inventario'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/agenti'
     | '/base'
     | '/chat'
     | '/inventario'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/agenti'
     | '/base'
     | '/chat'
     | '/inventario'
@@ -173,6 +185,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentiRoute: typeof AgentiRoute
   BaseRoute: typeof BaseRoute
   ChatRoute: typeof ChatRoute
   InventarioRoute: typeof InventarioRoute
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BaseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agenti': {
+      id: '/agenti'
+      path: '/agenti'
+      fullPath: '/agenti'
+      preLoaderRoute: typeof AgentiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -277,6 +297,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentiRoute: AgentiRoute,
   BaseRoute: BaseRoute,
   ChatRoute: ChatRoute,
   InventarioRoute: InventarioRoute,
