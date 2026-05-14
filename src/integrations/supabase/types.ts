@@ -20,8 +20,9 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          input_a: string
-          input_b: string
+          input_a: string | null
+          input_b: string | null
+          inputs: string[] | null
           is_ai: boolean
           result_emoji: string
           result_name: string
@@ -32,8 +33,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          input_a: string
-          input_b: string
+          input_a?: string | null
+          input_b?: string | null
+          inputs?: string[] | null
           is_ai?: boolean
           result_emoji: string
           result_name: string
@@ -44,8 +46,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          input_a?: string
-          input_b?: string
+          input_a?: string | null
+          input_b?: string | null
+          inputs?: string[] | null
           is_ai?: boolean
           result_emoji?: string
           result_name?: string
@@ -204,8 +207,9 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          input_a: string
-          input_b: string
+          input_a: string | null
+          input_b: string | null
+          inputs: string[] | null
           result_emoji: string
           result_name: string
           xp: number
@@ -214,8 +218,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          input_a: string
-          input_b: string
+          input_a?: string | null
+          input_b?: string | null
+          inputs?: string[] | null
           result_emoji: string
           result_name: string
           xp?: number
@@ -224,8 +229,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          input_a?: string
-          input_b?: string
+          input_a?: string | null
+          input_b?: string | null
+          inputs?: string[] | null
           result_emoji?: string
           result_name?: string
           xp?: number
