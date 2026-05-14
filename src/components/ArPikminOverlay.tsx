@@ -1,22 +1,89 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { PIKMIN_LIST } from "@/assets/pikmin";
+import { supabase } from "@/integrations/supabase/client";
+import { grantIngredients } from "@/lib/ingredients";
 
 // Solo immagini senza sfondo (no JPG con sfondo bianco)
 const AR_POOL = PIKMIN_LIST.filter((p) => p.transparent);
 
-type Target = { src: string; name: string; alpha: number; beta: number };
+const FALLBACK_INGREDIENTS = [
+  { key: "seed_red", name: "Seme Rosso", emoji: "🔴" },
+  { key: "seed_yellow", name: "Seme Giallo", emoji: "🟡" },
+  { key: "seed_blue", name: "Seme Blu", emoji: "🔵" },
+  { key: "water", name: "Goccia d'acqua", emoji: "💧" },
+  { key: "leaf", name: "Foglia magica", emoji: "🍃" },
+  { key: "honey", name: "Miele dorato", emoji: "🍯" },
+  { key: "mushroom", name: "Fungo strano", emoji: "🍄" },
+  { key: "rock_frag", name: "Frammento di roccia", emoji: "🪨" },
+  { key: "spark", name: "Scintilla", emoji: "✨" },
+  { key: "star_dust", name: "Polvere di stelle", emoji: "🌟" },
+];
 
-function pickTarget(baselineAlpha: number): Target {
-  const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
-  // posizionato in un cono di ±70° rispetto al baseline
+const OBJECTS = [
+  { key: "treasure_box", name: "Cassa del tesoro", emoji: "🎁", xp: 20 },
+  { key: "ancient_key", name: "Chiave antica", emoji: "🗝️", xp: 25 },
+  { key: "crystal", name: "Cristallo segreto", emoji: "💎", xp: 30 },
+  { key: "ufo_relic", name: "Reliquia UFO", emoji: "🛸", xp: 35 },
+  { key: "old_map", name: "Mappa consumata", emoji: "🗺️", xp: 15 },
+];
+
+const MISSION_HINTS = [
+  "Cerca qualcosa di rosso in cucina 🍅",
+  "Conta tutte le finestre della casa 🪟",
+  "Trova un libro più vecchio di te 📚",
+  "Disegna ciò che vedi dalla tua finestra ✏️",
+  "Costruisci una torre con 5 oggetti 🗼",
+  "Saluta papà con un codice segreto 🤫",
+];
+
+type TargetKind = "pikmin" | "ingredient" | "object" | "mission";
+
+type Target = {
+  kind: TargetKind;
+  src?: string;
+  emoji?: string;
+  key?: string;
+  name: string;
+  payload?: string;
+  xp?: number;
+  alpha: number;
+  beta: number;
+};
+
+type IngredientRow = { key: string; name: string; emoji: string };
+
+function pickKind(): TargetKind {
+  const r = Math.random();
+  if (r < 0.45) return "pikmin";
+  if (r < 0.8) return "ingredient";
+  if (r < 0.95) return "object";
+  return "mission";
+}
+
+function pickTarget(baselineAlpha: number, ingredientPool: IngredientRow[]): Target {
+  const kind = pickKind();
   const offset = (Math.random() * 140 - 70 + 360) % 360;
-  return {
-    src: p.src,
-    name: p.name,
+  const base = {
     alpha: (baselineAlpha + offset) % 360,
     beta: Math.random() * 24 - 12,
   };
+  if (kind === "pikmin") {
+    const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
+    return { kind, src: p.src, name: p.name, ...base };
+  }
+  if (kind === "ingredient") {
+    const pool = ingredientPool.length ? ingredientPool : FALLBACK_INGREDIENTS;
+    const p = pool[Math.floor(Math.random() * pool.length)];
+    return { kind, key: p.key, name: p.name, emoji: p.emoji, ...base };
+  }
+  if (kind === "object") {
+    const o = OBJECTS[Math.floor(Math.random() * OBJECTS.length)];
+    return { kind, key: o.key, name: o.name, emoji: o.emoji, xp: o.xp, ...base };
+  }
+  const hint = MISSION_HINTS[Math.floor(Math.random() * MISSION_HINTS.length)];
+  return { kind, name: "Nuova missione", emoji: "📜", payload: hint, ...base };
 }
 
 function deltaDeg(a: number, b: number) {
