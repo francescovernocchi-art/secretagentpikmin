@@ -15,6 +15,7 @@ import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PremiRouteImport } from './routes/premi'
 import { Route as MissioniRouteImport } from './routes/missioni'
 import { Route as LabRouteImport } from './routes/lab'
+import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BaseRouteImport } from './routes/base'
 import { Route as IndexRouteImport } from './routes/index'
@@ -49,6 +50,11 @@ const LabRoute = LabRouteImport.update({
   path: '/lab',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventarioRoute = InventarioRouteImport.update({
+  id: '/inventario',
+  path: '/inventario',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatRoute = ChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
+  '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/missioni': typeof MissioniRoute
   '/premi': typeof PremiRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
+  '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/missioni': typeof MissioniRoute
   '/premi': typeof PremiRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
+  '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/missioni': typeof MissioniRoute
   '/premi': typeof PremiRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/base'
     | '/chat'
+    | '/inventario'
     | '/lab'
     | '/missioni'
     | '/premi'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/base'
     | '/chat'
+    | '/inventario'
     | '/lab'
     | '/missioni'
     | '/premi'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/base'
     | '/chat'
+    | '/inventario'
     | '/lab'
     | '/missioni'
     | '/premi'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BaseRoute: typeof BaseRoute
   ChatRoute: typeof ChatRoute
+  InventarioRoute: typeof InventarioRoute
   LabRoute: typeof LabRoute
   MissioniRoute: typeof MissioniRoute
   PremiRoute: typeof PremiRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventario': {
+      id: '/inventario'
+      path: '/inventario'
+      fullPath: '/inventario'
+      preLoaderRoute: typeof InventarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat': {
       id: '/chat'
       path: '/chat'
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BaseRoute: BaseRoute,
   ChatRoute: ChatRoute,
+  InventarioRoute: InventarioRoute,
   LabRoute: LabRoute,
   MissioniRoute: MissioniRoute,
   PremiRoute: PremiRoute,
@@ -229,3 +250,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
