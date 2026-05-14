@@ -27,13 +27,21 @@ interface InvRow {
 }
 interface Recipe {
   id: string;
-  input_a: string;
-  input_b: string;
+  input_a: string | null;
+  input_b: string | null;
+  inputs: string[] | null;
   result_name: string;
   result_emoji: string;
   description: string | null;
   xp: number;
 }
+
+const MAX_SLOTS = 6;
+const sortedKey = (keys: string[]) => [...keys].sort().join("|");
+const recipeInputs = (r: Recipe): string[] =>
+  r.inputs && r.inputs.length
+    ? r.inputs
+    : ([r.input_a, r.input_b].filter(Boolean) as string[]);
 interface Discovery {
   id: string;
   result_name: string;
@@ -58,8 +66,7 @@ function LabPage() {
   const [inventory, setInventory] = useState<InvRow[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [discoveries, setDiscoveries] = useState<Discovery[]>([]);
-  const [slotA, setSlotA] = useState<string | null>(null);
-  const [slotB, setSlotB] = useState<string | null>(null);
+  const [slots, setSlots] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<Discovery | null>(null);
   const [showRecipeForm, setShowRecipeForm] = useState(false);
@@ -110,39 +117,54 @@ function LabPage() {
     [inventory, catalog],
   );
 
-  const pickSlot = (key: string) => {
-    if (!slotA) return setSlotA(key);
-    if (!slotB && key !== slotA) return setSlotB(key);
-    if (slotA === key) return setSlotA(slotB), setSlotB(null);
-    if (slotB === key) return setSlotB(null);
-    setSlotA(slotB);
-    setSlotB(key);
+  // Conta quante volte una chiave è già nel banco
+  const slotCount = (key: string) => slots.filter((k) => k === key).length;
+
+  // Aggiunge/rimuove un ingrediente dal banco. Tap su una chiave già presente
+  // = +1 finché c'è quantità in inventario; oltre = niente.
+  const toggleSlot = (key: string) => {
+    setSlots((prev) => {
+      const used = prev.filter((k) => k === key).length;
+      const owned = inventory.find((i) => i.ingredient_key === key)?.qty ?? 0;
+      if (used < owned && prev.length < MAX_SLOTS) return [...prev, key];
+      // se già al massimo possibile, rimuovi un'occorrenza
+      const idx = prev.lastIndexOf(key);
+      if (idx >= 0) {
+        const next = [...prev];
+        next.splice(idx, 1);
+        return next;
+      }
+      return prev;
+    });
   };
 
-  const findRecipe = (a: string, b: string) =>
-    recipes.find(
-      (r) =>
-        (r.input_a === a && r.input_b === b) ||
-        (r.input_a === b && r.input_b === a),
-    );
+  const removeSlotAt = (idx: number) =>
+    setSlots((prev) => prev.filter((_, i) => i !== idx));
+
+  const findRecipe = (keys: string[]) => {
+    const target = sortedKey(keys);
+    return recipes.find((r) => sortedKey(recipeInputs(r)) === target);
+  };
 
   const combine = async () => {
-    if (!slotA || !slotB || busy) return;
+    if (slots.length < 2 || busy) return;
+
+    // Verifica disponibilità per chiave (rispettando duplicati nel banco)
+    const counts: Record<string, number> = {};
+    for (const k of slots) counts[k] = (counts[k] ?? 0) + 1;
+    for (const [key, need] of Object.entries(counts)) {
+      const have = inventory.find((i) => i.ingredient_key === key)?.qty ?? 0;
+      if (have < need) return;
+    }
+
     setBusy(true);
     try {
-      // Verifica disponibilità
-      const invA = inventory.find((i) => i.ingredient_key === slotA);
-      const invB = inventory.find((i) => i.ingredient_key === slotB);
-      const sameKey = slotA === slotB;
-      if (!invA || !invB) return;
-      if (sameKey && invA.qty < 2) return;
+      // Consuma tutti gli ingredienti del banco
+      for (const k of slots) {
+        await consumeIngredient(agent, k);
+      }
 
-      // Consuma
-      await consumeIngredient(agent, slotA);
-      await consumeIngredient(agent, slotB);
-
-      // Cerca ricetta o invoca AI
-      const recipe = findRecipe(slotA, slotB);
+      const recipe = findRecipe(slots);
       let result: Omit<Discovery, "id" | "created_at"> & { is_ai: boolean };
       if (recipe) {
         result = {
@@ -155,8 +177,11 @@ function LabPage() {
       } else {
         const aiRes = await callInvent({
           data: {
-            ingredientA: { key: slotA, name: catalog[slotA].name, emoji: catalog[slotA].emoji },
-            ingredientB: { key: slotB, name: catalog[slotB].name, emoji: catalog[slotB].emoji },
+            ingredients: slots.map((k) => ({
+              key: k,
+              name: catalog[k].name,
+              emoji: catalog[k].emoji,
+            })),
           },
         });
         result = {
@@ -168,19 +193,20 @@ function LabPage() {
         };
       }
 
-      // Salva scoperta
+      // Salva scoperta (manteniamo input_a/input_b per compatibilità con i
+      // primi due ingredienti, e l'array completo in `inputs`).
       const { data: saved } = await supabase
         .from("discoveries")
         .insert({
           agent,
-          input_a: slotA,
-          input_b: slotB,
+          input_a: slots[0],
+          input_b: slots[1] ?? slots[0],
+          inputs: slots,
           ...result,
         })
         .select()
         .single();
 
-      // Se ricetta nota, premia con un badge nei "rewards"
       if (!result.is_ai) {
         await supabase.from("rewards").insert({
           agent,
@@ -194,8 +220,7 @@ function LabPage() {
         setFlash(saved as Discovery);
         setDiscoveries((d) => [saved as Discovery, ...d]);
       }
-      setSlotA(null);
-      setSlotB(null);
+      setSlots([]);
       await load();
     } finally {
       setBusy(false);
@@ -208,14 +233,15 @@ function LabPage() {
   };
 
   const canCombine =
-    slotA &&
-    slotB &&
+    slots.length >= 2 &&
     !busy &&
     (() => {
-      const a = inventory.find((i) => i.ingredient_key === slotA);
-      const b = inventory.find((i) => i.ingredient_key === slotB);
-      if (!a || !b) return false;
-      if (slotA === slotB) return a.qty >= 2;
+      const counts: Record<string, number> = {};
+      for (const k of slots) counts[k] = (counts[k] ?? 0) + 1;
+      for (const [k, need] of Object.entries(counts)) {
+        const have = inventory.find((i) => i.ingredient_key === k)?.qty ?? 0;
+        if (have < need) return false;
+      }
       return true;
     })();
 
@@ -242,22 +268,55 @@ function LabPage() {
     >
       {/* Banco di lavoro */}
       <div className="panel-strong scanline relative overflow-hidden p-5 space-y-4">
-        <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 text-center">
-          // Banco di lavoro
-        </p>
-        <div className="flex items-center justify-center gap-3">
-          <Slot ing={slotA ? catalog[slotA] : null} onClear={() => setSlotA(null)} />
-          <Plus className="h-5 w-5 text-primary" />
-          <Slot ing={slotB ? catalog[slotB] : null} onClear={() => setSlotB(null)} />
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">
+            // Banco di lavoro
+          </p>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            {slots.length}/{MAX_SLOTS}
+          </p>
         </div>
-        <button
-          onClick={combine}
-          disabled={!canCombine}
-          className="btn-neon w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-40"
-        >
-          <FlaskConical className="h-4 w-4" />
-          {busy ? "Reazione in corso…" : "Combina"}
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-2 min-h-[7rem]">
+          {slots.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">
+              Tocca gli ingredienti per aggiungerli (min 2, max {MAX_SLOTS}).
+            </p>
+          ) : (
+            slots.map((key, idx) => {
+              const ing = catalog[key];
+              if (!ing) return null;
+              return (
+                <span key={`${key}-${idx}`} className="contents">
+                  {idx > 0 && <Plus className="h-4 w-4 text-primary/70" />}
+                  <Slot ing={ing} onClear={() => removeSlotAt(idx)} compact />
+                </span>
+              );
+            })
+          )}
+        </div>
+        <div className="flex gap-2">
+          {slots.length > 0 && (
+            <button
+              onClick={() => setSlots([])}
+              disabled={busy}
+              className="panel px-3 py-2 text-xs"
+            >
+              Svuota
+            </button>
+          )}
+          <button
+            onClick={combine}
+            disabled={!canCombine}
+            className="btn-neon flex-1 py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            <FlaskConical className="h-4 w-4" />
+            {busy
+              ? "Reazione in corso…"
+              : slots.length >= 3
+                ? `Combina ×${slots.length}`
+                : "Combina"}
+          </button>
+        </div>
       </div>
 
       {/* Inventario */}
@@ -273,19 +332,25 @@ function LabPage() {
           <div className="grid grid-cols-4 gap-2">
             {inventoryWithMeta.map((row) => {
               const m = row.meta!;
-              const sel = slotA === m.key || slotB === m.key;
+              const used = slotCount(m.key);
+              const remaining = row.qty - used;
+              const sel = used > 0;
+              const exhausted = remaining <= 0;
               return (
                 <button
                   key={row.id}
-                  onClick={() => pickSlot(m.key)}
+                  onClick={() => toggleSlot(m.key)}
+                  disabled={exhausted && !sel}
                   className={`relative rounded-xl border p-2 flex flex-col items-center gap-1 transition-all ${
                     RARITY_STYLE[m.rarity] ?? RARITY_STYLE.comune
-                  } ${sel ? "ring-2 ring-primary scale-95" : "active:scale-95"}`}
+                  } ${sel ? "ring-2 ring-primary scale-95" : "active:scale-95"} ${
+                    exhausted && !sel ? "opacity-40" : ""
+                  }`}
                 >
                   <span className="text-2xl leading-none">{m.emoji}</span>
                   <span className="text-[10px] text-center leading-tight line-clamp-2">{m.name}</span>
                   <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] px-1.5 rounded-full font-bold">
-                    {row.qty}
+                    {used > 0 ? `${used}/${row.qty}` : row.qty}
                   </span>
                 </button>
               );
@@ -393,8 +458,7 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
     () => Object.values(catalog).sort((a, b) => a.name.localeCompare(b.name)),
     [catalog],
   );
-  const [inputA, setInputA] = useState("");
-  const [inputB, setInputB] = useState("");
+  const [recipeInputsState, setRecipeInputsState] = useState<string[]>(["", ""]);
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("");
   const [description, setDescription] = useState("");
@@ -402,14 +466,22 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const filledInputs = recipeInputsState.filter(Boolean);
+
   const duplicate = useMemo(() => {
-    if (!inputA || !inputB) return false;
-    return existing.some(
-      (r) =>
-        (r.input_a === inputA && r.input_b === inputB) ||
-        (r.input_a === inputB && r.input_b === inputA),
+    if (filledInputs.length < 2) return false;
+    const target = sortedKey(filledInputs);
+    return existing.some((r) => sortedKey(recipeInputs(r)) === target);
+  }, [existing, filledInputs]);
+
+  const updateAt = (idx: number, value: string) =>
+    setRecipeInputsState((prev) => prev.map((v, i) => (i === idx ? value : v)));
+  const addInput = () =>
+    setRecipeInputsState((prev) => (prev.length < MAX_SLOTS ? [...prev, ""] : prev));
+  const removeAt = (idx: number) =>
+    setRecipeInputsState((prev) =>
+      prev.length > 2 ? prev.filter((_, i) => i !== idx) : prev,
     );
-  }, [existing, inputA, inputB]);
 
   const submit = async () => {
     setError(null);
@@ -417,7 +489,8 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
     const trimmedEmoji = emoji.trim();
     const trimmedDesc = description.trim();
 
-    if (!inputA || !inputB) return setError("Scegli entrambi gli ingredienti.");
+    if (filledInputs.length < 2)
+      return setError("Servono almeno 2 ingredienti.");
     if (!trimmedName || trimmedName.length > 80)
       return setError("Nome risultato richiesto (max 80).");
     if (!trimmedEmoji || trimmedEmoji.length > 8)
@@ -427,12 +500,13 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
     const xpInt = Math.round(Number(xp));
     if (!Number.isFinite(xpInt) || xpInt < 0 || xpInt > 999)
       return setError("XP fuori range (0-999).");
-    if (duplicate) return setError("Esiste già una ricetta con questa coppia.");
+    if (duplicate) return setError("Esiste già una ricetta con questa combinazione.");
 
     setSaving(true);
     const { error: dbErr } = await supabase.from("recipes").insert({
-      input_a: inputA,
-      input_b: inputB,
+      input_a: filledInputs[0],
+      input_b: filledInputs[1],
+      inputs: filledInputs,
       result_name: trimmedName,
       result_emoji: trimmedEmoji,
       description: trimmedDesc || null,
@@ -470,19 +544,36 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <IngredientSelect
-            label="Ingrediente A"
-            value={inputA}
-            onChange={setInputA}
-            options={ingredients}
-          />
-          <IngredientSelect
-            label="Ingrediente B"
-            value={inputB}
-            onChange={setInputB}
-            options={ingredients}
-          />
+        <div className="space-y-2">
+          {recipeInputsState.map((val, idx) => (
+            <div key={idx} className="flex items-end gap-2">
+              <div className="flex-1">
+                <IngredientSelect
+                  label={`Ingrediente ${idx + 1}`}
+                  value={val}
+                  onChange={(v) => updateAt(idx, v)}
+                  options={ingredients}
+                />
+              </div>
+              {recipeInputsState.length > 2 && (
+                <button
+                  onClick={() => removeAt(idx)}
+                  className="panel h-9 w-9 flex items-center justify-center text-destructive"
+                  aria-label="Rimuovi ingrediente"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
+          {recipeInputsState.length < MAX_SLOTS && (
+            <button
+              onClick={addInput}
+              className="panel w-full py-2 text-xs flex items-center justify-center gap-1"
+            >
+              <Plus className="h-3.5 w-3.5" /> Aggiungi ingrediente
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-[1fr_auto] gap-2">
@@ -602,17 +693,27 @@ function IngredientSelect({
   );
 }
 
-function Slot({ ing, onClear }: { ing: Ingredient | null; onClear: () => void }) {
+function Slot({
+  ing,
+  onClear,
+  compact = false,
+}: {
+  ing: Ingredient | null;
+  onClear: () => void;
+  compact?: boolean;
+}) {
+  const size = compact ? "h-20 w-20" : "h-24 w-24";
+  const emojiSize = compact ? "text-3xl" : "text-4xl";
   return (
     <div
-      className={`relative h-24 w-24 rounded-2xl border-2 border-dashed flex items-center justify-center ${
+      className={`relative ${size} rounded-2xl border-2 border-dashed flex items-center justify-center ${
         ing ? "border-primary bg-primary/10" : "border-primary/30 bg-night/40"
       }`}
     >
       {ing ? (
         <>
           <div className="text-center">
-            <div className="text-4xl">{ing.emoji}</div>
+            <div className={emojiSize}>{ing.emoji}</div>
             <div className="text-[10px] mt-1 px-1 line-clamp-1">{ing.name}</div>
           </div>
           <button
