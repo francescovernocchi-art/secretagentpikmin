@@ -262,6 +262,10 @@ function LabPage() {
       if (saved) {
         setFlash(saved as Discovery);
         setDiscoveries((d) => [saved as Discovery, ...d]);
+        // Bonus pikmin per la squadra: +3 se è una scoperta nuova (AI), +1 da ricetta nota
+        try {
+          await addPikmin(result.is_ai ? 3 : 1, "lab", agent, { discovery_id: (saved as any).id });
+        } catch {}
       }
       setSlots([]);
       await load();
