@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { MapPin, Crosshair, Plus, X, Loader2, Gift, Sparkles, Trash2 } from "lucide-react";
+import { MapPin, Crosshair, Plus, X, Loader2, Gift, Sparkles, Trash2, ScrollText, Hand, Zap } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
@@ -29,6 +29,18 @@ type Drop = {
   collected_by: string | null;
   collected_at: string | null;
   created_at: string;
+};
+
+type CollectEvent = {
+  id: string;
+  drop_id: string;
+  name: string;
+  emoji: string;
+  mode: "auto" | "manual";
+  dist_m: number;
+  acc_m: number;
+  radius_m: number;
+  at: string;
 };
 
 const DROP_TEMPLATES = [
@@ -79,6 +91,33 @@ function MappaPage() {
   const [missionText, setMissionText] = useState("");
   const [saving, setSaving] = useState(false);
   const [collecting, setCollecting] = useState<string | null>(null);
+  const [eventLog, setEventLog] = useState<CollectEvent[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem("drop_event_log") ?? "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [showLog, setShowLog] = useState(false);
+
+  const logEvent = (ev: CollectEvent) => {
+    setEventLog((prev) => {
+      const next = [ev, ...prev].slice(0, 50);
+      try {
+        localStorage.setItem("drop_event_log", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const clearLog = () => {
+    if (!confirm("Cancellare tutto il log eventi?")) return;
+    setEventLog([]);
+    try {
+      localStorage.removeItem("drop_event_log");
+    } catch {}
+  };
 
   useEffect(() => {
     placeModeRef.current = placeMode;
@@ -343,6 +382,17 @@ function MappaPage() {
       }
       toast.success(`${d.emoji} Raccolto! +${d.xp} XP${d.note ? ` — "${d.note}"` : ""}`);
       navigator.vibrate?.([60, 40, 120]);
+      logEvent({
+        id: crypto.randomUUID(),
+        drop_id: d.id,
+        name: d.name,
+        emoji: d.emoji,
+        mode: opts?.manual ? "manual" : "auto",
+        dist_m: Math.round(dist),
+        acc_m: Math.round(me.acc),
+        radius_m: d.radius_m,
+        at: new Date().toISOString(),
+      });
     } catch (e: any) {
       toast.error("Cattura fallita: " + (e?.message ?? "?"));
     } finally {
@@ -455,6 +505,93 @@ function MappaPage() {
           <span className="text-primary/70">
             {drops.filter((d) => d.status === "active").length} drop attivi
           </span>
+        </div>
+
+        {/* Log eventi raccolta */}
+        <div className="panel-strong rounded-2xl overflow-hidden">
+          <button
+            onClick={() => setShowLog((s) => !s)}
+            className="w-full flex items-center justify-between px-3 py-2 text-[10px] uppercase tracking-[0.3em] text-primary/80"
+          >
+            <span className="flex items-center gap-1.5">
+              <ScrollText className="h-3 w-3" /> Log raccolte ({eventLog.length})
+            </span>
+            <span className="text-muted-foreground normal-case tracking-normal text-[10px]">
+              {showLog ? "Nascondi" : "Mostra"}
+            </span>
+          </button>
+          <AnimatePresence initial={false}>
+            {showLog && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="border-t border-border"
+              >
+                <div className="p-2 space-y-1.5 max-h-64 overflow-auto">
+                  {eventLog.length === 0 && (
+                    <p className="text-xs text-muted-foreground px-2 py-3 text-center">
+                      Nessun evento ancora. Raccogli un drop per vederlo qui.
+                    </p>
+                  )}
+                  {eventLog.map((ev) => {
+                    const suspect = ev.mode === "manual" || ev.dist_m > ev.radius_m;
+                    return (
+                      <div
+                        key={ev.id}
+                        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] border ${
+                          suspect
+                            ? "border-amber-500/40 bg-amber-500/5"
+                            : "border-border bg-background/30"
+                        }`}
+                      >
+                        <span className="text-base">{ev.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-foreground">{ev.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(ev.at).toLocaleString("it-IT", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            · {ev.dist_m}m / {ev.radius_m}m · GPS ±{ev.acc_m}m
+                          </p>
+                        </div>
+                        <span
+                          className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider ${
+                            ev.mode === "manual"
+                              ? "bg-amber-500/15 text-amber-400 border border-amber-500/40"
+                              : "bg-primary/15 text-primary border border-primary/40"
+                          }`}
+                        >
+                          {ev.mode === "manual" ? (
+                            <>
+                              <Hand className="h-2.5 w-2.5" /> manuale
+                            </>
+                          ) : (
+                            <>
+                              <Zap className="h-2.5 w-2.5" /> auto
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {eventLog.length > 0 && (
+                  <div className="border-t border-border px-3 py-2 flex justify-end">
+                    <button
+                      onClick={clearLog}
+                      className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive"
+                    >
+                      Svuota log
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Form di creazione drop (papà) */}
