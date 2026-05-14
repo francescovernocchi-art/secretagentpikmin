@@ -6,6 +6,9 @@ import { Radar } from "@/components/Radar";
 import { CameraCapture } from "@/components/CameraCapture";
 import { supabase } from "@/integrations/supabase/client";
 import { grantIngredients, rollIngredients } from "@/lib/ingredients";
+import { addPikmin } from "@/lib/pikmin";
+import { getSession } from "@/lib/session";
+import { PikminCounter } from "@/components/PikminCounter";
 import { Camera, ScanLine, Sparkles, FlaskConical } from "lucide-react";
 
 export const Route = createFileRoute("/radar")({
