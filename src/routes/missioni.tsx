@@ -6,7 +6,8 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { CameraCapture } from "@/components/CameraCapture";
 import { grantIngredients, rollIngredients } from "@/lib/ingredients";
-import { Plus, Check, Trophy, Sparkles, X, Camera } from "lucide-react";
+import { collectShipPart } from "@/lib/ship";
+import { Plus, Check, Trophy, Sparkles, X, Camera, Rocket } from "lucide-react";
 
 export const Route = createFileRoute("/missioni")({
   component: MissioniPage,
@@ -22,6 +23,13 @@ interface Mission {
   proof: string | null;
   created_at: string;
   created_by: string;
+  reward_part_key: string | null;
+}
+
+interface ShipPartLite {
+  key: string;
+  name: string;
+  emoji: string;
 }
 
 const SAMPLES = [
