@@ -640,7 +640,7 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const fileRef = useState<{ el: HTMLInputElement | null }>({ el: null })[0];
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const filledInputs = recipeInputsState.filter(Boolean);
 
