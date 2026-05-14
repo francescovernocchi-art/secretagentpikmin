@@ -20,7 +20,7 @@ type Drop = {
   lat: number;
   lng: number;
   radius_m: number;
-  kind: "ingredient" | "object" | "mission";
+  kind: "ingredient" | "object" | "mission" | "ship_part";
   payload_key: string | null;
   name: string;
   emoji: string;
