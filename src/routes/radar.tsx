@@ -5,7 +5,8 @@ import { PageShell } from "@/components/PageShell";
 import { Radar } from "@/components/Radar";
 import { CameraCapture } from "@/components/CameraCapture";
 import { supabase } from "@/integrations/supabase/client";
-import { Camera, ScanLine, Sparkles } from "lucide-react";
+import { grantIngredients, rollIngredients } from "@/lib/ingredients";
+import { Camera, ScanLine, Sparkles, FlaskConical } from "lucide-react";
 
 export const Route = createFileRoute("/radar")({
   component: RadarPage,
@@ -16,6 +17,7 @@ function RadarPage() {
   const [detected, setDetected] = useState(false);
   const [camOpen, setCamOpen] = useState(false);
   const [lastShot, setLastShot] = useState<string | null>(null);
+  const [drops, setDrops] = useState<string[]>([]);
 
   const start = () => {
     setScanning(true);
@@ -34,6 +36,10 @@ function RadarPage() {
       content: "Avvistamento registrato dal radar.",
       image_url: url,
     });
+    // Drop ingrediente dal Pikmin catturato
+    const newDrops = rollIngredients("radar");
+    await grantIngredients("lorenzo", newDrops);
+    setDrops(newDrops);
   };
 
   return (
@@ -94,6 +100,21 @@ function RadarPage() {
             className="w-full rounded-xl border border-primary/30 glow-soft"
           />
           <p className="text-xs text-muted-foreground">Salvato nell'archivio ricordi.</p>
+          <AnimatePresence>
+            {drops.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 rounded-lg bg-primary/10 border border-primary/30 p-2"
+              >
+                <FlaskConical className="h-4 w-4 text-primary" />
+                <p className="text-xs text-primary">
+                  Il Pikmin ha lasciato cadere <b>{drops.length}</b> ingrediente
+                  {drops.length > 1 ? "i" : ""}! Vai al Lab.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 

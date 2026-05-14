@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { CameraCapture } from "@/components/CameraCapture";
+import { grantIngredients, rollIngredients } from "@/lib/ingredients";
 import { Plus, Check, Trophy, Sparkles, X, Camera } from "lucide-react";
 
 export const Route = createFileRoute("/missioni")({
@@ -155,6 +156,9 @@ function MissioniPage() {
                         title: m.title,
                         icon: "🏅",
                       });
+                      // Drop ingredienti per il Laboratorio
+                      const drops = rollIngredients("mission");
+                      await grantIngredients("lorenzo", drops);
                     }}
                     className="btn-neon px-3 py-1.5 text-xs flex items-center gap-1"
                   >
