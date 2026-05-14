@@ -276,7 +276,7 @@ function MappaPage() {
       created_by: role,
       lat: pendingPos.lat,
       lng: pendingPos.lng,
-      radius_m: 20,
+      radius_m: 5,
       kind: tpl.kind,
       payload_key: tpl.payload_key,
       name: tpl.name,
@@ -488,7 +488,7 @@ function MappaPage() {
 
               <p className="text-xs text-foreground">
                 <b>{DROP_TEMPLATES[selectedTpl].emoji} {DROP_TEMPLATES[selectedTpl].name}</b>
-                <span className="text-muted-foreground"> · raggio 20m</span>
+                <span className="text-muted-foreground"> · raggio 5m</span>
               </p>
 
               {DROP_TEMPLATES[selectedTpl].kind === "mission" && (
