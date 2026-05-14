@@ -96,6 +96,10 @@ function MappaPage() {
   };
   const [agentPositions, setAgentPositions] = useState<AgentPos[]>([]);
 
+  type ShipPartLite = { key: string; name: string; emoji: string };
+  const [shipParts, setShipParts] = useState<ShipPartLite[]>([]);
+  const [collectedPartKeys, setCollectedPartKeys] = useState<Set<string>>(new Set());
+
   // Deterministic color per agent id (HSL hue from hash)
   const agentColor = (id: string) => {
     let h = 0;
