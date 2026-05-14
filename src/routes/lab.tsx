@@ -458,8 +458,7 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
     () => Object.values(catalog).sort((a, b) => a.name.localeCompare(b.name)),
     [catalog],
   );
-  const [inputA, setInputA] = useState("");
-  const [inputB, setInputB] = useState("");
+  const [recipeInputsState, setRecipeInputsState] = useState<string[]>(["", ""]);
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("");
   const [description, setDescription] = useState("");
@@ -467,14 +466,22 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const filledInputs = recipeInputsState.filter(Boolean);
+
   const duplicate = useMemo(() => {
-    if (!inputA || !inputB) return false;
-    return existing.some(
-      (r) =>
-        (r.input_a === inputA && r.input_b === inputB) ||
-        (r.input_a === inputB && r.input_b === inputA),
+    if (filledInputs.length < 2) return false;
+    const target = sortedKey(filledInputs);
+    return existing.some((r) => sortedKey(recipeInputs(r)) === target);
+  }, [existing, filledInputs]);
+
+  const updateAt = (idx: number, value: string) =>
+    setRecipeInputsState((prev) => prev.map((v, i) => (i === idx ? value : v)));
+  const addInput = () =>
+    setRecipeInputsState((prev) => (prev.length < MAX_SLOTS ? [...prev, ""] : prev));
+  const removeAt = (idx: number) =>
+    setRecipeInputsState((prev) =>
+      prev.length > 2 ? prev.filter((_, i) => i !== idx) : prev,
     );
-  }, [existing, inputA, inputB]);
 
   const submit = async () => {
     setError(null);
@@ -482,7 +489,8 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
     const trimmedEmoji = emoji.trim();
     const trimmedDesc = description.trim();
 
-    if (!inputA || !inputB) return setError("Scegli entrambi gli ingredienti.");
+    if (filledInputs.length < 2)
+      return setError("Servono almeno 2 ingredienti.");
     if (!trimmedName || trimmedName.length > 80)
       return setError("Nome risultato richiesto (max 80).");
     if (!trimmedEmoji || trimmedEmoji.length > 8)
@@ -492,12 +500,13 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
     const xpInt = Math.round(Number(xp));
     if (!Number.isFinite(xpInt) || xpInt < 0 || xpInt > 999)
       return setError("XP fuori range (0-999).");
-    if (duplicate) return setError("Esiste già una ricetta con questa coppia.");
+    if (duplicate) return setError("Esiste già una ricetta con questa combinazione.");
 
     setSaving(true);
     const { error: dbErr } = await supabase.from("recipes").insert({
-      input_a: inputA,
-      input_b: inputB,
+      input_a: filledInputs[0],
+      input_b: filledInputs[1],
+      inputs: filledInputs,
       result_name: trimmedName,
       result_emoji: trimmedEmoji,
       description: trimmedDesc || null,
@@ -535,19 +544,36 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <IngredientSelect
-            label="Ingrediente A"
-            value={inputA}
-            onChange={setInputA}
-            options={ingredients}
-          />
-          <IngredientSelect
-            label="Ingrediente B"
-            value={inputB}
-            onChange={setInputB}
-            options={ingredients}
-          />
+        <div className="space-y-2">
+          {recipeInputsState.map((val, idx) => (
+            <div key={idx} className="flex items-end gap-2">
+              <div className="flex-1">
+                <IngredientSelect
+                  label={`Ingrediente ${idx + 1}`}
+                  value={val}
+                  onChange={(v) => updateAt(idx, v)}
+                  options={ingredients}
+                />
+              </div>
+              {recipeInputsState.length > 2 && (
+                <button
+                  onClick={() => removeAt(idx)}
+                  className="panel h-9 w-9 flex items-center justify-center text-destructive"
+                  aria-label="Rimuovi ingrediente"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
+          {recipeInputsState.length < MAX_SLOTS && (
+            <button
+              onClick={addInput}
+              className="panel w-full py-2 text-xs flex items-center justify-center gap-1"
+            >
+              <Plus className="h-3.5 w-3.5" /> Aggiungi ingrediente
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-[1fr_auto] gap-2">
