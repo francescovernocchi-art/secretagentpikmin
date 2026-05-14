@@ -228,18 +228,25 @@ function AgentiPage() {
               </div>
 
               {/* PIN */}
-              <div>
-                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  PIN segreto (4 cifre)
-                </label>
-                <input
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  inputMode="numeric"
-                  placeholder="0000"
-                  className="w-full mt-1 bg-background/40 border border-border rounded-lg px-3 py-2 text-lg font-mono tracking-[0.5em] text-center"
-                />
-              </div>
+              {!editingId && (
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    PIN segreto (4 cifre)
+                  </label>
+                  <input
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    inputMode="numeric"
+                    placeholder="0000"
+                    className="w-full mt-1 bg-background/40 border border-border rounded-lg px-3 py-2 text-lg font-mono tracking-[0.5em] text-center"
+                  />
+                </div>
+              )}
+              {editingId && (
+                <p className="text-[10px] text-muted-foreground">
+                  Il PIN non può essere modificato. Per cambiarlo, elimina e ricrea l'agente.
+                </p>
+              )}
 
               {/* Ruolo */}
               <div>
