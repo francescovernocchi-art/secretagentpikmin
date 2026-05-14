@@ -43,10 +43,19 @@ function RadarPage() {
     const newDrops = rollIngredients("radar");
     await grantIngredients("lorenzo", newDrops);
     setDrops(newDrops);
+    // +1 Pikmin alla squadra
+    const session = getSession();
+    try {
+      await addPikmin(1, "radar", session?.name ?? "lorenzo");
+    } catch {}
   };
 
   return (
-    <PageShell title="Radar Pikmin" subtitle="Scanner di prossimità · live">
+    <PageShell
+      title="Radar Pikmin"
+      subtitle="Scanner di prossimità · live"
+      action={<PikminCounter compact />}
+    >
       <div className="panel-strong scanline relative overflow-hidden p-6 flex flex-col items-center gap-4">
         <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">// Scansione zona</p>
         <Radar size={260} />
