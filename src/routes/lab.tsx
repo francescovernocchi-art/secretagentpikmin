@@ -883,7 +883,7 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
           </button>
           <button
             onClick={submit}
-            disabled={saving || duplicate}
+            disabled={saving || duplicate || uploading}
             className="btn-neon flex-1 py-2 text-xs disabled:opacity-40"
           >
             {saving ? "Salvo…" : "Salva ricetta"}
