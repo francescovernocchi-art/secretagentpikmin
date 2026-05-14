@@ -5,7 +5,8 @@ import { PageShell } from "@/components/PageShell";
 import { Radar } from "@/components/Radar";
 import { CameraCapture } from "@/components/CameraCapture";
 import { supabase } from "@/integrations/supabase/client";
-import { Camera, ScanLine, Sparkles } from "lucide-react";
+import { grantIngredients, rollIngredients } from "@/lib/ingredients";
+import { Camera, ScanLine, Sparkles, FlaskConical } from "lucide-react";
 
 export const Route = createFileRoute("/radar")({
   component: RadarPage,
@@ -16,6 +17,7 @@ function RadarPage() {
   const [detected, setDetected] = useState(false);
   const [camOpen, setCamOpen] = useState(false);
   const [lastShot, setLastShot] = useState<string | null>(null);
+  const [drops, setDrops] = useState<string[]>([]);
 
   const start = () => {
     setScanning(true);
@@ -34,6 +36,10 @@ function RadarPage() {
       content: "Avvistamento registrato dal radar.",
       image_url: url,
     });
+    // Drop ingrediente dal Pikmin catturato
+    const newDrops = rollIngredients("radar");
+    await grantIngredients("lorenzo", newDrops);
+    setDrops(newDrops);
   };
 
   return (
