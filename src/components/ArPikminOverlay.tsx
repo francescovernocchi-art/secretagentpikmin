@@ -122,8 +122,8 @@ export function ArPikminOverlay() {
         </div>
       )}
 
-      {/* Indicatore direzionale */}
-      {arrow != null && (
+      {/* Indicatore direzionale (solo quando il bersaglio è lontano) */}
+      {arrow != null && pos.lock < 0.5 && (
         <motion.div
           className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{ rotate: arrow }}
@@ -133,6 +133,101 @@ export function ArPikminOverlay() {
           <div className="h-24 w-1 bg-gradient-to-b from-transparent to-primary rounded-full shadow-[0_0_18px_var(--color-primary)]" />
         </motion.div>
       )}
+
+      {/* Scanner futuristico — appare quando si sta agganciando il bersaglio */}
+      {target && !noSensor && pos.lock >= 0.5 && (
+        <div
+          className="pointer-events-none absolute"
+          style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+        >
+          {(() => {
+            const locking = pos.lock >= 0.85;
+            const size = 160 - pos.lock * 40; // si stringe man mano che ci avviciniamo
+            const ringColor = locking ? "var(--color-primary)" : "oklch(0.86 0.24 145 / 0.7)";
+            return (
+              <div
+                className="relative -translate-x-1/2 -translate-y-1/2"
+                style={{ width: size, height: size }}
+              >
+                {/* anello rotante */}
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2"
+                  style={{
+                    borderColor: ringColor,
+                    boxShadow: `0 0 24px ${ringColor}, inset 0 0 18px ${ringColor}`,
+                    borderStyle: "dashed",
+                  }}
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: locking ? 1.2 : 3, repeat: Infinity, ease: "linear" }}
+                />
+                {/* anello inverso */}
+                <motion.div
+                  className="absolute inset-[14%] rounded-full border"
+                  style={{ borderColor: ringColor, opacity: 0.6 }}
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: locking ? 0.8 : 2.2, repeat: Infinity, ease: "linear" }}
+                />
+                {/* parentesi angolari (corner brackets) */}
+                {[
+                  { top: 0, left: 0, b: "border-t-2 border-l-2", r: "rounded-tl-md" },
+                  { top: 0, right: 0, b: "border-t-2 border-r-2", r: "rounded-tr-md" },
+                  { bottom: 0, left: 0, b: "border-b-2 border-l-2", r: "rounded-bl-md" },
+                  { bottom: 0, right: 0, b: "border-b-2 border-r-2", r: "rounded-br-md" },
+                ].map((c, i) => (
+                  <motion.span
+                    key={i}
+                    className={`absolute ${c.b} ${c.r}`}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      top: c.top,
+                      left: c.left,
+                      right: c.right,
+                      bottom: c.bottom,
+                      borderColor: ringColor,
+                      filter: `drop-shadow(0 0 6px ${ringColor})`,
+                    }}
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: locking ? 0.5 : 1, repeat: Infinity, delay: i * 0.08 }}
+                  />
+                ))}
+                {/* linea di scansione orizzontale */}
+                <motion.div
+                  className="absolute left-[8%] right-[8%] h-px"
+                  style={{
+                    background: `linear-gradient(90deg, transparent, ${ringColor}, transparent)`,
+                    boxShadow: `0 0 8px ${ringColor}`,
+                  }}
+                  animate={{ top: ["12%", "88%", "12%"] }}
+                  transition={{ duration: locking ? 0.9 : 1.8, repeat: Infinity, ease: "easeInOut" }}
+                />
+                {/* crosshair centrale */}
+                <span
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    background: ringColor,
+                    boxShadow: `0 0 10px ${ringColor}`,
+                  }}
+                />
+                {/* etichetta stato */}
+                <p
+                  className="absolute left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-[0.3em] whitespace-nowrap"
+                  style={{
+                    bottom: -18,
+                    color: ringColor,
+                    textShadow: `0 0 6px ${ringColor}`,
+                  }}
+                >
+                  {locking ? "● Lock acquisito" : "Scansione…"}
+                </p>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
 
       {/* Pikmin AR — visibile solo quando inquadri la posizione esatta */}
       <AnimatePresence>
