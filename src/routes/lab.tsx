@@ -66,8 +66,7 @@ function LabPage() {
   const [inventory, setInventory] = useState<InvRow[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [discoveries, setDiscoveries] = useState<Discovery[]>([]);
-  const [slotA, setSlotA] = useState<string | null>(null);
-  const [slotB, setSlotB] = useState<string | null>(null);
+  const [slots, setSlots] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<Discovery | null>(null);
   const [showRecipeForm, setShowRecipeForm] = useState(false);
