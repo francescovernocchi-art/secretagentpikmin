@@ -304,25 +304,60 @@ function LabPage() {
             // Banco di lavoro
           </p>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            {slots.length}/{MAX_SLOTS}
+            {slots.length}/{MAX_SLOTS} · {new Set(slots).size} unici
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 min-h-[7rem]">
           {slots.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">
-              Tocca gli ingredienti per aggiungerli (min 2, max {MAX_SLOTS}).
+            <p className="text-xs text-muted-foreground italic text-center px-4">
+              Tocca un ingrediente per aggiungerlo. Min 2 · max {MAX_SLOTS}.
+              Tocca più volte per duplicare.
             </p>
           ) : (
-            slots.map((key, idx) => {
-              const ing = catalog[key];
-              if (!ing) return null;
-              return (
-                <span key={`${key}-${idx}`} className="contents">
-                  {idx > 0 && <Plus className="h-4 w-4 text-primary/70" />}
-                  <Slot ing={ing} onClear={() => removeSlotAt(idx)} compact />
-                </span>
-              );
-            })
+            (() => {
+              // Raggruppa per chiave preservando l'ordine di prima apparizione
+              const seen: string[] = [];
+              for (const k of slots) if (!seen.includes(k)) seen.push(k);
+              return seen.map((key, gIdx) => {
+                const ing = catalog[key];
+                if (!ing) return null;
+                const count = slotCount(key);
+                const owned = ownedOf(key);
+                const canMore = count < owned && slots.length < MAX_SLOTS;
+                return (
+                  <span key={key} className="contents">
+                    {gIdx > 0 && <Plus className="h-4 w-4 text-primary/70" />}
+                    <div className="relative rounded-2xl border-2 border-primary bg-primary/10 px-3 py-2 flex flex-col items-center gap-1 min-w-[5rem]">
+                      <div className="text-3xl leading-none">{ing.emoji}</div>
+                      <div className="text-[10px] line-clamp-1 text-center">{ing.name}</div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <button
+                          onClick={() => removeOne(key)}
+                          className="h-6 w-6 rounded-full bg-night/80 border border-primary/30 text-primary text-sm leading-none flex items-center justify-center active:scale-90"
+                          aria-label={`Rimuovi un ${ing.name}`}
+                        >
+                          −
+                        </button>
+                        <span className="text-xs font-display text-glow w-6 text-center">
+                          ×{count}
+                        </span>
+                        <button
+                          onClick={() => addToSlot(key)}
+                          disabled={!canMore}
+                          className="h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm leading-none flex items-center justify-center active:scale-90 disabled:opacity-30"
+                          aria-label={`Aggiungi un ${ing.name}`}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-[9px] text-muted-foreground">
+                        disp. {Math.max(0, owned - count)}/{owned}
+                      </span>
+                    </div>
+                  </span>
+                );
+              });
+            })()
           )}
         </div>
         <div className="flex gap-2">
@@ -343,9 +378,11 @@ function LabPage() {
             <FlaskConical className="h-4 w-4" />
             {busy
               ? "Reazione in corso…"
-              : slots.length >= 3
-                ? `Combina ×${slots.length}`
-                : "Combina"}
+              : slots.length < 2
+                ? "Servono almeno 2"
+                : slots.length >= 3
+                  ? `Combina ×${slots.length}`
+                  : "Combina"}
           </button>
         </div>
       </div>
@@ -353,7 +390,7 @@ function LabPage() {
       {/* Inventario */}
       <div>
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-          Inventario ({inventoryWithMeta.length})
+          Inventario ({inventoryWithMeta.length}) · tocca per aggiungere
         </p>
         {inventoryWithMeta.length === 0 ? (
           <div className="panel p-6 text-center text-xs text-muted-foreground">
@@ -370,24 +407,43 @@ function LabPage() {
               return (
                 <button
                   key={row.id}
-                  onClick={() => toggleSlot(m.key)}
-                  disabled={exhausted && !sel}
-                  className={`relative rounded-xl border p-2 flex flex-col items-center gap-1 transition-all ${
+                  onClick={() => addToSlot(m.key)}
+                  className={`relative rounded-xl border p-2 pt-3 flex flex-col items-center gap-1 transition-all ${
                     RARITY_STYLE[m.rarity] ?? RARITY_STYLE.comune
-                  } ${sel ? "ring-2 ring-primary scale-95" : "active:scale-95"} ${
-                    exhausted && !sel ? "opacity-40" : ""
+                  } ${sel ? "ring-2 ring-primary" : "active:scale-95"} ${
+                    exhausted ? "opacity-50" : ""
                   }`}
                 >
                   <span className="text-2xl leading-none">{m.emoji}</span>
                   <span className="text-[10px] text-center leading-tight line-clamp-2">{m.name}</span>
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] px-1.5 rounded-full font-bold">
-                    {used > 0 ? `${used}/${row.qty}` : row.qty}
+                  {/* badge disponibili */}
+                  <span
+                    className={`absolute -top-1 -right-1 text-[10px] px-1.5 rounded-full font-bold ${
+                      exhausted
+                        ? "bg-destructive/80 text-white"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                    title={`${remaining} disponibili su ${row.qty}`}
+                  >
+                    {remaining}
                   </span>
+                  {/* badge in uso */}
+                  {used > 0 && (
+                    <span className="absolute -top-1 -left-1 bg-fuchsia-500 text-white text-[10px] px-1.5 rounded-full font-bold">
+                      ·{used}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
         )}
+        <p className="mt-2 text-[10px] text-muted-foreground text-center">
+          <span className="inline-block h-2 w-2 rounded-full bg-primary mr-1 align-middle" />
+          disponibili
+          <span className="inline-block h-2 w-2 rounded-full bg-fuchsia-500 mx-1 ml-3 align-middle" />
+          in uso nel banco
+        </p>
       </div>
 
       {/* Cronologia scoperte */}
