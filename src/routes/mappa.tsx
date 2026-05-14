@@ -294,15 +294,24 @@ function MappaPage() {
     cancelPlace();
   };
 
-  const collect = async (d: Drop) => {
+  const collect = async (d: Drop, opts?: { manual?: boolean }) => {
     if (!me) {
       toast.error("Devo conoscere la tua posizione GPS");
       return;
     }
     const dist = distMeters(me, d);
-    if (dist > d.radius_m) {
-      toast.warning(`Sei troppo lontano: ${Math.round(dist)}m (devi essere entro ${d.radius_m}m)`);
-      return;
+    const inRange = dist <= d.radius_m;
+    const inFuzzyRange = dist <= d.radius_m + me.acc;
+    if (!inRange) {
+      if (opts?.manual && inFuzzyRange) {
+        const ok = confirm(
+          `Il GPS è impreciso (±${Math.round(me.acc)}m) e risulti a ${Math.round(dist)}m da "${d.name}".\n\nSei davvero sul posto? Confermi la raccolta manuale?`,
+        );
+        if (!ok) return;
+      } else {
+        toast.warning(`Sei troppo lontano: ${Math.round(dist)}m (devi essere entro ${d.radius_m}m)`);
+        return;
+      }
     }
     setCollecting(d.id);
     try {
@@ -542,11 +551,17 @@ function MappaPage() {
             )}
             {nearby.map(({ d, dist }) => {
               const inRange = dist <= d.radius_m;
+              const acc = me?.acc ?? 0;
+              const fuzzy = !inRange && dist <= d.radius_m + acc && acc > d.radius_m / 2;
               return (
                 <div
                   key={d.id}
                   className={`flex items-center gap-3 rounded-xl p-2.5 border ${
-                    inRange ? "border-primary/60 bg-primary/10" : "border-border bg-background/30"
+                    inRange
+                      ? "border-primary/60 bg-primary/10"
+                      : fuzzy
+                        ? "border-amber-500/50 bg-amber-500/5"
+                        : "border-border bg-background/30"
                   }`}
                 >
                   <span className="text-2xl">{d.emoji}</span>
@@ -554,20 +569,32 @@ function MappaPage() {
                     <p className="text-sm text-foreground truncate">{d.name}</p>
                     <p className="text-[10px] text-muted-foreground">
                       {Math.round(dist)}m {inRange ? "· nel raggio!" : `· entro ${d.radius_m}m`}
+                      {fuzzy ? ` · GPS ±${Math.round(acc)}m` : ""}
                       {d.note ? ` · "${d.note}"` : ""}
                     </p>
                   </div>
-                  <button
-                    onClick={() => collect(d)}
-                    disabled={!inRange || collecting === d.id}
-                    className={`text-[10px] uppercase tracking-widest px-3 py-2 rounded-full border ${
-                      inRange
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-muted-foreground"
-                    } disabled:opacity-50`}
-                  >
-                    {collecting === d.id ? "…" : inRange ? "Raccogli" : "Lontano"}
-                  </button>
+                  {fuzzy ? (
+                    <button
+                      onClick={() => collect(d, { manual: true })}
+                      disabled={collecting === d.id}
+                      className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-full border border-amber-500/70 text-amber-400 disabled:opacity-50"
+                      title="GPS impreciso: conferma manualmente"
+                    >
+                      {collecting === d.id ? "…" : "Sono qui"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => collect(d)}
+                      disabled={!inRange || collecting === d.id}
+                      className={`text-[10px] uppercase tracking-widest px-3 py-2 rounded-full border ${
+                        inRange
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-muted-foreground"
+                      } disabled:opacity-50`}
+                    >
+                      {collecting === d.id ? "…" : inRange ? "Raccogli" : "Lontano"}
+                    </button>
+                  )}
                 </div>
               );
             })}
