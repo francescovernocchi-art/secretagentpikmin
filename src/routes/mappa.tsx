@@ -458,6 +458,7 @@ function MappaPage() {
     name: string;
     payload_key: string | null;
     xp: number;
+    rarity?: string;
   };
   const allTemplates: DropTpl[] = useMemo(() => {
     const baseTpls = DROP_TEMPLATES.map((t) => ({ ...t })) as DropTpl[];
@@ -469,6 +470,7 @@ function MappaPage() {
         name: p.name,
         payload_key: p.key,
         xp: 40,
+        rarity: p.rarity,
       }));
     return [...baseTpls, ...shipTpls];
   }, [shipParts, collectedPartKeys]);
