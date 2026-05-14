@@ -356,6 +356,34 @@ function MappaPage() {
       .slice(0, 5);
   }, [drops, me]);
 
+  // Notifica quando entri (o esci) dal raggio di un drop attivo
+  useEffect(() => {
+    if (!me || isPapa) return;
+    const activeIds = new Set<string>();
+    for (const d of drops) {
+      if (d.status !== "active") continue;
+      activeIds.add(d.id);
+      const inRange = distMeters(me, d) <= d.radius_m;
+      const already = notifiedRef.current.has(d.id);
+      if (inRange && !already) {
+        notifiedRef.current.add(d.id);
+        toast.success(`${d.emoji} Sei vicino a "${d.name}" — tocca Raccogli!`, {
+          description: d.note ? `"${d.note}"` : `+${d.xp} XP nel raggio di ${d.radius_m}m`,
+          duration: 6000,
+        });
+        navigator.vibrate?.([40, 30, 40]);
+      } else if (!inRange && already) {
+        // esci dal raggio → resetta così alla prossima entrata avvisa di nuovo
+        notifiedRef.current.delete(d.id);
+      }
+    }
+    // pulisci drop non più attivi/esistenti
+    for (const id of Array.from(notifiedRef.current)) {
+      if (!activeIds.has(id)) notifiedRef.current.delete(id);
+    }
+  }, [me, drops, isPapa]);
+
+
   return (
     <PageShell
       title="Mappa Drop"
