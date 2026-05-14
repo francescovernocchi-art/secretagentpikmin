@@ -181,6 +181,10 @@ function ShipPage() {
                 <p className="font-display text-sm text-glow leading-tight truncate">
                   {p.name}
                 </p>
+                <p className={`text-[9px] uppercase tracking-wider flex items-center gap-1 ${RARITY_COLOR[p.rarity ?? "comune"]}`}>
+                  <span>{RARITY_LABEL[p.rarity ?? "comune"]}</span>
+                  <span className="text-muted-foreground">· {pikminCostFor(p.rarity)} 🌱</span>
+                </p>
                 {p.description && (
                   <p className="text-[10px] text-muted-foreground line-clamp-2">
                     {p.description}
