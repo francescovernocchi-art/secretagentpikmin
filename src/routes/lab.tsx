@@ -27,13 +27,21 @@ interface InvRow {
 }
 interface Recipe {
   id: string;
-  input_a: string;
-  input_b: string;
+  input_a: string | null;
+  input_b: string | null;
+  inputs: string[] | null;
   result_name: string;
   result_emoji: string;
   description: string | null;
   xp: number;
 }
+
+const MAX_SLOTS = 6;
+const sortedKey = (keys: string[]) => [...keys].sort().join("|");
+const recipeInputs = (r: Recipe): string[] =>
+  r.inputs && r.inputs.length
+    ? r.inputs
+    : ([r.input_a, r.input_b].filter(Boolean) as string[]);
 interface Discovery {
   id: string;
   result_name: string;
