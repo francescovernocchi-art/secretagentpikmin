@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RicordiRouteImport } from './routes/ricordi'
+import { Route as RicetteRouteImport } from './routes/ricette'
 import { Route as RadarRouteImport } from './routes/radar'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PremiRouteImport } from './routes/premi'
@@ -23,6 +24,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const RicordiRoute = RicordiRouteImport.update({
   id: '/ricordi',
   path: '/ricordi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RicetteRoute = RicetteRouteImport.update({
+  id: '/ricette',
+  path: '/ricette',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RadarRoute = RadarRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
+  '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
+  '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
+  '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/premi'
     | '/profilo'
     | '/radar'
+    | '/ricette'
     | '/ricordi'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/premi'
     | '/profilo'
     | '/radar'
+    | '/ricette'
     | '/ricordi'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/premi'
     | '/profilo'
     | '/radar'
+    | '/ricette'
     | '/ricordi'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   PremiRoute: typeof PremiRoute
   ProfiloRoute: typeof ProfiloRoute
   RadarRoute: typeof RadarRoute
+  RicetteRoute: typeof RicetteRoute
   RicordiRoute: typeof RicordiRoute
 }
 
@@ -167,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/ricordi'
       fullPath: '/ricordi'
       preLoaderRoute: typeof RicordiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ricette': {
+      id: '/ricette'
+      path: '/ricette'
+      fullPath: '/ricette'
+      preLoaderRoute: typeof RicetteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/radar': {
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   PremiRoute: PremiRoute,
   ProfiloRoute: ProfiloRoute,
   RadarRoute: RadarRoute,
+  RicetteRoute: RicetteRoute,
   RicordiRoute: RicordiRoute,
 }
 export const routeTree = rootRouteImport

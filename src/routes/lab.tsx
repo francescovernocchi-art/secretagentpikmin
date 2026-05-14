@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,7 +7,7 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { consumeIngredient, grantIngredients } from "@/lib/ingredients";
 import { inventDiscovery } from "@/lib/lab.functions";
-import { FlaskConical, Sparkles, X, Plus, BookPlus } from "lucide-react";
+import { FlaskConical, Sparkles, X, Plus, BookPlus, BookOpen } from "lucide-react";
 
 export const Route = createFileRoute("/lab")({
   component: LabPage,
@@ -250,20 +250,32 @@ function LabPage() {
       title="Laboratorio"
       subtitle="Esperimenti segreti · combina ingredienti"
       action={
-        session?.role === "papa" && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowRecipeForm(true)}
-              className="panel px-3 py-2 text-xs flex items-center gap-1"
-              title="Aggiungi ricetta"
-            >
-              <BookPlus className="h-3.5 w-3.5" /> Ricetta
-            </button>
-            <button onClick={giveStarter} className="panel px-3 py-2 text-xs flex items-center gap-1">
-              <Plus className="h-3.5 w-3.5" /> Kit
-            </button>
-          </div>
-        )
+        <div className="flex items-center gap-2">
+          <Link
+            to="/ricette"
+            className="panel px-3 py-2 text-xs flex items-center gap-1"
+            title="Ricettario"
+          >
+            <BookOpen className="h-3.5 w-3.5" /> Ricette
+          </Link>
+          {session?.role === "papa" && (
+            <>
+              <button
+                onClick={() => setShowRecipeForm(true)}
+                className="panel px-3 py-2 text-xs flex items-center gap-1"
+                title="Aggiungi ricetta"
+              >
+                <BookPlus className="h-3.5 w-3.5" /> Nuova
+              </button>
+              <button
+                onClick={giveStarter}
+                className="panel px-3 py-2 text-xs flex items-center gap-1"
+              >
+                <Plus className="h-3.5 w-3.5" /> Kit
+              </button>
+            </>
+          )}
+        </div>
       }
     >
       {/* Banco di lavoro */}
