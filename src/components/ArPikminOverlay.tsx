@@ -501,31 +501,65 @@ export function ArPikminOverlay() {
       )}
 
 
-      {/* Pikmin AR — visibile solo quando inquadri la posizione esatta */}
+      {/* Bersaglio AR — visibile solo quando inquadri la posizione esatta */}
       <AnimatePresence>
         {target && pos.visible && (
           <motion.div
-            key={target.src}
-            className="pointer-events-none absolute"
+            key={`${target.kind}-${target.src ?? target.key ?? target.name}`}
+            className="absolute"
             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
             initial={{ opacity: 0, scale: 0.4 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.4 }}
             transition={{ type: "spring", stiffness: 220, damping: 18 }}
           >
-            <motion.img
-              src={target.src}
-              alt={target.name}
-              className="w-32 h-32 object-contain drop-shadow-[0_0_22px_var(--color-primary)] -translate-x-1/2 -translate-y-1/2"
-              animate={{ y: [-4, 4, -4], rotate: [-3, 3, -3] }}
-              transition={{
-                y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" },
-                rotate: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-              }}
-            />
-            <p className="absolute left-1/2 -translate-x-1/2 -bottom-2 text-[10px] uppercase tracking-[0.3em] text-primary text-glow whitespace-nowrap">
+            {target.kind === "pikmin" && target.src ? (
+              <motion.img
+                src={target.src}
+                alt={target.name}
+                className="pointer-events-none w-32 h-32 object-contain drop-shadow-[0_0_22px_var(--color-primary)] -translate-x-1/2 -translate-y-1/2"
+                animate={{ y: [-4, 4, -4], rotate: [-3, 3, -3] }}
+                transition={{
+                  y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" },
+                  rotate: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                }}
+              />
+            ) : (
+              <motion.div
+                className="pointer-events-none -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-28 h-28 rounded-full bg-background/40 border border-primary/60 backdrop-blur-sm"
+                style={{ boxShadow: "0 0 28px var(--color-primary), inset 0 0 18px oklch(0.86 0.24 145 / 0.4)" }}
+                animate={{ y: [-4, 4, -4], rotate: [-3, 3, -3] }}
+                transition={{
+                  y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" },
+                  rotate: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                }}
+              >
+                <span className="text-5xl drop-shadow-[0_0_12px_var(--color-primary)]">
+                  {target.emoji ?? "✦"}
+                </span>
+              </motion.div>
+            )}
+            <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 -bottom-2 text-[10px] uppercase tracking-[0.3em] text-primary text-glow whitespace-nowrap">
+              {target.kind === "ingredient" && "Ingrediente · "}
+              {target.kind === "object" && "Oggetto · "}
+              {target.kind === "mission" && "Missione · "}
               {target.name}
             </p>
+            {target.kind === "mission" && target.payload && (
+              <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[60%] mt-2 max-w-[60vw] text-center text-[11px] text-primary/90 bg-background/60 border border-primary/40 rounded-md px-2 py-1 backdrop-blur whitespace-normal">
+                {target.payload}
+              </p>
+            )}
+            {/* Pulsante cattura — solo per non-pikmin, quando lock alto */}
+            {target.kind !== "pikmin" && pos.lock >= 0.7 && (
+              <button
+                onClick={capture}
+                disabled={grantBusy}
+                className="absolute left-1/2 -translate-x-1/2 top-[78%] mt-3 text-[10px] uppercase tracking-[0.3em] px-3 py-1.5 rounded-full border border-primary bg-primary/20 text-primary backdrop-blur disabled:opacity-50"
+              >
+                {grantBusy ? "…" : "✦ Cattura"}
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
