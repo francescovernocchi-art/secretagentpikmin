@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { Plus, Trophy } from "lucide-react";
+import { PIKMIN } from "@/assets/pikmin";
 
 export const Route = createFileRoute("/premi")({
   component: PremiPage,
@@ -20,11 +21,20 @@ interface Reward {
 }
 
 const PRESETS = [
-  { title: "Esploratore Verde", icon: "🌿", badge: "explorer" },
-  { title: "Cercatore Pikmin", icon: "🟢", badge: "seeker" },
-  { title: "Agente Speciale", icon: "🕶️", badge: "agent" },
-  { title: "Custode della Base", icon: "🛡️", badge: "guardian" },
+  { title: "Pikmin Rosso Catturato", icon: "pikmin:red", badge: "red" },
+  { title: "Pikmin Giallo Catturato", icon: "pikmin:yellow", badge: "yellow" },
+  { title: "Pikmin Blu Catturato", icon: "pikmin:blue", badge: "blue" },
+  { title: "Pikmin Roccia Catturato", icon: "pikmin:rock", badge: "rock" },
 ];
+
+const PIKMIN_MAP: Record<string, string> = {
+  "pikmin:red": PIKMIN.red,
+  "pikmin:yellow": PIKMIN.yellow,
+  "pikmin:blue": PIKMIN.blue,
+  "pikmin:white": PIKMIN.white,
+  "pikmin:rock": PIKMIN.rock,
+  "pikmin:pink": PIKMIN.pink,
+};
 
 function PremiPage() {
   const session = typeof window !== "undefined" ? getSession() : null;
@@ -60,7 +70,7 @@ function PremiPage() {
           <div className="grid grid-cols-2 gap-2">
             {PRESETS.map((p) => (
               <button key={p.title} onClick={() => grant(p)} className="panel p-3 text-left flex items-center gap-2">
-                <span className="text-2xl">{p.icon}</span>
+                <img src={PIKMIN_MAP[p.icon]} alt="" className="h-8 w-8 object-contain" />
                 <span className="text-sm">{p.title}</span>
                 <Plus className="h-4 w-4 ml-auto text-primary" />
               </button>
@@ -78,7 +88,11 @@ function PremiPage() {
             transition={{ delay: i * 0.04 }}
             className="panel p-4 flex flex-col items-center text-center gap-2 glow-soft"
           >
-            <span className="text-4xl animate-float-slow">{r.icon ?? "🏅"}</span>
+            {r.icon && PIKMIN_MAP[r.icon] ? (
+              <img src={PIKMIN_MAP[r.icon]} alt="" className="h-16 w-16 object-contain animate-float-slow drop-shadow-[0_0_12px_oklch(0.86_0.24_145/0.5)]" />
+            ) : (
+              <span className="text-4xl animate-float-slow">{r.icon ?? "🏅"}</span>
+            )}
             <p className="font-display text-sm text-glow">{r.title}</p>
             <p className="text-[10px] text-muted-foreground">
               {new Date(r.created_at).toLocaleDateString("it-IT")}

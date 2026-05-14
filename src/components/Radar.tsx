@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { PIKMIN } from "@/assets/pikmin";
 
 export function Radar({ size = 220 }: { size?: number }) {
   return (
@@ -26,13 +27,29 @@ export function Radar({ size = 220 }: { size?: number }) {
           }}
         />
       </div>
-      {/* ping dot */}
-      <motion.span
-        className="absolute left-[62%] top-[35%] h-2 w-2 rounded-full bg-primary glow-soft"
-        animate={{ scale: [1, 1.6, 1], opacity: [1, 0.4, 1] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      />
+      {/* ping dot + pikmin sprite */}
       <span className="absolute left-[62%] top-[35%] h-2 w-2 rounded-full bg-primary/40 animate-radar-ping" />
+      <motion.img
+        src={PIKMIN.red}
+        alt="Pikmin"
+        className="absolute left-[58%] top-[26%] h-10 w-10 object-contain drop-shadow-[0_0_10px_oklch(0.86_0.24_145/0.7)]"
+        animate={{ y: [0, -4, 0], rotate: [-3, 3, -3] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.img
+        src={PIKMIN.blue}
+        alt="Pikmin"
+        className="absolute left-[20%] top-[60%] h-8 w-8 object-contain drop-shadow-[0_0_8px_oklch(0.65_0.22_250/0.7)]"
+        animate={{ y: [0, -3, 0], rotate: [3, -3, 3] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.img
+        src={PIKMIN.yellow}
+        alt="Pikmin"
+        className="absolute left-[70%] top-[68%] h-8 w-8 object-contain drop-shadow-[0_0_8px_oklch(0.9_0.2_95/0.6)]"
+        animate={{ y: [0, -3, 0], rotate: [-2, 4, -2] }}
+        transition={{ duration: 2.7, repeat: Infinity, ease: "easeInOut" }}
+      />
       {/* center */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-primary glow-ring" />
     </div>
