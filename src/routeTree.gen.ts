@@ -14,6 +14,7 @@ import { Route as RadarRouteImport } from './routes/radar'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PremiRouteImport } from './routes/premi'
 import { Route as MissioniRouteImport } from './routes/missioni'
+import { Route as LabRouteImport } from './routes/lab'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BaseRouteImport } from './routes/base'
 import { Route as IndexRouteImport } from './routes/index'
@@ -43,6 +44,11 @@ const MissioniRoute = MissioniRouteImport.update({
   path: '/missioni',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabRoute = LabRouteImport.update({
+  id: '/lab',
+  path: '/lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatRoute = ChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
+  '/lab': typeof LabRoute
   '/missioni': typeof MissioniRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
+  '/lab': typeof LabRoute
   '/missioni': typeof MissioniRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
+  '/lab': typeof LabRoute
   '/missioni': typeof MissioniRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/base'
     | '/chat'
+    | '/lab'
     | '/missioni'
     | '/premi'
     | '/profilo'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/base'
     | '/chat'
+    | '/lab'
     | '/missioni'
     | '/premi'
     | '/profilo'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/base'
     | '/chat'
+    | '/lab'
     | '/missioni'
     | '/premi'
     | '/profilo'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BaseRoute: typeof BaseRoute
   ChatRoute: typeof ChatRoute
+  LabRoute: typeof LabRoute
   MissioniRoute: typeof MissioniRoute
   PremiRoute: typeof PremiRoute
   ProfiloRoute: typeof ProfiloRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MissioniRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab': {
+      id: '/lab'
+      path: '/lab'
+      fullPath: '/lab'
+      preLoaderRoute: typeof LabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat': {
       id: '/chat'
       path: '/chat'
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BaseRoute: BaseRoute,
   ChatRoute: ChatRoute,
+  LabRoute: LabRoute,
   MissioniRoute: MissioniRoute,
   PremiRoute: PremiRoute,
   ProfiloRoute: ProfiloRoute,
