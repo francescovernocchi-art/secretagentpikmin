@@ -814,7 +814,7 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
                 placeholder="Emoji ✨ oppure URL immagine"
                 className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm"
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
@@ -824,6 +824,7 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
                   <Upload className="h-3 w-3" />
                   {uploading ? "Carico…" : "Carica icona"}
                 </button>
+                <IconGalleryPicker onPick={(url) => setEmoji(url)} />
                 {emoji && (
                   <button
                     type="button"
