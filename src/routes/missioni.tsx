@@ -214,7 +214,13 @@ function MissioniPage() {
         </AnimatePresence>
       </div>
 
-      {showNew && <NewMissionSheet onClose={() => setShowNew(false)} />}
+      {showNew && (
+        <NewMissionSheet
+          shipParts={shipParts}
+          collectedKeys={collectedKeys}
+          onClose={() => setShowNew(false)}
+        />
+      )}
     </PageShell>
   );
 }
