@@ -1,6 +1,3 @@
-import { PIKMIN } from "@/assets/pikmin";
-import { Pikmin3D } from "@/components/Pikmin3D";
-
 export function Radar({ size = 220 }: { size?: number }) {
   return (
     <div
@@ -27,17 +24,10 @@ export function Radar({ size = 220 }: { size?: number }) {
           }}
         />
       </div>
-      {/* ping dot + pikmin 3D sprites */}
-      <span className="absolute left-[62%] top-[35%] h-2 w-2 rounded-full bg-primary/40 animate-radar-ping" />
-      <div className="absolute left-[58%] top-[26%]">
-        <Pikmin3D src={PIKMIN.red} size={40} glow="oklch(0.86 0.24 145 / 0.7)" seed={1} />
-      </div>
-      <div className="absolute left-[20%] top-[60%]">
-        <Pikmin3D src={PIKMIN.blue} size={32} glow="oklch(0.65 0.22 250 / 0.7)" seed={2} />
-      </div>
-      <div className="absolute left-[70%] top-[68%]">
-        <Pikmin3D src={PIKMIN.yellow} size={32} glow="oklch(0.9 0.2 95 / 0.6)" seed={3} />
-      </div>
+      {/* ping dots (Pikmin nascosti, visibili solo dalla fotocamera) */}
+      <span className="absolute left-[62%] top-[30%] h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_12px_var(--color-primary)] animate-radar-ping" />
+      <span className="absolute left-[22%] top-[60%] h-2 w-2 rounded-full bg-primary/80 shadow-[0_0_10px_var(--color-primary)] animate-radar-ping" style={{ animationDelay: "0.6s" }} />
+      <span className="absolute left-[70%] top-[68%] h-2 w-2 rounded-full bg-primary/70 shadow-[0_0_10px_var(--color-primary)] animate-radar-ping" style={{ animationDelay: "1.2s" }} />
       {/* center */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-primary glow-ring" />
     </div>
