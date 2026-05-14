@@ -293,7 +293,7 @@ function MappaPage() {
   useEffect(() => {
     const load = async () => {
       const [{ data: parts }, { data: got }] = await Promise.all([
-        supabase.from("ship_parts").select("key, name, emoji").order("sort_order"),
+        supabase.from("ship_parts").select("key, name, emoji, rarity").order("sort_order"),
         supabase.from("ship_parts_collected").select("part_key"),
       ]);
       setShipParts((parts ?? []) as ShipPartLite[]);
