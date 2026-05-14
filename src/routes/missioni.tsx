@@ -191,6 +191,9 @@ function MissioniPage() {
                       });
                       const drops = rollIngredients("mission");
                       await grantIngredients("lorenzo", drops);
+                      if (m.coin_reward > 0) {
+                        await addCoins("lorenzo", m.coin_reward, "mission_reward", { mission_id: m.id });
+                      }
                       if (m.reward_part_key) {
                         try {
                           await collectShipPart({
