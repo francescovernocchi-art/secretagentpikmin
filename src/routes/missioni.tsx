@@ -382,6 +382,16 @@ function NewMissionSheet({
             </select>
           </label>
         </div>
+        <label className="block text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><Coins className="h-3 w-3 text-amber-300" /> Monete in premio</span>
+          <input
+            type="number"
+            min={0}
+            value={coinReward}
+            onChange={(e) => setCoinReward(Math.max(0, Number(e.target.value)))}
+            className="mt-1 w-full rounded-xl bg-night/60 border border-border px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+        </label>
         {availableParts.length > 0 && (
           <label className="block text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><Rocket className="h-3 w-3 text-amber-300" /> Ricompensa: pezzo navicella (opzionale)</span>
