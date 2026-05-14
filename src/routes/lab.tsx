@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -8,7 +8,8 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { consumeIngredient, grantIngredients } from "@/lib/ingredients";
 import { inventDiscovery } from "@/lib/lab.functions";
-import { FlaskConical, Sparkles, X, Plus, BookPlus, BookOpen } from "lucide-react";
+import { ResultIcon } from "@/components/ResultIcon";
+import { FlaskConical, Sparkles, X, Plus, BookPlus, BookOpen, Upload } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -545,7 +546,7 @@ function LabPage() {
           <div className="space-y-2">
             {discoveries.map((d) => (
               <div key={d.id} className="panel p-3 flex items-center gap-3">
-                <span className="text-3xl">{d.result_emoji}</span>
+                <ResultIcon value={d.result_emoji} className="text-3xl" alt={d.result_name} />
                 <div className="flex-1 min-w-0">
                   <p className="font-display text-sm text-glow truncate">{d.result_name}</p>
                   {d.description && (
@@ -587,7 +588,7 @@ function LabPage() {
               <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">
                 {flash.is_ai ? "// Esperimento" : "// Ricetta scoperta!"}
               </p>
-              <p className="text-7xl mt-3">{flash.result_emoji}</p>
+              <div className="mt-3 flex justify-center"><ResultIcon value={flash.result_emoji} className="text-7xl" alt={flash.result_name} /></div>
               <p className="font-display text-xl text-glow mt-2">{flash.result_name}</p>
               {flash.description && (
                 <p className="text-xs text-muted-foreground mt-2">{flash.description}</p>
@@ -638,6 +639,8 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
   const [xp, setXp] = useState(25);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const filledInputs = recipeInputsState.filter(Boolean);
 
@@ -656,6 +659,37 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
       prev.length > 2 ? prev.filter((_, i) => i !== idx) : prev,
     );
 
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Seleziona un file immagine");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Immagine troppo grande", { description: "Max 2 MB." });
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `recipe-icons/new-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("captures")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("captures").getPublicUrl(path);
+      setEmoji(data.publicUrl);
+      toast.success("Icona caricata");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Errore caricamento";
+      toast.error("Upload fallito", { description: msg });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const submit = async () => {
     setError(null);
     const trimmedName = name.trim();
@@ -666,8 +700,8 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
       return setError("Servono almeno 2 ingredienti.");
     if (!trimmedName || trimmedName.length > 80)
       return setError("Nome risultato richiesto (max 80).");
-    if (!trimmedEmoji || trimmedEmoji.length > 8)
-      return setError("Emoji richiesta (max 8 caratteri).");
+    if (!trimmedEmoji) return setError("Icona richiesta (emoji o immagine).");
+    if (trimmedEmoji.length > 500) return setError("Icona troppo lunga.");
     if (trimmedDesc.length > 240)
       return setError("Descrizione troppo lunga (max 240).");
     const xpInt = Math.round(Number(xp));
@@ -749,25 +783,65 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
           )}
         </div>
 
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Field label="Nome risultato">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={80}
-              placeholder="Es. Pozione di luce"
-              className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm"
-            />
-          </Field>
-          <Field label="Emoji">
-            <input
-              value={emoji}
-              onChange={(e) => setEmoji(e.target.value)}
-              maxLength={8}
-              placeholder="✨"
-              className="w-20 bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-center text-xl"
-            />
-          </Field>
+        <Field label="Nome risultato">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={80}
+            placeholder="Es. Pozione di luce"
+            className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm"
+          />
+        </Field>
+
+        <div>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Icona risultato
+          </span>
+          <div className="mt-1 flex items-center gap-3">
+            <div className="h-14 w-14 rounded-xl border border-primary/30 bg-night/60 flex items-center justify-center overflow-hidden shrink-0">
+              {emoji ? (
+                <ResultIcon value={emoji} className="text-3xl" alt="anteprima" />
+              ) : (
+                <span className="text-xs text-muted-foreground">?</span>
+              )}
+            </div>
+            <div className="flex-1 space-y-2">
+              <input
+                value={emoji}
+                onChange={(e) => setEmoji(e.target.value)}
+                maxLength={500}
+                placeholder="Emoji ✨ oppure URL immagine"
+                className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="panel px-3 py-1.5 text-[11px] flex items-center gap-1 disabled:opacity-40"
+                >
+                  <Upload className="h-3 w-3" />
+                  {uploading ? "Carico…" : "Carica icona"}
+                </button>
+                {emoji && (
+                  <button
+                    type="button"
+                    onClick={() => setEmoji("")}
+                    className="panel px-3 py-1.5 text-[11px] text-muted-foreground"
+                  >
+                    Pulisci
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                onChange={onPickFile}
+                className="hidden"
+              />
+            </div>
+          </div>
         </div>
 
         <Field label="Descrizione (opzionale)">
@@ -809,7 +883,7 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
           </button>
           <button
             onClick={submit}
-            disabled={saving || duplicate}
+            disabled={saving || duplicate || uploading}
             className="btn-neon flex-1 py-2 text-xs disabled:opacity-40"
           >
             {saving ? "Salvo…" : "Salva ricetta"}
