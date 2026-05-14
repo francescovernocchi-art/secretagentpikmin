@@ -46,10 +46,18 @@ function MissioniPage() {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [showNew, setShowNew] = useState(false);
   const [filter, setFilter] = useState<"all" | "attive" | "completate">("all");
+  const [shipParts, setShipParts] = useState<ShipPartLite[]>([]);
+  const [collectedKeys, setCollectedKeys] = useState<Set<string>>(new Set());
 
   const load = async () => {
-    const { data } = await supabase.from("missions").select("*").order("created_at", { ascending: false });
+    const [{ data }, { data: parts }, { data: got }] = await Promise.all([
+      supabase.from("missions").select("*").order("created_at", { ascending: false }),
+      supabase.from("ship_parts").select("key, name, emoji").order("sort_order"),
+      supabase.from("ship_parts_collected").select("part_key"),
+    ]);
     setMissions((data ?? []) as Mission[]);
+    setShipParts((parts ?? []) as ShipPartLite[]);
+    setCollectedKeys(new Set((got ?? []).map((g) => g.part_key as string)));
   };
 
   useEffect(() => {
@@ -57,6 +65,7 @@ function MissioniPage() {
     const ch = supabase
       .channel("missions-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "missions" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "ship_parts_collected" }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
@@ -66,6 +75,9 @@ function MissioniPage() {
   const update = async (id: string, patch: Partial<Mission>) => {
     await supabase.from("missions").update(patch).eq("id", id);
   };
+
+  const partByKey = (key: string | null) =>
+    key ? shipParts.find((p) => p.key === key) : undefined;
 
   const visible = missions.filter((m) => {
     if (filter === "attive") return m.status === "nuova" || m.status === "accettata";
