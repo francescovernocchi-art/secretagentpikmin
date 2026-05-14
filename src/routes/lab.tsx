@@ -639,6 +639,8 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
   const [xp, setXp] = useState(25);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useState<{ el: HTMLInputElement | null }>({ el: null })[0];
 
   const filledInputs = recipeInputsState.filter(Boolean);
 
@@ -657,6 +659,37 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
       prev.length > 2 ? prev.filter((_, i) => i !== idx) : prev,
     );
 
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Seleziona un file immagine");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Immagine troppo grande", { description: "Max 2 MB." });
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `recipe-icons/new-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("captures")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("captures").getPublicUrl(path);
+      setEmoji(data.publicUrl);
+      toast.success("Icona caricata");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Errore caricamento";
+      toast.error("Upload fallito", { description: msg });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const submit = async () => {
     setError(null);
     const trimmedName = name.trim();
@@ -667,8 +700,8 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
       return setError("Servono almeno 2 ingredienti.");
     if (!trimmedName || trimmedName.length > 80)
       return setError("Nome risultato richiesto (max 80).");
-    if (!trimmedEmoji || trimmedEmoji.length > 8)
-      return setError("Emoji richiesta (max 8 caratteri).");
+    if (!trimmedEmoji) return setError("Icona richiesta (emoji o immagine).");
+    if (trimmedEmoji.length > 500) return setError("Icona troppo lunga.");
     if (trimmedDesc.length > 240)
       return setError("Descrizione troppo lunga (max 240).");
     const xpInt = Math.round(Number(xp));
