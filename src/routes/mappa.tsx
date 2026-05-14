@@ -80,6 +80,27 @@ function MappaPage() {
   const meAccuracyRef = useRef<any>(null);
   const placeModeRef = useRef(false);
   const notifiedRef = useRef<Set<string>>(new Set());
+  const agentMarkersRef = useRef<Map<string, any>>(new Map());
+  const lastUpsertRef = useRef<number>(0);
+
+  type AgentPos = {
+    agent_id: string;
+    agent_name: string;
+    emoji: string;
+    role: string;
+    lat: number;
+    lng: number;
+    accuracy: number | null;
+    updated_at: string;
+  };
+  const [agentPositions, setAgentPositions] = useState<AgentPos[]>([]);
+
+  // Deterministic color per agent id (HSL hue from hash)
+  const agentColor = (id: string) => {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return `hsl(${h % 360} 85% 60%)`;
+  };
 
   const [ready, setReady] = useState(false);
   const [drops, setDrops] = useState<Drop[]>([]);
