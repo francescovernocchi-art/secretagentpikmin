@@ -268,22 +268,55 @@ function LabPage() {
     >
       {/* Banco di lavoro */}
       <div className="panel-strong scanline relative overflow-hidden p-5 space-y-4">
-        <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80 text-center">
-          // Banco di lavoro
-        </p>
-        <div className="flex items-center justify-center gap-3">
-          <Slot ing={slotA ? catalog[slotA] : null} onClear={() => setSlotA(null)} />
-          <Plus className="h-5 w-5 text-primary" />
-          <Slot ing={slotB ? catalog[slotB] : null} onClear={() => setSlotB(null)} />
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">
+            // Banco di lavoro
+          </p>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            {slots.length}/{MAX_SLOTS}
+          </p>
         </div>
-        <button
-          onClick={combine}
-          disabled={!canCombine}
-          className="btn-neon w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-40"
-        >
-          <FlaskConical className="h-4 w-4" />
-          {busy ? "Reazione in corso…" : "Combina"}
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-2 min-h-[7rem]">
+          {slots.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">
+              Tocca gli ingredienti per aggiungerli (min 2, max {MAX_SLOTS}).
+            </p>
+          ) : (
+            slots.map((key, idx) => {
+              const ing = catalog[key];
+              if (!ing) return null;
+              return (
+                <span key={`${key}-${idx}`} className="contents">
+                  {idx > 0 && <Plus className="h-4 w-4 text-primary/70" />}
+                  <Slot ing={ing} onClear={() => removeSlotAt(idx)} compact />
+                </span>
+              );
+            })
+          )}
+        </div>
+        <div className="flex gap-2">
+          {slots.length > 0 && (
+            <button
+              onClick={() => setSlots([])}
+              disabled={busy}
+              className="panel px-3 py-2 text-xs"
+            >
+              Svuota
+            </button>
+          )}
+          <button
+            onClick={combine}
+            disabled={!canCombine}
+            className="btn-neon flex-1 py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            <FlaskConical className="h-4 w-4" />
+            {busy
+              ? "Reazione in corso…"
+              : slots.length >= 3
+                ? `Combina ×${slots.length}`
+                : "Combina"}
+          </button>
+        </div>
       </div>
 
       {/* Inventario */}
@@ -299,19 +332,25 @@ function LabPage() {
           <div className="grid grid-cols-4 gap-2">
             {inventoryWithMeta.map((row) => {
               const m = row.meta!;
-              const sel = slotA === m.key || slotB === m.key;
+              const used = slotCount(m.key);
+              const remaining = row.qty - used;
+              const sel = used > 0;
+              const exhausted = remaining <= 0;
               return (
                 <button
                   key={row.id}
-                  onClick={() => pickSlot(m.key)}
+                  onClick={() => toggleSlot(m.key)}
+                  disabled={exhausted && !sel}
                   className={`relative rounded-xl border p-2 flex flex-col items-center gap-1 transition-all ${
                     RARITY_STYLE[m.rarity] ?? RARITY_STYLE.comune
-                  } ${sel ? "ring-2 ring-primary scale-95" : "active:scale-95"}`}
+                  } ${sel ? "ring-2 ring-primary scale-95" : "active:scale-95"} ${
+                    exhausted && !sel ? "opacity-40" : ""
+                  }`}
                 >
                   <span className="text-2xl leading-none">{m.emoji}</span>
                   <span className="text-[10px] text-center leading-tight line-clamp-2">{m.name}</span>
                   <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] px-1.5 rounded-full font-bold">
-                    {row.qty}
+                    {used > 0 ? `${used}/${row.qty}` : row.qty}
                   </span>
                 </button>
               );
