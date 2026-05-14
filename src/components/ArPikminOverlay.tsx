@@ -1,22 +1,89 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { PIKMIN_LIST } from "@/assets/pikmin";
+import { supabase } from "@/integrations/supabase/client";
+import { grantIngredients } from "@/lib/ingredients";
 
 // Solo immagini senza sfondo (no JPG con sfondo bianco)
 const AR_POOL = PIKMIN_LIST.filter((p) => p.transparent);
 
-type Target = { src: string; name: string; alpha: number; beta: number };
+const FALLBACK_INGREDIENTS = [
+  { key: "seed_red", name: "Seme Rosso", emoji: "🔴" },
+  { key: "seed_yellow", name: "Seme Giallo", emoji: "🟡" },
+  { key: "seed_blue", name: "Seme Blu", emoji: "🔵" },
+  { key: "water", name: "Goccia d'acqua", emoji: "💧" },
+  { key: "leaf", name: "Foglia magica", emoji: "🍃" },
+  { key: "honey", name: "Miele dorato", emoji: "🍯" },
+  { key: "mushroom", name: "Fungo strano", emoji: "🍄" },
+  { key: "rock_frag", name: "Frammento di roccia", emoji: "🪨" },
+  { key: "spark", name: "Scintilla", emoji: "✨" },
+  { key: "star_dust", name: "Polvere di stelle", emoji: "🌟" },
+];
 
-function pickTarget(baselineAlpha: number): Target {
-  const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
-  // posizionato in un cono di ±70° rispetto al baseline
+const OBJECTS = [
+  { key: "treasure_box", name: "Cassa del tesoro", emoji: "🎁", xp: 20 },
+  { key: "ancient_key", name: "Chiave antica", emoji: "🗝️", xp: 25 },
+  { key: "crystal", name: "Cristallo segreto", emoji: "💎", xp: 30 },
+  { key: "ufo_relic", name: "Reliquia UFO", emoji: "🛸", xp: 35 },
+  { key: "old_map", name: "Mappa consumata", emoji: "🗺️", xp: 15 },
+];
+
+const MISSION_HINTS = [
+  "Cerca qualcosa di rosso in cucina 🍅",
+  "Conta tutte le finestre della casa 🪟",
+  "Trova un libro più vecchio di te 📚",
+  "Disegna ciò che vedi dalla tua finestra ✏️",
+  "Costruisci una torre con 5 oggetti 🗼",
+  "Saluta papà con un codice segreto 🤫",
+];
+
+type TargetKind = "pikmin" | "ingredient" | "object" | "mission";
+
+type Target = {
+  kind: TargetKind;
+  src?: string;
+  emoji?: string;
+  key?: string;
+  name: string;
+  payload?: string;
+  xp?: number;
+  alpha: number;
+  beta: number;
+};
+
+type IngredientRow = { key: string; name: string; emoji: string };
+
+function pickKind(): TargetKind {
+  const r = Math.random();
+  if (r < 0.45) return "pikmin";
+  if (r < 0.8) return "ingredient";
+  if (r < 0.95) return "object";
+  return "mission";
+}
+
+function pickTarget(baselineAlpha: number, ingredientPool: IngredientRow[]): Target {
+  const kind = pickKind();
   const offset = (Math.random() * 140 - 70 + 360) % 360;
-  return {
-    src: p.src,
-    name: p.name,
+  const base = {
     alpha: (baselineAlpha + offset) % 360,
     beta: Math.random() * 24 - 12,
   };
+  if (kind === "pikmin") {
+    const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
+    return { kind, src: p.src, name: p.name, ...base };
+  }
+  if (kind === "ingredient") {
+    const pool = ingredientPool.length ? ingredientPool : FALLBACK_INGREDIENTS;
+    const p = pool[Math.floor(Math.random() * pool.length)];
+    return { kind, key: p.key, name: p.name, emoji: p.emoji, ...base };
+  }
+  if (kind === "object") {
+    const o = OBJECTS[Math.floor(Math.random() * OBJECTS.length)];
+    return { kind, key: o.key, name: o.name, emoji: o.emoji, xp: o.xp, ...base };
+  }
+  const hint = MISSION_HINTS[Math.floor(Math.random() * MISSION_HINTS.length)];
+  return { kind, name: "Nuova missione", emoji: "📜", payload: hint, ...base };
 }
 
 function deltaDeg(a: number, b: number) {
@@ -54,9 +121,12 @@ export function ArPikminOverlay() {
   // Watchdog interval id
   const watchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [stalled, setStalled] = useState(false);
+  // Pool ingredienti caricato dal DB (con fallback statico)
+  const ingredientPoolRef = useRef<IngredientRow[]>(FALLBACK_INGREDIENTS);
+  const [grantBusy, setGrantBusy] = useState(false);
 
   const spawnTarget = (baselineAlpha: number) => {
-    const t = pickTarget(baselineAlpha);
+    const t = pickTarget(baselineAlpha, ingredientPoolRef.current);
     targetBornAtRef.current = Date.now();
     lastSeenAtRef.current = 0;
     setTarget(t);
@@ -114,7 +184,7 @@ export function ArPikminOverlay() {
         const lookingAway = lock < 0.15 && Math.abs(dA) > 60;
 
         if (aged && cooledDown && lookingAway) {
-          const fresh = pickTarget(baselineRef.current ?? alpha);
+          const fresh = pickTarget(baselineRef.current ?? alpha, ingredientPoolRef.current);
           targetBornAtRef.current = now;
           lastSeenAtRef.current = 0;
           return fresh;
@@ -152,7 +222,7 @@ export function ArPikminOverlay() {
           setNoSensor(true);
           if (!target) {
             const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
-            setTarget({ src: p.src, name: p.name, alpha: 0, beta: 0 });
+            setTarget({ kind: "pikmin", src: p.src, name: p.name, alpha: 0, beta: 0 });
           }
           setPos({ x: 30 + Math.random() * 40, y: 30 + Math.random() * 30, visible: true, lock: 1 });
         }
@@ -168,6 +238,67 @@ export function ArPikminOverlay() {
     attach();
   };
 
+  // Carica gli ingredienti dal DB (con fallback statico se vuoto)
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("ingredients")
+      .select("key, name, emoji")
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data && data.length) ingredientPoolRef.current = data as IngredientRow[];
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Cattura risorsa visibile (ingrediente / oggetto / missione).
+  // Per i Pikmin si usa il pulsante della fotocamera del componente padre.
+  const capture = async () => {
+    if (!target || grantBusy) return;
+    setGrantBusy(true);
+    try {
+      if (target.kind === "ingredient" && target.key) {
+        await grantIngredients("lorenzo", [target.key]);
+        toast.success(`${target.emoji} ${target.name} aggiunto al lab!`);
+      } else if (target.kind === "object" && target.key) {
+        await supabase.from("rewards").insert({
+          agent: "lorenzo",
+          badge: target.key,
+          title: target.name,
+          icon: target.emoji ?? "🎁",
+        });
+        toast.success(`${target.emoji} ${target.name} (+${target.xp ?? 10} XP)`);
+      } else if (target.kind === "mission" && target.payload) {
+        await supabase.from("missions").insert({
+          title: "Missione Radar",
+          description: target.payload,
+          difficulty: "facile",
+          xp: 15,
+          status: "nuova",
+          created_by: "radar",
+        });
+        toast.success("📜 Nuova missione sbloccata!");
+      } else {
+        toast("Punta la fotocamera con la torcia 🔦 e scatta!");
+        setGrantBusy(false);
+        return;
+      }
+      // respawn nuovo target dopo cattura
+      const base = baselineRef.current ?? 0;
+      const fresh = pickTarget(base, ingredientPoolRef.current);
+      targetBornAtRef.current = Date.now();
+      lastSeenAtRef.current = 0;
+      setTarget(fresh);
+      setPos((p) => ({ ...p, visible: false, lock: 0 }));
+    } catch (e: any) {
+      toast.error(e?.message ?? "Cattura fallita");
+    } finally {
+      setGrantBusy(false);
+    }
+  };
+
   useEffect(() => {
     const anyEvt = (DeviceOrientationEvent as any);
     if (typeof anyEvt?.requestPermission === "function") {
@@ -180,10 +311,9 @@ export function ArPikminOverlay() {
 
     const fallbackTimer = setTimeout(() => {
       if (!gotEventRef.current) {
-        // Nessun sensore disponibile → fallback statico
         setNoSensor(true);
         const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
-        setTarget({ src: p.src, name: p.name, alpha: 0, beta: 0 });
+        setTarget({ kind: "pikmin", src: p.src, name: p.name, alpha: 0, beta: 0 });
         setPos({ x: 30 + Math.random() * 40, y: 30 + Math.random() * 30, visible: true, lock: 1 });
       }
     }, 1800);
@@ -197,6 +327,7 @@ export function ArPikminOverlay() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const enable = async () => {
     try {
@@ -370,31 +501,65 @@ export function ArPikminOverlay() {
       )}
 
 
-      {/* Pikmin AR — visibile solo quando inquadri la posizione esatta */}
+      {/* Bersaglio AR — visibile solo quando inquadri la posizione esatta */}
       <AnimatePresence>
         {target && pos.visible && (
           <motion.div
-            key={target.src}
-            className="pointer-events-none absolute"
+            key={`${target.kind}-${target.src ?? target.key ?? target.name}`}
+            className="absolute"
             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
             initial={{ opacity: 0, scale: 0.4 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.4 }}
             transition={{ type: "spring", stiffness: 220, damping: 18 }}
           >
-            <motion.img
-              src={target.src}
-              alt={target.name}
-              className="w-32 h-32 object-contain drop-shadow-[0_0_22px_var(--color-primary)] -translate-x-1/2 -translate-y-1/2"
-              animate={{ y: [-4, 4, -4], rotate: [-3, 3, -3] }}
-              transition={{
-                y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" },
-                rotate: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-              }}
-            />
-            <p className="absolute left-1/2 -translate-x-1/2 -bottom-2 text-[10px] uppercase tracking-[0.3em] text-primary text-glow whitespace-nowrap">
+            {target.kind === "pikmin" && target.src ? (
+              <motion.img
+                src={target.src}
+                alt={target.name}
+                className="pointer-events-none w-32 h-32 object-contain drop-shadow-[0_0_22px_var(--color-primary)] -translate-x-1/2 -translate-y-1/2"
+                animate={{ y: [-4, 4, -4], rotate: [-3, 3, -3] }}
+                transition={{
+                  y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" },
+                  rotate: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                }}
+              />
+            ) : (
+              <motion.div
+                className="pointer-events-none -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-28 h-28 rounded-full bg-background/40 border border-primary/60 backdrop-blur-sm"
+                style={{ boxShadow: "0 0 28px var(--color-primary), inset 0 0 18px oklch(0.86 0.24 145 / 0.4)" }}
+                animate={{ y: [-4, 4, -4], rotate: [-3, 3, -3] }}
+                transition={{
+                  y: { duration: 2.2, repeat: Infinity, ease: "easeInOut" },
+                  rotate: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                }}
+              >
+                <span className="text-5xl drop-shadow-[0_0_12px_var(--color-primary)]">
+                  {target.emoji ?? "✦"}
+                </span>
+              </motion.div>
+            )}
+            <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 -bottom-2 text-[10px] uppercase tracking-[0.3em] text-primary text-glow whitespace-nowrap">
+              {target.kind === "ingredient" && "Ingrediente · "}
+              {target.kind === "object" && "Oggetto · "}
+              {target.kind === "mission" && "Missione · "}
               {target.name}
             </p>
+            {target.kind === "mission" && target.payload && (
+              <p className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[60%] mt-2 max-w-[60vw] text-center text-[11px] text-primary/90 bg-background/60 border border-primary/40 rounded-md px-2 py-1 backdrop-blur whitespace-normal">
+                {target.payload}
+              </p>
+            )}
+            {/* Pulsante cattura — solo per non-pikmin, quando lock alto */}
+            {target.kind !== "pikmin" && pos.lock >= 0.7 && (
+              <button
+                onClick={capture}
+                disabled={grantBusy}
+                className="absolute left-1/2 -translate-x-1/2 top-[78%] mt-3 text-[10px] uppercase tracking-[0.3em] px-3 py-1.5 rounded-full border border-primary bg-primary/20 text-primary backdrop-blur disabled:opacity-50"
+              >
+                {grantBusy ? "…" : "✦ Cattura"}
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
