@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { Plus, Trophy } from "lucide-react";
+import { PIKMIN } from "@/assets/pikmin";
 
 export const Route = createFileRoute("/premi")({
   component: PremiPage,
@@ -20,11 +21,20 @@ interface Reward {
 }
 
 const PRESETS = [
-  { title: "Esploratore Verde", icon: "🌿", badge: "explorer" },
-  { title: "Cercatore Pikmin", icon: "🟢", badge: "seeker" },
-  { title: "Agente Speciale", icon: "🕶️", badge: "agent" },
-  { title: "Custode della Base", icon: "🛡️", badge: "guardian" },
+  { title: "Pikmin Rosso Catturato", icon: "pikmin:red", badge: "red" },
+  { title: "Pikmin Giallo Catturato", icon: "pikmin:yellow", badge: "yellow" },
+  { title: "Pikmin Blu Catturato", icon: "pikmin:blue", badge: "blue" },
+  { title: "Pikmin Roccia Catturato", icon: "pikmin:rock", badge: "rock" },
 ];
+
+const PIKMIN_MAP: Record<string, string> = {
+  "pikmin:red": PIKMIN.red,
+  "pikmin:yellow": PIKMIN.yellow,
+  "pikmin:blue": PIKMIN.blue,
+  "pikmin:white": PIKMIN.white,
+  "pikmin:rock": PIKMIN.rock,
+  "pikmin:pink": PIKMIN.pink,
+};
 
 function PremiPage() {
   const session = typeof window !== "undefined" ? getSession() : null;
