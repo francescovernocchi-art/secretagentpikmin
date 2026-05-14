@@ -120,24 +120,42 @@ function LabPage() {
 
   // Conta quante volte una chiave è già nel banco
   const slotCount = (key: string) => slots.filter((k) => k === key).length;
+  const ownedOf = (key: string) =>
+    inventory.find((i) => i.ingredient_key === key)?.qty ?? 0;
 
-  // Aggiunge/rimuove un ingrediente dal banco. Tap su una chiave già presente
-  // = +1 finché c'è quantità in inventario; oltre = niente.
-  const toggleSlot = (key: string) => {
-    setSlots((prev) => {
-      const used = prev.filter((k) => k === key).length;
-      const owned = inventory.find((i) => i.ingredient_key === key)?.qty ?? 0;
-      if (used < owned && prev.length < MAX_SLOTS) return [...prev, key];
-      // se già al massimo possibile, rimuovi un'occorrenza
-      const idx = prev.lastIndexOf(key);
-      if (idx >= 0) {
-        const next = [...prev];
-        next.splice(idx, 1);
-        return next;
-      }
-      return prev;
-    });
+  // Tap su inventario = +1 nel banco. Mostra feedback se non si può aggiungere.
+  const addToSlot = (key: string) => {
+    const owned = ownedOf(key);
+    const used = slotCount(key);
+    if (owned <= 0) {
+      toast.error("Ingrediente esaurito", {
+        description: "Raccoglilo nelle missioni o con la caccia ai Pikmin.",
+      });
+      return;
+    }
+    if (slots.length >= MAX_SLOTS) {
+      toast.warning(`Banco pieno (max ${MAX_SLOTS})`, {
+        description: "Rimuovi un ingrediente per aggiungerne un altro.",
+      });
+      return;
+    }
+    if (used >= owned) {
+      toast.error("Quantità insufficiente", {
+        description: `Hai solo ${owned} × ${catalog[key]?.name ?? key} in inventario.`,
+      });
+      return;
+    }
+    setSlots((prev) => [...prev, key]);
   };
+
+  const removeOne = (key: string) =>
+    setSlots((prev) => {
+      const idx = prev.lastIndexOf(key);
+      if (idx < 0) return prev;
+      const next = [...prev];
+      next.splice(idx, 1);
+      return next;
+    });
 
   const removeSlotAt = (idx: number) =>
     setSlots((prev) => prev.filter((_, i) => i !== idx));
