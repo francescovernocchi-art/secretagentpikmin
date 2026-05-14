@@ -238,6 +238,67 @@ export function ArPikminOverlay() {
     attach();
   };
 
+  // Carica gli ingredienti dal DB (con fallback statico se vuoto)
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("ingredients")
+      .select("key, name, emoji")
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data && data.length) ingredientPoolRef.current = data as IngredientRow[];
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Cattura risorsa visibile (ingrediente / oggetto / missione).
+  // Per i Pikmin si usa il pulsante della fotocamera del componente padre.
+  const capture = async () => {
+    if (!target || grantBusy) return;
+    setGrantBusy(true);
+    try {
+      if (target.kind === "ingredient" && target.key) {
+        await grantIngredients("lorenzo", [target.key]);
+        toast.success(`${target.emoji} ${target.name} aggiunto al lab!`);
+      } else if (target.kind === "object" && target.key) {
+        await supabase.from("rewards").insert({
+          agent: "lorenzo",
+          badge: target.key,
+          title: target.name,
+          icon: target.emoji ?? "🎁",
+        });
+        toast.success(`${target.emoji} ${target.name} (+${target.xp ?? 10} XP)`);
+      } else if (target.kind === "mission" && target.payload) {
+        await supabase.from("missions").insert({
+          title: "Missione Radar",
+          description: target.payload,
+          difficulty: "facile",
+          xp: 15,
+          status: "nuova",
+          created_by: "radar",
+        });
+        toast.success("📜 Nuova missione sbloccata!");
+      } else {
+        toast("Punta la fotocamera con la torcia 🔦 e scatta!");
+        setGrantBusy(false);
+        return;
+      }
+      // respawn nuovo target dopo cattura
+      const base = baselineRef.current ?? 0;
+      const fresh = pickTarget(base, ingredientPoolRef.current);
+      targetBornAtRef.current = Date.now();
+      lastSeenAtRef.current = 0;
+      setTarget(fresh);
+      setPos((p) => ({ ...p, visible: false, lock: 0 }));
+    } catch (e: any) {
+      toast.error(e?.message ?? "Cattura fallita");
+    } finally {
+      setGrantBusy(false);
+    }
+  };
+
   useEffect(() => {
     const anyEvt = (DeviceOrientationEvent as any);
     if (typeof anyEvt?.requestPermission === "function") {
@@ -250,7 +311,6 @@ export function ArPikminOverlay() {
 
     const fallbackTimer = setTimeout(() => {
       if (!gotEventRef.current) {
-        // Nessun sensore disponibile → fallback statico
         setNoSensor(true);
         const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
         setTarget({ kind: "pikmin", src: p.src, name: p.name, alpha: 0, beta: 0 });
@@ -267,6 +327,7 @@ export function ArPikminOverlay() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const enable = async () => {
     try {
