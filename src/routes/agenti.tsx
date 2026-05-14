@@ -56,16 +56,59 @@ function AgentiPage() {
     setRole("lorenzo");
     setEmoji(EMOJI_CHOICES[0]);
     setShowForm(false);
+    setEditingId(null);
   };
 
-  const create = async () => {
+  const startEdit = (a: Agent) => {
+    setEditingId(a.id);
+    setName(a.name);
+    setPin(a.pin);
+    setRole(a.role);
+    setEmoji(a.emoji);
+    setShowForm(true);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const submit = async () => {
     const cleanName = name.trim();
     if (cleanName.length < 2 || cleanName.length > 30) {
       toast.error("Il nome deve avere fra 2 e 30 caratteri");
       return;
     }
-    if (!/^\d{4}$/.test(pin)) {
+    if (!editingId && !/^\d{4}$/.test(pin)) {
       toast.error("Il PIN deve essere di 4 cifre");
+      return;
+    }
+    if (editingId) {
+      const original = agents.find((a) => a.id === editingId);
+      if (!original) return;
+      const changes: string[] = [];
+      if (original.name !== cleanName) changes.push(`nome → "${cleanName}"`);
+      if (original.emoji !== emoji) changes.push(`avatar → ${emoji}`);
+      if (original.role !== role)
+        changes.push(`ruolo → ${role === "papa" ? "Creator" : "Collector"}`);
+      if (changes.length === 0) {
+        toast.info("Nessuna modifica da salvare");
+        return;
+      }
+      if (!confirm(`Confermare le modifiche a "${original.name}"?\n\n• ${changes.join("\n• ")}`)) {
+        return;
+      }
+      setSaving(true);
+      const { error } = await supabase
+        .from("agents")
+        .update({ name: cleanName, role, emoji })
+        .eq("id", editingId);
+      setSaving(false);
+      if (error) {
+        toast.error("Errore: " + error.message);
+        return;
+      }
+      toast.success("Agente aggiornato");
+      reset();
+      load();
       return;
     }
     setSaving(true);
