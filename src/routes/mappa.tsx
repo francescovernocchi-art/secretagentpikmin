@@ -450,9 +450,33 @@ function MappaPage() {
     setMissionText("");
   };
 
+  type DropTpl = {
+    kind: "ingredient" | "object" | "mission" | "ship_part";
+    emoji: string;
+    name: string;
+    payload_key: string | null;
+    xp: number;
+  };
+  const allTemplates: DropTpl[] = useMemo(() => {
+    const baseTpls = DROP_TEMPLATES.map((t) => ({ ...t })) as DropTpl[];
+    const shipTpls: DropTpl[] = shipParts
+      .filter((p) => !collectedPartKeys.has(p.key))
+      .map((p) => ({
+        kind: "ship_part",
+        emoji: p.emoji,
+        name: p.name,
+        payload_key: p.key,
+        xp: 40,
+      }));
+    return [...baseTpls, ...shipTpls];
+  }, [shipParts, collectedPartKeys]);
+
+  const safeTplIndex = Math.min(selectedTpl, Math.max(allTemplates.length - 1, 0));
+  const currentTpl = allTemplates[safeTplIndex];
+
   const savePending = async () => {
-    if (!pendingPos) return;
-    const tpl = DROP_TEMPLATES[selectedTpl];
+    if (!pendingPos || !currentTpl) return;
+    const tpl = currentTpl;
     setSaving(true);
     const payload = {
       created_by: role,
