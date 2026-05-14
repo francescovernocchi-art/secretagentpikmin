@@ -134,6 +134,7 @@ function RootComponent() {
       {isApp ? (
         <div className="grid-bg min-h-screen">
           <Outlet />
+          <BuzzButton />
           <BottomNav />
         </div>
       ) : (
