@@ -62,6 +62,7 @@ function LabPage() {
   const [slotB, setSlotB] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<Discovery | null>(null);
+  const [showRecipeForm, setShowRecipeForm] = useState(false);
 
   const callInvent = useServerFn(inventDiscovery);
 
