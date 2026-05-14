@@ -783,25 +783,65 @@ function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) 
           )}
         </div>
 
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Field label="Nome risultato">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={80}
-              placeholder="Es. Pozione di luce"
-              className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm"
-            />
-          </Field>
-          <Field label="Emoji">
-            <input
-              value={emoji}
-              onChange={(e) => setEmoji(e.target.value)}
-              maxLength={8}
-              placeholder="✨"
-              className="w-20 bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-center text-xl"
-            />
-          </Field>
+        <Field label="Nome risultato">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={80}
+            placeholder="Es. Pozione di luce"
+            className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm"
+          />
+        </Field>
+
+        <div>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Icona risultato
+          </span>
+          <div className="mt-1 flex items-center gap-3">
+            <div className="h-14 w-14 rounded-xl border border-primary/30 bg-night/60 flex items-center justify-center overflow-hidden shrink-0">
+              {emoji ? (
+                <ResultIcon value={emoji} className="text-3xl" alt="anteprima" />
+              ) : (
+                <span className="text-xs text-muted-foreground">?</span>
+              )}
+            </div>
+            <div className="flex-1 space-y-2">
+              <input
+                value={emoji}
+                onChange={(e) => setEmoji(e.target.value)}
+                maxLength={500}
+                placeholder="Emoji ✨ oppure URL immagine"
+                className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="panel px-3 py-1.5 text-[11px] flex items-center gap-1 disabled:opacity-40"
+                >
+                  <Upload className="h-3 w-3" />
+                  {uploading ? "Carico…" : "Carica icona"}
+                </button>
+                {emoji && (
+                  <button
+                    type="button"
+                    onClick={() => setEmoji("")}
+                    className="panel px-3 py-1.5 text-[11px] text-muted-foreground"
+                  >
+                    Pulisci
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                onChange={onPickFile}
+                className="hidden"
+              />
+            </div>
+          </div>
         </div>
 
         <Field label="Descrizione (opzionale)">
