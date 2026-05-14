@@ -288,6 +288,7 @@ export type Database = {
           difficulty: string
           id: string
           proof: string | null
+          reward_part_key: string | null
           status: string
           title: string
           xp: number
@@ -299,6 +300,7 @@ export type Database = {
           difficulty?: string
           id?: string
           proof?: string | null
+          reward_part_key?: string | null
           status?: string
           title: string
           xp?: number
@@ -310,6 +312,7 @@ export type Database = {
           difficulty?: string
           id?: string
           proof?: string | null
+          reward_part_key?: string | null
           status?: string
           title?: string
           xp?: number
@@ -393,6 +396,74 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      ship_parts: {
+        Row: {
+          created_at: string
+          description: string | null
+          emoji: string
+          id: string
+          key: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          emoji?: string
+          id?: string
+          key: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          emoji?: string
+          id?: string
+          key?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      ship_parts_collected: {
+        Row: {
+          collected_at: string
+          collected_by: string
+          drop_id: string | null
+          id: string
+          mission_id: string | null
+          part_key: string
+          source: string
+        }
+        Insert: {
+          collected_at?: string
+          collected_by?: string
+          drop_id?: string | null
+          id?: string
+          mission_id?: string | null
+          part_key: string
+          source?: string
+        }
+        Update: {
+          collected_at?: string
+          collected_by?: string
+          drop_id?: string | null
+          id?: string
+          mission_id?: string | null
+          part_key?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ship_parts_collected_part_key_fkey"
+            columns: ["part_key"]
+            isOneToOne: true
+            referencedRelation: "ship_parts"
+            referencedColumns: ["key"]
+          },
+        ]
       }
     }
     Views: {

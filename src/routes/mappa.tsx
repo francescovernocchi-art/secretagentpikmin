@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { MapPin, Crosshair, Plus, X, Loader2, Gift, Sparkles, Trash2, ScrollText, Hand, Zap } from "lucide-react";
+import { MapPin, Crosshair, Plus, X, Loader2, Gift, Sparkles, Trash2, ScrollText, Hand, Zap, Rocket } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { grantIngredients } from "@/lib/ingredients";
+import { collectShipPart } from "@/lib/ship";
 import "leaflet/dist/leaflet.css";
 
 export const Route = createFileRoute("/mappa")({
@@ -19,7 +20,7 @@ type Drop = {
   lat: number;
   lng: number;
   radius_m: number;
-  kind: "ingredient" | "object" | "mission";
+  kind: "ingredient" | "object" | "mission" | "ship_part";
   payload_key: string | null;
   name: string;
   emoji: string;
@@ -94,6 +95,10 @@ function MappaPage() {
     updated_at: string;
   };
   const [agentPositions, setAgentPositions] = useState<AgentPos[]>([]);
+
+  type ShipPartLite = { key: string; name: string; emoji: string };
+  const [shipParts, setShipParts] = useState<ShipPartLite[]>([]);
+  const [collectedPartKeys, setCollectedPartKeys] = useState<Set<string>>(new Set());
 
   // Deterministic color per agent id (HSL hue from hash)
   const agentColor = (id: string) => {
@@ -282,6 +287,31 @@ function MappaPage() {
     };
   }, []);
 
+  // Load ship parts catalog + which are already collected
+  useEffect(() => {
+    const load = async () => {
+      const [{ data: parts }, { data: got }] = await Promise.all([
+        supabase.from("ship_parts").select("key, name, emoji").order("sort_order"),
+        supabase.from("ship_parts_collected").select("part_key"),
+      ]);
+      setShipParts((parts ?? []) as ShipPartLite[]);
+      setCollectedPartKeys(new Set((got ?? []).map((g) => g.part_key as string)));
+    };
+    load();
+    const ch = supabase
+      .channel("mappa-ship-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "ship_parts" }, () => load())
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ship_parts_collected" },
+        () => load(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, []);
+
   // Render other agents' markers
   useEffect(() => {
     if (!ready) return;
@@ -420,9 +450,33 @@ function MappaPage() {
     setMissionText("");
   };
 
+  type DropTpl = {
+    kind: "ingredient" | "object" | "mission" | "ship_part";
+    emoji: string;
+    name: string;
+    payload_key: string | null;
+    xp: number;
+  };
+  const allTemplates: DropTpl[] = useMemo(() => {
+    const baseTpls = DROP_TEMPLATES.map((t) => ({ ...t })) as DropTpl[];
+    const shipTpls: DropTpl[] = shipParts
+      .filter((p) => !collectedPartKeys.has(p.key))
+      .map((p) => ({
+        kind: "ship_part",
+        emoji: p.emoji,
+        name: p.name,
+        payload_key: p.key,
+        xp: 40,
+      }));
+    return [...baseTpls, ...shipTpls];
+  }, [shipParts, collectedPartKeys]);
+
+  const safeTplIndex = Math.min(selectedTpl, Math.max(allTemplates.length - 1, 0));
+  const currentTpl = allTemplates[safeTplIndex];
+
   const savePending = async () => {
-    if (!pendingPos) return;
-    const tpl = DROP_TEMPLATES[selectedTpl];
+    if (!pendingPos || !currentTpl) return;
+    const tpl = currentTpl;
     setSaving(true);
     const payload = {
       created_by: role,
@@ -492,6 +546,21 @@ function MappaPage() {
           status: "nuova",
           created_by: "papa",
         });
+      } else if (d.kind === "ship_part" && d.payload_key) {
+        try {
+          const res = await collectShipPart({
+            partKey: d.payload_key,
+            collectedBy: role,
+            source: "drop",
+            dropId: d.id,
+          });
+          if (!res.alreadyCollected) {
+            toast.success(`🚀 Pezzo navicella recuperato: ${d.emoji} ${d.name}`);
+            navigator.vibrate?.([80, 60, 80, 60, 200]);
+          }
+        } catch (e: any) {
+          toast.error("Pezzo navicella: " + (e?.message ?? "errore"));
+        }
       }
       toast.success(`${d.emoji} Recuperato. +${d.xp} XP${d.note ? ` — "${d.note}"` : ""}`);
       navigator.vibrate?.([60, 40, 120]);
@@ -726,17 +795,22 @@ function MappaPage() {
               </div>
 
               <div className="grid grid-cols-5 gap-1.5">
-                {DROP_TEMPLATES.map((t, i) => (
+                {allTemplates.map((t, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedTpl(i)}
-                    className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xl border ${
-                      selectedTpl === i
+                    className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xl border relative ${
+                      safeTplIndex === i
                         ? "border-primary bg-primary/15 text-glow"
-                        : "border-border bg-background/40"
+                        : t.kind === "ship_part"
+                          ? "border-amber-400/40 bg-amber-400/5"
+                          : "border-border bg-background/40"
                     }`}
                     title={t.name}
                   >
+                    {t.kind === "ship_part" && (
+                      <Rocket className="absolute top-0.5 right-0.5 h-2.5 w-2.5 text-amber-300" />
+                    )}
                     <span>{t.emoji}</span>
                     <span className="text-[8px] uppercase tracking-wider mt-0.5 text-muted-foreground">
                       +{t.xp}
@@ -745,12 +819,18 @@ function MappaPage() {
                 ))}
               </div>
 
-              <p className="text-xs text-foreground">
-                <b>{DROP_TEMPLATES[selectedTpl].emoji} {DROP_TEMPLATES[selectedTpl].name}</b>
-                <span className="text-muted-foreground"> · raggio 5m</span>
-              </p>
+              {currentTpl && (
+                <p className="text-xs text-foreground">
+                  <b>
+                    {currentTpl.emoji} {currentTpl.name}
+                  </b>
+                  <span className="text-muted-foreground">
+                    {currentTpl.kind === "ship_part" ? " · pezzo navicella · raggio 5m" : " · raggio 5m"}
+                  </span>
+                </p>
+              )}
 
-              {DROP_TEMPLATES[selectedTpl].kind === "mission" && (
+              {currentTpl?.kind === "mission" && (
                 <textarea
                   value={missionText}
                   onChange={(e) => setMissionText(e.target.value)}

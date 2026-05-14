@@ -6,7 +6,8 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { CameraCapture } from "@/components/CameraCapture";
 import { grantIngredients, rollIngredients } from "@/lib/ingredients";
-import { Plus, Check, Trophy, Sparkles, X, Camera } from "lucide-react";
+import { collectShipPart } from "@/lib/ship";
+import { Plus, Check, Trophy, Sparkles, X, Camera, Rocket } from "lucide-react";
 
 export const Route = createFileRoute("/missioni")({
   component: MissioniPage,
@@ -22,6 +23,13 @@ interface Mission {
   proof: string | null;
   created_at: string;
   created_by: string;
+  reward_part_key: string | null;
+}
+
+interface ShipPartLite {
+  key: string;
+  name: string;
+  emoji: string;
 }
 
 const SAMPLES = [
@@ -38,10 +46,18 @@ function MissioniPage() {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [showNew, setShowNew] = useState(false);
   const [filter, setFilter] = useState<"all" | "attive" | "completate">("all");
+  const [shipParts, setShipParts] = useState<ShipPartLite[]>([]);
+  const [collectedKeys, setCollectedKeys] = useState<Set<string>>(new Set());
 
   const load = async () => {
-    const { data } = await supabase.from("missions").select("*").order("created_at", { ascending: false });
+    const [{ data }, { data: parts }, { data: got }] = await Promise.all([
+      supabase.from("missions").select("*").order("created_at", { ascending: false }),
+      supabase.from("ship_parts").select("key, name, emoji").order("sort_order"),
+      supabase.from("ship_parts_collected").select("part_key"),
+    ]);
     setMissions((data ?? []) as Mission[]);
+    setShipParts((parts ?? []) as ShipPartLite[]);
+    setCollectedKeys(new Set((got ?? []).map((g) => g.part_key as string)));
   };
 
   useEffect(() => {
@@ -49,6 +65,7 @@ function MissioniPage() {
     const ch = supabase
       .channel("missions-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "missions" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "ship_parts_collected" }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
@@ -58,6 +75,9 @@ function MissioniPage() {
   const update = async (id: string, patch: Partial<Mission>) => {
     await supabase.from("missions").update(patch).eq("id", id);
   };
+
+  const partByKey = (key: string | null) =>
+    key ? shipParts.find((p) => p.key === key) : undefined;
 
   const visible = missions.filter((m) => {
     if (filter === "attive") return m.status === "nuova" || m.status === "accettata";
@@ -134,6 +154,12 @@ function MissioniPage() {
                 <div className="text-right">
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">XP</p>
                   <p className="font-display text-xl text-primary text-glow">+{m.xp}</p>
+                  {partByKey(m.reward_part_key) && (
+                    <p className="mt-1 text-[10px] text-amber-300 flex items-center gap-1 justify-end">
+                      <Rocket className="h-3 w-3" />
+                      <span>{partByKey(m.reward_part_key)!.emoji}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -156,13 +182,22 @@ function MissioniPage() {
                         title: m.title,
                         icon: "🏅",
                       });
-                      // Drop ingredienti per il Laboratorio
                       const drops = rollIngredients("mission");
                       await grantIngredients("lorenzo", drops);
+                      if (m.reward_part_key) {
+                        try {
+                          await collectShipPart({
+                            partKey: m.reward_part_key,
+                            collectedBy: "lorenzo",
+                            source: "mission",
+                            missionId: m.id,
+                          });
+                        } catch {}
+                      }
                     }}
                     className="btn-neon px-3 py-1.5 text-xs flex items-center gap-1"
                   >
-                    <Trophy className="h-3 w-3" /> Approva & Premia
+                    <Trophy className="h-3 w-3" /> Approva &amp; Premia
                   </button>
                 )}
                 {isAdmin && (
@@ -179,7 +214,13 @@ function MissioniPage() {
         </AnimatePresence>
       </div>
 
-      {showNew && <NewMissionSheet onClose={() => setShowNew(false)} />}
+      {showNew && (
+        <NewMissionSheet
+          shipParts={shipParts}
+          collectedKeys={collectedKeys}
+          onClose={() => setShowNew(false)}
+        />
+      )}
     </PageShell>
   );
 }
@@ -246,18 +287,33 @@ function CompleteButton({ onComplete }: { onComplete: (proof: string) => void })
   );
 }
 
-function NewMissionSheet({ onClose }: { onClose: () => void }) {
+function NewMissionSheet({
+  onClose,
+  shipParts,
+  collectedKeys,
+}: {
+  onClose: () => void;
+  shipParts: ShipPartLite[];
+  collectedKeys: Set<string>;
+}) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [xp, setXp] = useState(20);
   const [difficulty, setDifficulty] = useState("facile");
+  const [rewardPartKey, setRewardPartKey] = useState<string>("");
 
   const create = async (preset?: typeof SAMPLES[number]) => {
     const payload = preset ?? { title, description, xp, difficulty };
     if (!payload.title) return;
-    await supabase.from("missions").insert({ ...payload, status: "nuova", created_by: "papa" });
+    await supabase.from("missions").insert({
+      ...payload,
+      status: "nuova",
+      created_by: "papa",
+      reward_part_key: !preset && rewardPartKey ? rewardPartKey : null,
+    });
     onClose();
   };
+  const availableParts = shipParts.filter((p) => !collectedKeys.has(p.key));
 
   return (
     <motion.div
@@ -314,6 +370,21 @@ function NewMissionSheet({ onClose }: { onClose: () => void }) {
             </select>
           </label>
         </div>
+        {availableParts.length > 0 && (
+          <label className="block text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Rocket className="h-3 w-3 text-amber-300" /> Ricompensa: pezzo navicella (opzionale)</span>
+            <select
+              value={rewardPartKey}
+              onChange={(e) => setRewardPartKey(e.target.value)}
+              className="mt-1 w-full rounded-xl bg-night/60 border border-border px-3 py-2 text-sm outline-none focus:border-primary"
+            >
+              <option value="">— nessun pezzo —</option>
+              {availableParts.map((p) => (
+                <option key={p.key} value={p.key}>{p.emoji} {p.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <button onClick={() => create()} className="btn-neon w-full py-3 text-sm">Crea Missione</button>
 
         <div className="pt-2">

@@ -14,6 +14,7 @@ import { Route as RicetteRouteImport } from './routes/ricette'
 import { Route as RadarRouteImport } from './routes/radar'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PremiRouteImport } from './routes/premi'
+import { Route as NavicellaRouteImport } from './routes/navicella'
 import { Route as MissioniRouteImport } from './routes/missioni'
 import { Route as MappaRouteImport } from './routes/mappa'
 import { Route as LabRouteImport } from './routes/lab'
@@ -46,6 +47,11 @@ const ProfiloRoute = ProfiloRouteImport.update({
 const PremiRoute = PremiRouteImport.update({
   id: '/premi',
   path: '/premi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NavicellaRoute = NavicellaRouteImport.update({
+  id: '/navicella',
+  path: '/navicella',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MissioniRoute = MissioniRouteImport.update({
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
   '/missioni': typeof MissioniRoute
+  '/navicella': typeof NavicellaRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
   '/missioni': typeof MissioniRoute
+  '/navicella': typeof NavicellaRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
   '/missioni': typeof MissioniRoute
+  '/navicella': typeof NavicellaRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/lab'
     | '/mappa'
     | '/missioni'
+    | '/navicella'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/lab'
     | '/mappa'
     | '/missioni'
+    | '/navicella'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/lab'
     | '/mappa'
     | '/missioni'
+    | '/navicella'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -192,6 +204,7 @@ export interface RootRouteChildren {
   LabRoute: typeof LabRoute
   MappaRoute: typeof MappaRoute
   MissioniRoute: typeof MissioniRoute
+  NavicellaRoute: typeof NavicellaRoute
   PremiRoute: typeof PremiRoute
   ProfiloRoute: typeof ProfiloRoute
   RadarRoute: typeof RadarRoute
@@ -234,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/premi'
       fullPath: '/premi'
       preLoaderRoute: typeof PremiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/navicella': {
+      id: '/navicella'
+      path: '/navicella'
+      fullPath: '/navicella'
+      preLoaderRoute: typeof NavicellaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/missioni': {
@@ -304,6 +324,7 @@ const rootRouteChildren: RootRouteChildren = {
   LabRoute: LabRoute,
   MappaRoute: MappaRoute,
   MissioniRoute: MissioniRoute,
+  NavicellaRoute: NavicellaRoute,
   PremiRoute: PremiRoute,
   ProfiloRoute: ProfiloRoute,
   RadarRoute: RadarRoute,
