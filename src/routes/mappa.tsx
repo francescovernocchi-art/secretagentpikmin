@@ -287,6 +287,31 @@ function MappaPage() {
     };
   }, []);
 
+  // Load ship parts catalog + which are already collected
+  useEffect(() => {
+    const load = async () => {
+      const [{ data: parts }, { data: got }] = await Promise.all([
+        supabase.from("ship_parts").select("key, name, emoji").order("sort_order"),
+        supabase.from("ship_parts_collected").select("part_key"),
+      ]);
+      setShipParts((parts ?? []) as ShipPartLite[]);
+      setCollectedPartKeys(new Set((got ?? []).map((g) => g.part_key as string)));
+    };
+    load();
+    const ch = supabase
+      .channel("mappa-ship-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "ship_parts" }, () => load())
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ship_parts_collected" },
+        () => load(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, []);
+
   // Render other agents' markers
   useEffect(() => {
     if (!ready) return;
