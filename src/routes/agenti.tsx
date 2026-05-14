@@ -338,6 +338,14 @@ function AgentiPage() {
                   </p>
                 </div>
                 <button
+                  onClick={() => startEdit(a)}
+                  className="text-muted-foreground hover:text-primary p-1.5"
+                  aria-label="Modifica"
+                  title="Modifica agente"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
                   onClick={() => remove(a)}
                   disabled={isMe}
                   className="text-muted-foreground hover:text-destructive p-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
