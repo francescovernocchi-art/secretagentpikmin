@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession, clearSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { Radar } from "@/components/Radar";
-import { Battery, MessageSquare, Target, Trophy, LogOut, ShieldCheck } from "lucide-react";
+import { Battery, MessageSquare, Target, Trophy, LogOut, ShieldCheck, Backpack } from "lucide-react";
 
 export const Route = createFileRoute("/base")({
   component: BasePage,
