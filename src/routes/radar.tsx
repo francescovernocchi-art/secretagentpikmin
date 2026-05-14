@@ -100,6 +100,21 @@ function RadarPage() {
             className="w-full rounded-xl border border-primary/30 glow-soft"
           />
           <p className="text-xs text-muted-foreground">Salvato nell'archivio ricordi.</p>
+          <AnimatePresence>
+            {drops.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 rounded-lg bg-primary/10 border border-primary/30 p-2"
+              >
+                <FlaskConical className="h-4 w-4 text-primary" />
+                <p className="text-xs text-primary">
+                  Il Pikmin ha lasciato cadere <b>{drops.length}</b> ingrediente
+                  {drops.length > 1 ? "i" : ""}! Vai al Lab.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
