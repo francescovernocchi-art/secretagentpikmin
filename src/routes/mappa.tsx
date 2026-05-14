@@ -580,7 +580,9 @@ function MappaPage() {
             dropId: d.id,
           });
           if (!res.alreadyCollected) {
-            toast.success(`🚀 Pezzo navicella recuperato: ${d.emoji} ${d.name}`);
+            toast.success(`🚀 Pezzo navicella recuperato: ${d.emoji} ${d.name}`, {
+              description: `Squadra spedita: −${shipCost} 🌱 Pikmin`,
+            });
             navigator.vibrate?.([80, 60, 80, 60, 200]);
           }
         } catch (e: any) {
