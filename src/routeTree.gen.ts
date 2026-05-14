@@ -15,6 +15,7 @@ import { Route as RadarRouteImport } from './routes/radar'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PremiRouteImport } from './routes/premi'
 import { Route as MissioniRouteImport } from './routes/missioni'
+import { Route as MappaRouteImport } from './routes/mappa'
 import { Route as LabRouteImport } from './routes/lab'
 import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as ChatRouteImport } from './routes/chat'
@@ -51,6 +52,11 @@ const MissioniRoute = MissioniRouteImport.update({
   path: '/missioni',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MappaRoute = MappaRouteImport.update({
+  id: '/mappa',
+  path: '/mappa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LabRoute = LabRouteImport.update({
   id: '/lab',
   path: '/lab',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
+  '/mappa': typeof MappaRoute
   '/missioni': typeof MissioniRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
+  '/mappa': typeof MappaRoute
   '/missioni': typeof MissioniRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
+  '/mappa': typeof MappaRoute
   '/missioni': typeof MissioniRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/inventario'
     | '/lab'
+    | '/mappa'
     | '/missioni'
     | '/premi'
     | '/profilo'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/inventario'
     | '/lab'
+    | '/mappa'
     | '/missioni'
     | '/premi'
     | '/profilo'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/inventario'
     | '/lab'
+    | '/mappa'
     | '/missioni'
     | '/premi'
     | '/profilo'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   InventarioRoute: typeof InventarioRoute
   LabRoute: typeof LabRoute
+  MappaRoute: typeof MappaRoute
   MissioniRoute: typeof MissioniRoute
   PremiRoute: typeof PremiRoute
   ProfiloRoute: typeof ProfiloRoute
@@ -217,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MissioniRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mappa': {
+      id: '/mappa'
+      path: '/mappa'
+      fullPath: '/mappa'
+      preLoaderRoute: typeof MappaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lab': {
       id: '/lab'
       path: '/lab'
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRoute,
   InventarioRoute: InventarioRoute,
   LabRoute: LabRoute,
+  MappaRoute: MappaRoute,
   MissioniRoute: MissioniRoute,
   PremiRoute: PremiRoute,
   ProfiloRoute: ProfiloRoute,
@@ -271,3 +292,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
