@@ -81,6 +81,7 @@ function RecipesPage() {
   const [catalog, setCatalog] = useState<Record<string, Ingredient>>({});
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [inventory, setInventory] = useState<InvRow[]>([]);
+  const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "ready">("all");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -88,16 +89,18 @@ function RecipesPage() {
   const [editing, setEditing] = useState<Recipe | null>(null);
 
   const load = async () => {
-    const [{ data: ing }, { data: rec }, { data: inv }] = await Promise.all([
+    const [{ data: ing }, { data: rec }, { data: inv }, { data: unl }] = await Promise.all([
       supabase.from("ingredients").select("key, name, emoji, rarity"),
       supabase.from("recipes").select("*").order("created_at", { ascending: false }),
       supabase.from("inventory").select("ingredient_key, qty").eq("agent", agent),
+      supabase.from("recipe_unlocks").select("recipe_id").eq("agent", agent),
     ]);
     const map: Record<string, Ingredient> = {};
     for (const i of (ing ?? []) as Ingredient[]) map[i.key] = i;
     setCatalog(map);
     setRecipes((rec ?? []) as Recipe[]);
     setInventory((inv ?? []) as InvRow[]);
+    setUnlocked(new Set((unl ?? []).map((u) => u.recipe_id as string)));
   };
 
   useEffect(() => {
