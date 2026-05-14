@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, Loader2, X, UserPlus, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Shield, Loader2, X, UserPlus, ArrowLeft, Pencil, Check } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
