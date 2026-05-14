@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_coins: {
+        Row: {
+          agent: string
+          coins: number
+          updated_at: string
+        }
+        Insert: {
+          agent: string
+          coins?: number
+          updated_at?: string
+        }
+        Update: {
+          agent?: string
+          coins?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agent_positions: {
         Row: {
           accuracy: number | null
@@ -71,6 +89,33 @@ export type Database = {
           name?: string
           pin?: string
           role?: string
+        }
+        Relationships: []
+      }
+      coin_transactions: {
+        Row: {
+          agent: string
+          amount: number
+          created_at: string
+          id: string
+          meta: Json | null
+          reason: string
+        }
+        Insert: {
+          agent: string
+          amount: number
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          reason: string
+        }
+        Update: {
+          agent?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          reason?: string
         }
         Relationships: []
       }
@@ -177,6 +222,7 @@ export type Database = {
           emoji: string
           key: string
           name: string
+          price_coins: number | null
           rarity: string
           source: string
         }
@@ -186,6 +232,7 @@ export type Database = {
           emoji: string
           key: string
           name: string
+          price_coins?: number | null
           rarity?: string
           source?: string
         }
@@ -195,6 +242,7 @@ export type Database = {
           emoji?: string
           key?: string
           name?: string
+          price_coins?: number | null
           rarity?: string
           source?: string
         }
@@ -282,6 +330,7 @@ export type Database = {
       }
       missions: {
         Row: {
+          coin_reward: number
           created_at: string
           created_by: string
           description: string | null
@@ -294,6 +343,7 @@ export type Database = {
           xp: number
         }
         Insert: {
+          coin_reward?: number
           created_at?: string
           created_by?: string
           description?: string | null
@@ -306,6 +356,7 @@ export type Database = {
           xp?: number
         }
         Update: {
+          coin_reward?: number
           created_at?: string
           created_by?: string
           description?: string | null
@@ -319,6 +370,27 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_unlocks: {
+        Row: {
+          agent: string
+          id: string
+          recipe_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          agent: string
+          id?: string
+          recipe_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          agent?: string
+          id?: string
+          recipe_id?: string
+          unlocked_at?: string
+        }
+        Relationships: []
+      }
       recipes: {
         Row: {
           created_at: string
@@ -327,6 +399,8 @@ export type Database = {
           input_a: string | null
           input_b: string | null
           inputs: string[] | null
+          locked: boolean
+          price_coins: number | null
           result_emoji: string
           result_name: string
           xp: number
@@ -338,6 +412,8 @@ export type Database = {
           input_a?: string | null
           input_b?: string | null
           inputs?: string[] | null
+          locked?: boolean
+          price_coins?: number | null
           result_emoji: string
           result_name: string
           xp?: number
@@ -349,6 +425,8 @@ export type Database = {
           input_a?: string | null
           input_b?: string | null
           inputs?: string[] | null
+          locked?: boolean
+          price_coins?: number | null
           result_emoji?: string
           result_name?: string
           xp?: number
