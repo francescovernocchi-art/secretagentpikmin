@@ -98,7 +98,7 @@ function MappaPage() {
   };
   const [agentPositions, setAgentPositions] = useState<AgentPos[]>([]);
 
-  type ShipPartLite = { key: string; name: string; emoji: string };
+  type ShipPartLite = { key: string; name: string; emoji: string; rarity: string };
   const [shipParts, setShipParts] = useState<ShipPartLite[]>([]);
   const [collectedPartKeys, setCollectedPartKeys] = useState<Set<string>>(new Set());
 
