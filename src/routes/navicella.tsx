@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
+import { PikminCounter } from "@/components/PikminCounter";
+import { pikminCostFor, RARITY_LABEL, RARITY_COLOR } from "@/lib/pikmin";
 import { Rocket, Plus, Pencil, Trash2, X, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
