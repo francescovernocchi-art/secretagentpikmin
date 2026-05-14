@@ -546,6 +546,21 @@ function MappaPage() {
           status: "nuova",
           created_by: "papa",
         });
+      } else if (d.kind === "ship_part" && d.payload_key) {
+        try {
+          const res = await collectShipPart({
+            partKey: d.payload_key,
+            collectedBy: role,
+            source: "drop",
+            dropId: d.id,
+          });
+          if (!res.alreadyCollected) {
+            toast.success(`🚀 Pezzo navicella recuperato: ${d.emoji} ${d.name}`);
+            navigator.vibrate?.([80, 60, 80, 60, 200]);
+          }
+        } catch (e: any) {
+          toast.error("Pezzo navicella: " + (e?.message ?? "errore"));
+        }
       }
       toast.success(`${d.emoji} Recuperato. +${d.xp} XP${d.note ? ` — "${d.note}"` : ""}`);
       navigator.vibrate?.([60, 40, 120]);
