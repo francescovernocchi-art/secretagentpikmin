@@ -80,6 +80,27 @@ function MappaPage() {
   const meAccuracyRef = useRef<any>(null);
   const placeModeRef = useRef(false);
   const notifiedRef = useRef<Set<string>>(new Set());
+  const agentMarkersRef = useRef<Map<string, any>>(new Map());
+  const lastUpsertRef = useRef<number>(0);
+
+  type AgentPos = {
+    agent_id: string;
+    agent_name: string;
+    emoji: string;
+    role: string;
+    lat: number;
+    lng: number;
+    accuracy: number | null;
+    updated_at: string;
+  };
+  const [agentPositions, setAgentPositions] = useState<AgentPos[]>([]);
+
+  // Deterministic color per agent id (HSL hue from hash)
+  const agentColor = (id: string) => {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return `hsl(${h % 360} 85% 60%)`;
+  };
 
   const [ready, setReady] = useState(false);
   const [drops, setDrops] = useState<Drop[]>([]);
@@ -220,6 +241,98 @@ function MappaPage() {
       }
     })();
   }, [ready, me]);
+
+  // Broadcast my position to other agents (throttled ~4s)
+  useEffect(() => {
+    if (!me || !session?.agentId) return;
+    const now = Date.now();
+    if (now - lastUpsertRef.current < 4000) return;
+    lastUpsertRef.current = now;
+    supabase
+      .from("agent_positions")
+      .upsert({
+        agent_id: session.agentId,
+        agent_name: session.name,
+        emoji: session.emoji ?? "🕵️",
+        role: session.role,
+        lat: me.lat,
+        lng: me.lng,
+        accuracy: me.acc,
+        updated_at: new Date().toISOString(),
+      })
+      .then(() => {});
+  }, [me, session?.agentId, session?.name, session?.emoji, session?.role]);
+
+  // Load + subscribe to other agents' positions
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const { data } = await supabase.from("agent_positions").select("*");
+      if (!mounted) return;
+      setAgentPositions((data ?? []) as AgentPos[]);
+    };
+    load();
+    const ch = supabase
+      .channel("agent-positions-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_positions" }, () => load())
+      .subscribe();
+    return () => {
+      mounted = false;
+      supabase.removeChannel(ch);
+    };
+  }, []);
+
+  // Render other agents' markers
+  useEffect(() => {
+    if (!ready) return;
+    (async () => {
+      const L = await import("leaflet");
+      const map = mapRef.current;
+      if (!map) return;
+      const seen = new Set<string>();
+      const myId = session?.agentId;
+      const STALE_MS = 5 * 60 * 1000;
+      const now = Date.now();
+      for (const a of agentPositions) {
+        if (a.agent_id === myId) continue;
+        if (now - new Date(a.updated_at).getTime() > STALE_MS) continue;
+        seen.add(a.agent_id);
+        const color = agentColor(a.agent_id);
+        const existing = agentMarkersRef.current.get(a.agent_id);
+        if (existing) {
+          existing.marker.setLatLng([a.lat, a.lng]);
+          existing.accuracy?.setLatLng([a.lat, a.lng]).setRadius(a.accuracy ?? 0);
+        } else {
+          const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px)">
+            <div style="background:${color};color:#0a0a0a;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid #0a0a0a;box-shadow:0 0 6px ${color}">${a.emoji} ${a.agent_name}</div>
+            <div style="width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #0a0a0a;box-shadow:0 0 12px ${color}"></div>
+          </div>`;
+          const icon = L.divIcon({ className: "", html, iconSize: [90, 36], iconAnchor: [45, 28] });
+          const marker = L.marker([a.lat, a.lng], { icon, zIndexOffset: 800 }).addTo(map);
+          const updated = new Date(a.updated_at).toLocaleTimeString();
+          marker.bindPopup(`<div style="min-width:140px"><b>${a.emoji} ${a.agent_name}</b><br/><span style="opacity:.7">${a.role}</span><br/><span style="opacity:.7">aggiornato ${updated}</span>${a.accuracy ? `<br/><span style="opacity:.7">±${Math.round(a.accuracy)}m</span>` : ""}</div>`);
+          let accuracy: any = null;
+          if (a.accuracy && a.accuracy > 0) {
+            accuracy = L.circle([a.lat, a.lng], {
+              radius: a.accuracy,
+              color,
+              weight: 1,
+              opacity: 0.4,
+              fillOpacity: 0.06,
+            }).addTo(map);
+          }
+          agentMarkersRef.current.set(a.agent_id, { marker, accuracy });
+        }
+      }
+      for (const [id, refs] of agentMarkersRef.current.entries()) {
+        if (!seen.has(id)) {
+          map.removeLayer(refs.marker);
+          if (refs.accuracy) map.removeLayer(refs.accuracy);
+          agentMarkersRef.current.delete(id);
+        }
+      }
+    })();
+  }, [ready, agentPositions, session?.agentId]);
 
   // Load drops + realtime subscription
   useEffect(() => {
