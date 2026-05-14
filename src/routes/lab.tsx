@@ -391,7 +391,7 @@ function LabPage() {
             </button>
           )}
           <button
-            onClick={combine}
+            onClick={() => setConfirmOpen(true)}
             disabled={!canCombine}
             className="btn-neon flex-1 py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-40"
           >
@@ -406,6 +406,72 @@ function LabPage() {
           </button>
         </div>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={(o) => !busy && setConfirmOpen(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <FlaskConical className="h-5 w-5 text-primary" />
+              Confermi la combinazione?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const known = findRecipe(slots);
+                return known
+                  ? `Ricetta nota: ${known.result_emoji} ${known.result_name} (+${known.xp} XP).`
+                  : "Ricetta sconosciuta: il risultato sarà generato dall'IA.";
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Ingredienti ({slots.length})
+            </p>
+            <ul className="space-y-1.5">
+              {(() => {
+                const counts: Record<string, number> = {};
+                for (const k of slots) counts[k] = (counts[k] ?? 0) + 1;
+                return Object.entries(counts).map(([key, qty]) => {
+                  const meta = catalog[key];
+                  const have = inventory.find((i) => i.ingredient_key === key)?.qty ?? 0;
+                  const ok = have >= qty;
+                  return (
+                    <li
+                      key={key}
+                      className="flex items-center justify-between panel px-3 py-2 text-sm"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="text-lg">{meta?.emoji ?? "❔"}</span>
+                        <span>{meta?.name ?? key}</span>
+                      </span>
+                      <span
+                        className={`text-xs font-mono ${
+                          ok ? "text-emerald-400" : "text-rose-400"
+                        }`}
+                      >
+                        ×{qty} / {have}
+                      </span>
+                    </li>
+                  );
+                });
+              })()}
+            </ul>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy}
+              onClick={async (e) => {
+                e.preventDefault();
+                await combine();
+                setConfirmOpen(false);
+              }}
+            >
+              {busy ? "Reazione…" : "Conferma"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Inventario */}
       <div>
