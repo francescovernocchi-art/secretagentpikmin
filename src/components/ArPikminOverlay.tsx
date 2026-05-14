@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PIKMIN_LIST } from "@/assets/pikmin";
 
-// Solo PNG senza sfondo (le foto JPG hanno sfondo bianco)
-const AR_POOL = PIKMIN_LIST.filter((p) => p.src.endsWith(".png"));
+// Solo immagini senza sfondo (no JPG con sfondo bianco)
+const AR_POOL = PIKMIN_LIST.filter((p) => p.transparent);
 
 type Target = { src: string; name: string; alpha: number; beta: number };
 
