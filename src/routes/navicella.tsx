@@ -370,6 +370,28 @@ function PartEditor({
           />
         </Field>
 
+        <Field label="Rarità · costo Pikmin per recuperarlo">
+          <div className="grid grid-cols-3 gap-1.5">
+            {(["comune", "raro", "leggendario"] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRarity(r)}
+                className={`rounded-lg border px-2 py-2 text-[11px] flex flex-col items-center gap-0.5 ${
+                  rarity === r
+                    ? "border-primary bg-primary/15 text-glow"
+                    : "border-primary/15 bg-night/60 text-muted-foreground"
+                }`}
+              >
+                <span className={`uppercase tracking-wider ${RARITY_COLOR[r]}`}>
+                  {RARITY_LABEL[r]}
+                </span>
+                <span className="text-foreground">{pikminCostFor(r)} 🌱</span>
+              </button>
+            ))}
+          </div>
+        </Field>
+
         <Field label={`Ordine (${sortOrder})`}>
           <input
             type="number"
