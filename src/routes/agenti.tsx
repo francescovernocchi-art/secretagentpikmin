@@ -284,12 +284,18 @@ function AgentiPage() {
               </div>
 
               <button
-                onClick={create}
+                onClick={submit}
                 disabled={saving}
                 className="btn-neon w-full py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Crea agente
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : editingId ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {editingId ? "Salva modifiche" : "Crea agente"}
               </button>
             </motion.div>
           )}
