@@ -67,6 +67,7 @@ function MappaPage() {
   const meMarkerRef = useRef<any>(null);
   const meAccuracyRef = useRef<any>(null);
   const placeModeRef = useRef(false);
+  const notifiedRef = useRef<Set<string>>(new Set());
 
   const [ready, setReady] = useState(false);
   const [drops, setDrops] = useState<Drop[]>([]);
