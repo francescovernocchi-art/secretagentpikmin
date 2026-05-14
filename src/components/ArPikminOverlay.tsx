@@ -121,6 +121,10 @@ export function ArPikminOverlay() {
   // Watchdog interval id
   const watchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [stalled, setStalled] = useState(false);
+  // Ultima bussola valida ricevuta (per ricalibrare in foreground senza salti)
+  const lastValidAlphaRef = useRef<number | null>(null);
+  // Quando true, il prossimo evento allinea baseline+target all'ultima bussola
+  const pendingSoftRecalibrateRef = useRef(false);
   // Pool ingredienti caricato dal DB (con fallback statico)
   const ingredientPoolRef = useRef<IngredientRow[]>(FALLBACK_INGREDIENTS);
   const [grantBusy, setGrantBusy] = useState(false);
