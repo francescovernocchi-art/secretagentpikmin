@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { Plus, Trophy } from "lucide-react";
 import { PIKMIN } from "@/assets/pikmin";
+import { Pikmin3D } from "@/components/Pikmin3D";
 
 export const Route = createFileRoute("/premi")({
   component: PremiPage,
@@ -89,7 +90,7 @@ function PremiPage() {
             className="panel p-4 flex flex-col items-center text-center gap-2 glow-soft"
           >
             {r.icon && PIKMIN_MAP[r.icon] ? (
-              <img src={PIKMIN_MAP[r.icon]} alt="" className="h-16 w-16 object-contain animate-float-slow drop-shadow-[0_0_12px_oklch(0.86_0.24_145/0.5)]" />
+              <Pikmin3D src={PIKMIN_MAP[r.icon]} size={64} seed={i + 1} />
             ) : (
               <span className="text-4xl animate-float-slow">{r.icon ?? "🏅"}</span>
             )}
