@@ -287,18 +287,33 @@ function CompleteButton({ onComplete }: { onComplete: (proof: string) => void })
   );
 }
 
-function NewMissionSheet({ onClose }: { onClose: () => void }) {
+function NewMissionSheet({
+  onClose,
+  shipParts,
+  collectedKeys,
+}: {
+  onClose: () => void;
+  shipParts: ShipPartLite[];
+  collectedKeys: Set<string>;
+}) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [xp, setXp] = useState(20);
   const [difficulty, setDifficulty] = useState("facile");
+  const [rewardPartKey, setRewardPartKey] = useState<string>("");
 
   const create = async (preset?: typeof SAMPLES[number]) => {
     const payload = preset ?? { title, description, xp, difficulty };
     if (!payload.title) return;
-    await supabase.from("missions").insert({ ...payload, status: "nuova", created_by: "papa" });
+    await supabase.from("missions").insert({
+      ...payload,
+      status: "nuova",
+      created_by: "papa",
+      reward_part_key: !preset && rewardPartKey ? rewardPartKey : null,
+    });
     onClose();
   };
+  const availableParts = shipParts.filter((p) => !collectedKeys.has(p.key));
 
   return (
     <motion.div
