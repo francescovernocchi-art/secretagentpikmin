@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, MessageSquare, Target, Trophy, User, FlaskConical, Map, Rocket } from "lucide-react";
+import { Radio, MessageSquare, Target, Trophy, User, FlaskConical, Map, Rocket, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 
 const items = [
@@ -9,6 +9,7 @@ const items = [
   { to: "/mappa", icon: Map, label: "Mappa" },
   { to: "/navicella", icon: Rocket, label: "Nave" },
   { to: "/lab", icon: FlaskConical, label: "Lab" },
+  { to: "/mercato", icon: ShoppingBag, label: "Market" },
   { to: "/premi", icon: Trophy, label: "Premi" },
   { to: "/profilo", icon: User, label: "Agente" },
 ] as const;
@@ -18,7 +19,7 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 safe-bottom">
       <div className="mx-2 mb-2 panel-strong px-1 py-1">
-        <ul className="grid grid-cols-8 gap-0.5">
+        <ul className="grid grid-cols-9 gap-0.5">
           {items.map(({ to, icon: Icon, label }) => {
             const active = path.startsWith(to);
             return (
