@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, MessageSquare, Target, Trophy, Album, User, FlaskConical, Map } from "lucide-react";
+import { Radio, MessageSquare, Target, Trophy, User, FlaskConical, Map } from "lucide-react";
 import { motion } from "framer-motion";
 
 const items = [
