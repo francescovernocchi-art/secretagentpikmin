@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
+import { BuzzButton } from "@/components/BuzzButton";
 import { getSession } from "@/lib/session";
 
 import appCss from "../styles.css?url";
@@ -133,6 +134,7 @@ function RootComponent() {
       {isApp ? (
         <div className="grid-bg min-h-screen">
           <Outlet />
+          <BuzzButton />
           <BottomNav />
         </div>
       ) : (
