@@ -56,6 +56,60 @@ export type Database = {
         }
         Relationships: []
       }
+      drops: {
+        Row: {
+          collected_at: string | null
+          collected_by: string | null
+          created_at: string
+          created_by: string
+          emoji: string
+          id: string
+          kind: string
+          lat: number
+          lng: number
+          name: string
+          note: string | null
+          payload_key: string | null
+          radius_m: number
+          status: string
+          xp: number
+        }
+        Insert: {
+          collected_at?: string | null
+          collected_by?: string | null
+          created_at?: string
+          created_by?: string
+          emoji?: string
+          id?: string
+          kind?: string
+          lat: number
+          lng: number
+          name: string
+          note?: string | null
+          payload_key?: string | null
+          radius_m?: number
+          status?: string
+          xp?: number
+        }
+        Update: {
+          collected_at?: string | null
+          collected_by?: string | null
+          created_at?: string
+          created_by?: string
+          emoji?: string
+          id?: string
+          kind?: string
+          lat?: number
+          lng?: number
+          name?: string
+          note?: string | null
+          payload_key?: string | null
+          radius_m?: number
+          status?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           color: string | null
