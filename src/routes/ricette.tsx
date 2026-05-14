@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { ResultIcon } from "@/components/ResultIcon";
+import { IconGalleryPicker } from "@/components/IconGalleryPicker";
 import { consumeIngredient } from "@/lib/ingredients";
 import {
   BookOpen,
