@@ -373,14 +373,14 @@ function MappaPage() {
       } else if (d.kind === "mission") {
         await supabase.from("missions").insert({
           title: d.name,
-          description: d.note ?? "Missione lasciata da papà sulla mappa",
+          description: d.note ?? "Missione marcata sulla mappa dal Comandante",
           difficulty: "facile",
           xp: d.xp,
           status: "nuova",
           created_by: "papa",
         });
       }
-      toast.success(`${d.emoji} Raccolto! +${d.xp} XP${d.note ? ` — "${d.note}"` : ""}`);
+      toast.success(`${d.emoji} Recuperato. +${d.xp} XP${d.note ? ` — "${d.note}"` : ""}`);
       navigator.vibrate?.([60, 40, 120]);
       logEvent({
         id: crypto.randomUUID(),
@@ -426,7 +426,7 @@ function MappaPage() {
       const already = notifiedRef.current.has(d.id);
       if (inRange && !already) {
         notifiedRef.current.add(d.id);
-        toast.success(`${d.emoji} Sei vicino a "${d.name}" — tocca Raccogli!`, {
+        toast.success(`${d.emoji} Bersaglio in raggio: "${d.name}" — tocca Raccogli`, {
           description: d.note ? `"${d.note}"` : `+${d.xp} XP nel raggio di ${d.radius_m}m`,
           duration: 6000,
         });
@@ -446,7 +446,7 @@ function MappaPage() {
   return (
     <PageShell
       title="Mappa Drop"
-      subtitle={isPapa ? "Piazza drop per Lorenzo" : "Trova e raccogli i drop di papà"}
+      subtitle={isPapa ? "Piazza drop sul territorio" : "Localizza e recupera i drop del Comandante"}
     >
       <div className="space-y-3">
         {/* Mappa */}
@@ -462,7 +462,7 @@ function MappaPage() {
                 exit={{ opacity: 0, y: -8 }}
                 className="absolute top-3 left-3 right-3 z-[400] panel px-3 py-2 text-xs text-primary text-center"
               >
-                Tocca la mappa dove vuoi nascondere il drop
+                Tocca la mappa nel punto in cui vuoi piazzare il drop
               </motion.div>
             )}
           </AnimatePresence>
@@ -531,7 +531,7 @@ function MappaPage() {
                 <div className="p-2 space-y-1.5 max-h-64 overflow-auto">
                   {eventLog.length === 0 && (
                     <p className="text-xs text-muted-foreground px-2 py-3 text-center">
-                      Nessun evento ancora. Raccogli un drop per vederlo qui.
+                      Nessun evento registrato. Recupera un drop per vederlo qui.
                     </p>
                   )}
                   {eventLog.map((ev) => {
@@ -683,7 +683,7 @@ function MappaPage() {
             </p>
             {nearby.length === 0 && (
               <p className="text-xs text-muted-foreground">
-                Nessun drop attivo. Aspetta che papà ne piazzi uno!
+                Nessun drop attivo nelle vicinanze. Attendi che il Comandante ne piazzi uno.
               </p>
             )}
             {nearby.map(({ d, dist }) => {
@@ -745,7 +745,7 @@ function MappaPage() {
               // I tuoi drop
             </p>
             {drops.length === 0 && (
-              <p className="text-xs text-muted-foreground">Ancora nessun drop. Tocca "Piazza drop" sulla mappa.</p>
+              <p className="text-xs text-muted-foreground">Ancora nessun drop. Tocca "Piazza drop" sulla mappa per crearne uno.</p>
             )}
             {drops.slice(0, 8).map((d) => (
               <div

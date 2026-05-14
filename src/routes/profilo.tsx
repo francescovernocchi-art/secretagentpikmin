@@ -74,7 +74,7 @@ function ProfiloPage() {
           to="/agenti"
           className="panel w-full p-4 flex items-center justify-center gap-2 text-primary"
         >
-          <Users className="h-4 w-4" /> Gestisci agenti famiglia
+          <Users className="h-4 w-4" /> Gestisci agenti operativi
         </Link>
       )}
 

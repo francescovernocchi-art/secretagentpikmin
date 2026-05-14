@@ -140,7 +140,7 @@ function LabPage() {
     const used = slotCount(key);
     if (owned <= 0) {
       toast.error("Ingrediente esaurito", {
-        description: "Raccoglilo nelle missioni o con la caccia ai Pikmin.",
+        description: "Recuperalo da missioni, drop sulla mappa o scansioni radar.",
       });
       return;
     }
@@ -480,7 +480,7 @@ function LabPage() {
         </p>
         {inventoryWithMeta.length === 0 ? (
           <div className="panel p-6 text-center text-xs text-muted-foreground">
-            Nessun ingrediente. Completa missioni o scansiona Pikmin per raccoglierne!
+            Inventario vuoto. Completa missioni o scansiona bersagli col radar per raccogliere ingredienti.
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-2">
@@ -539,7 +539,7 @@ function LabPage() {
         </p>
         {discoveries.length === 0 ? (
           <p className="text-center text-xs text-muted-foreground py-4">
-            Nessun esperimento ancora.
+            Nessuna scoperta registrata.
           </p>
         ) : (
           <div className="space-y-2">

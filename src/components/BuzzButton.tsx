@@ -45,8 +45,8 @@ export function BuzzButton() {
         }
       }
       setIncoming(true);
-      toast(`📳 Segnale da ${nameOf(data.from)}!`, {
-        description: "Ti sta cercando.",
+      toast(`📳 Segnale da ${nameOf(data.from)}`, {
+        description: "Richiesta di contatto.",
       });
       setTimeout(() => setIncoming(false), 1400);
     });
@@ -64,7 +64,7 @@ export function BuzzButton() {
     if (sending) return;
     const now = Date.now();
     if (now - lastSentRef.current < COOLDOWN_MS) {
-      toast.warning("Aspetta un attimo prima di rinviare");
+      toast.warning("Attendi prima di rinviare il segnale");
       return;
     }
     const ch = channelRef.current;

@@ -63,7 +63,7 @@ function RicordiPage() {
             className="w-full rounded-xl bg-night/60 border border-border px-3 py-2 text-sm outline-none focus:border-primary"
           />
           <textarea
-            placeholder="Racconta…"
+            placeholder="Racconta com'è andata…"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={3}
@@ -128,7 +128,7 @@ function RicordiPage() {
             <div className="panel p-6 text-center">
               <Heart className="h-6 w-6 text-primary mx-auto" />
               <p className="text-sm text-muted-foreground mt-2">
-                Nessun ricordo ancora. Salvane uno {session?.name ? `, ${session.name}` : ""}.
+                Archivio vuoto. Registra il primo ricordo{session?.name ? `, ${session.name}` : ""}.
               </p>
             </div>
           )}

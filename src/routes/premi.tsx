@@ -102,7 +102,7 @@ function PremiPage() {
         ))}
         {rewards.length === 0 && (
           <p className="col-span-2 text-center text-xs text-muted-foreground py-10">
-            Nessun premio ancora. Completa missioni per sbloccarli.
+            Nessun premio ancora. Completa missioni per sbloccare onorificenze.
           </p>
         )}
       </div>
