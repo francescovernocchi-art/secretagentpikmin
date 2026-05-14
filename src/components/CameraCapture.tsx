@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, X, RefreshCcw, Image as ImageIcon, Loader2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import pikminAr from "@/assets/pikmin-ar.png";
+import { ArPikminOverlay } from "@/components/ArPikminOverlay";
 
 interface CameraCaptureProps {
   open: boolean;
@@ -207,29 +207,10 @@ export function CameraCapture({
                     <p className="absolute bottom-4 left-0 right-0 text-center text-primary text-glow text-xs animate-flicker uppercase tracking-[0.3em]">
                       Scansione attiva…
                     </p>
-                    {/* Pikmin AR overlay — appare solo in modalità fotocamera */}
-                    <motion.img
-                      src={pikminAr}
-                      alt=""
-                      width={512}
-                      height={512}
-                      className="pointer-events-none absolute left-1/2 top-1/2 w-40 h-40 object-contain drop-shadow-[0_0_24px_var(--color-primary)]"
-                      style={{ x: "-50%", y: "-50%" }}
-                      initial={{ opacity: 0, scale: 0.6 }}
-                      animate={{
-                        opacity: [0, 1, 1, 1],
-                        scale: [0.6, 1, 1.05, 1],
-                        y: ["-50%", "-58%", "-50%", "-58%"],
-                        rotate: [-4, 4, -4],
-                      }}
-                      transition={{
-                        opacity: { duration: 0.8 },
-                        scale: { duration: 0.8 },
-                        y: { duration: 2.4, repeat: Infinity, ease: "easeInOut" },
-                        rotate: { duration: 3.2, repeat: Infinity, ease: "easeInOut" },
-                      }}
-                    />
-                  </>)}
+                    {/* Pikmin AR — appare solo quando inquadri la posizione esatta */}
+                    <ArPikminOverlay />
+                  </>
+                )}
                 {error && (
                   <div className="absolute inset-x-4 top-4 panel-strong p-3 text-xs text-destructive">
                     {error}
