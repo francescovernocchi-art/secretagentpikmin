@@ -546,7 +546,7 @@ function LabPage() {
           <div className="space-y-2">
             {discoveries.map((d) => (
               <div key={d.id} className="panel p-3 flex items-center gap-3">
-                <span className="text-3xl">{d.result_emoji}</span>
+                <ResultIcon value={d.result_emoji} className="text-3xl" alt={d.result_name} />
                 <div className="flex-1 min-w-0">
                   <p className="font-display text-sm text-glow truncate">{d.result_name}</p>
                   {d.description && (
