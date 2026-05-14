@@ -294,15 +294,24 @@ function MappaPage() {
     cancelPlace();
   };
 
-  const collect = async (d: Drop) => {
+  const collect = async (d: Drop, opts?: { manual?: boolean }) => {
     if (!me) {
       toast.error("Devo conoscere la tua posizione GPS");
       return;
     }
     const dist = distMeters(me, d);
-    if (dist > d.radius_m) {
-      toast.warning(`Sei troppo lontano: ${Math.round(dist)}m (devi essere entro ${d.radius_m}m)`);
-      return;
+    const inRange = dist <= d.radius_m;
+    const inFuzzyRange = dist <= d.radius_m + me.acc;
+    if (!inRange) {
+      if (opts?.manual && inFuzzyRange) {
+        const ok = confirm(
+          `Il GPS è impreciso (±${Math.round(me.acc)}m) e risulti a ${Math.round(dist)}m da "${d.name}".\n\nSei davvero sul posto? Confermi la raccolta manuale?`,
+        );
+        if (!ok) return;
+      } else {
+        toast.warning(`Sei troppo lontano: ${Math.round(dist)}m (devi essere entro ${d.radius_m}m)`);
+        return;
+      }
     }
     setCollecting(d.id);
     try {
