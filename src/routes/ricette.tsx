@@ -128,21 +128,23 @@ function RecipesPage() {
     inventory.find((i) => i.ingredient_key === key)?.qty ?? 0;
 
   const annotated = useMemo(() => {
-    return recipes.map((r) => {
-      const keys = recipeKeys(r);
-      const need: Record<string, number> = {};
-      for (const k of keys) need[k] = (need[k] ?? 0) + 1;
-      const items = Object.entries(need).map(([k, n]) => ({
-        key: k,
-        need: n,
-        own: have(k),
-        meta: catalog[k],
-      }));
-      const ready = items.every((it) => it.own >= it.need);
-      const known = items.every((it) => it.meta);
-      return { recipe: r, keys, items, ready, known };
-    });
-  }, [recipes, inventory, catalog]);
+    return recipes
+      .filter((r) => !r.locked || unlocked.has(r.id) || isPapa)
+      .map((r) => {
+        const keys = recipeKeys(r);
+        const need: Record<string, number> = {};
+        for (const k of keys) need[k] = (need[k] ?? 0) + 1;
+        const items = Object.entries(need).map(([k, n]) => ({
+          key: k,
+          need: n,
+          own: have(k),
+          meta: catalog[k],
+        }));
+        const ready = items.every((it) => it.own >= it.need);
+        const known = items.every((it) => it.meta);
+        return { recipe: r, keys, items, ready, known };
+      });
+  }, [recipes, inventory, catalog, unlocked, isPapa]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
