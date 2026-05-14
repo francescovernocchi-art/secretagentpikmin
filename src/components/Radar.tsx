@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
 import { PIKMIN } from "@/assets/pikmin";
+import { Pikmin3D } from "@/components/Pikmin3D";
 
 export function Radar({ size = 220 }: { size?: number }) {
   return (
@@ -27,29 +27,17 @@ export function Radar({ size = 220 }: { size?: number }) {
           }}
         />
       </div>
-      {/* ping dot + pikmin sprite */}
+      {/* ping dot + pikmin 3D sprites */}
       <span className="absolute left-[62%] top-[35%] h-2 w-2 rounded-full bg-primary/40 animate-radar-ping" />
-      <motion.img
-        src={PIKMIN.red}
-        alt="Pikmin"
-        className="absolute left-[58%] top-[26%] h-10 w-10 object-contain drop-shadow-[0_0_10px_oklch(0.86_0.24_145/0.7)]"
-        animate={{ y: [0, -4, 0], rotate: [-3, 3, -3] }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.img
-        src={PIKMIN.blue}
-        alt="Pikmin"
-        className="absolute left-[20%] top-[60%] h-8 w-8 object-contain drop-shadow-[0_0_8px_oklch(0.65_0.22_250/0.7)]"
-        animate={{ y: [0, -3, 0], rotate: [3, -3, 3] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.img
-        src={PIKMIN.yellow}
-        alt="Pikmin"
-        className="absolute left-[70%] top-[68%] h-8 w-8 object-contain drop-shadow-[0_0_8px_oklch(0.9_0.2_95/0.6)]"
-        animate={{ y: [0, -3, 0], rotate: [-2, 4, -2] }}
-        transition={{ duration: 2.7, repeat: Infinity, ease: "easeInOut" }}
-      />
+      <div className="absolute left-[58%] top-[26%]">
+        <Pikmin3D src={PIKMIN.red} size={40} glow="oklch(0.86 0.24 145 / 0.7)" seed={1} />
+      </div>
+      <div className="absolute left-[20%] top-[60%]">
+        <Pikmin3D src={PIKMIN.blue} size={32} glow="oklch(0.65 0.22 250 / 0.7)" seed={2} />
+      </div>
+      <div className="absolute left-[70%] top-[68%]">
+        <Pikmin3D src={PIKMIN.yellow} size={32} glow="oklch(0.9 0.2 95 / 0.6)" seed={3} />
+      </div>
       {/* center */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-primary glow-ring" />
     </div>
