@@ -166,14 +166,23 @@ function LabPage() {
   };
 
   const combine = async () => {
-    if (slots.length < 2 || busy) return;
+    if (busy) return;
+    if (slots.length < 2) {
+      toast.warning("Servono almeno 2 ingredienti");
+      return;
+    }
 
     // Verifica disponibilità per chiave (rispettando duplicati nel banco)
     const counts: Record<string, number> = {};
     for (const k of slots) counts[k] = (counts[k] ?? 0) + 1;
     for (const [key, need] of Object.entries(counts)) {
       const have = inventory.find((i) => i.ingredient_key === key)?.qty ?? 0;
-      if (have < need) return;
+      if (have < need) {
+        toast.error("Quantità insufficiente", {
+          description: `${catalog[key]?.name ?? key}: servono ${need}, disponibili ${have}.`,
+        });
+        return;
+      }
     }
 
     setBusy(true);
