@@ -117,39 +117,54 @@ function LabPage() {
     [inventory, catalog],
   );
 
-  const pickSlot = (key: string) => {
-    if (!slotA) return setSlotA(key);
-    if (!slotB && key !== slotA) return setSlotB(key);
-    if (slotA === key) return setSlotA(slotB), setSlotB(null);
-    if (slotB === key) return setSlotB(null);
-    setSlotA(slotB);
-    setSlotB(key);
+  // Conta quante volte una chiave è già nel banco
+  const slotCount = (key: string) => slots.filter((k) => k === key).length;
+
+  // Aggiunge/rimuove un ingrediente dal banco. Tap su una chiave già presente
+  // = +1 finché c'è quantità in inventario; oltre = niente.
+  const toggleSlot = (key: string) => {
+    setSlots((prev) => {
+      const used = prev.filter((k) => k === key).length;
+      const owned = inventory.find((i) => i.ingredient_key === key)?.qty ?? 0;
+      if (used < owned && prev.length < MAX_SLOTS) return [...prev, key];
+      // se già al massimo possibile, rimuovi un'occorrenza
+      const idx = prev.lastIndexOf(key);
+      if (idx >= 0) {
+        const next = [...prev];
+        next.splice(idx, 1);
+        return next;
+      }
+      return prev;
+    });
   };
 
-  const findRecipe = (a: string, b: string) =>
-    recipes.find(
-      (r) =>
-        (r.input_a === a && r.input_b === b) ||
-        (r.input_a === b && r.input_b === a),
-    );
+  const removeSlotAt = (idx: number) =>
+    setSlots((prev) => prev.filter((_, i) => i !== idx));
+
+  const findRecipe = (keys: string[]) => {
+    const target = sortedKey(keys);
+    return recipes.find((r) => sortedKey(recipeInputs(r)) === target);
+  };
 
   const combine = async () => {
-    if (!slotA || !slotB || busy) return;
+    if (slots.length < 2 || busy) return;
+
+    // Verifica disponibilità per chiave (rispettando duplicati nel banco)
+    const counts: Record<string, number> = {};
+    for (const k of slots) counts[k] = (counts[k] ?? 0) + 1;
+    for (const [key, need] of Object.entries(counts)) {
+      const have = inventory.find((i) => i.ingredient_key === key)?.qty ?? 0;
+      if (have < need) return;
+    }
+
     setBusy(true);
     try {
-      // Verifica disponibilità
-      const invA = inventory.find((i) => i.ingredient_key === slotA);
-      const invB = inventory.find((i) => i.ingredient_key === slotB);
-      const sameKey = slotA === slotB;
-      if (!invA || !invB) return;
-      if (sameKey && invA.qty < 2) return;
+      // Consuma tutti gli ingredienti del banco
+      for (const k of slots) {
+        await consumeIngredient(agent, k);
+      }
 
-      // Consuma
-      await consumeIngredient(agent, slotA);
-      await consumeIngredient(agent, slotB);
-
-      // Cerca ricetta o invoca AI
-      const recipe = findRecipe(slotA, slotB);
+      const recipe = findRecipe(slots);
       let result: Omit<Discovery, "id" | "created_at"> & { is_ai: boolean };
       if (recipe) {
         result = {
@@ -162,8 +177,11 @@ function LabPage() {
       } else {
         const aiRes = await callInvent({
           data: {
-            ingredientA: { key: slotA, name: catalog[slotA].name, emoji: catalog[slotA].emoji },
-            ingredientB: { key: slotB, name: catalog[slotB].name, emoji: catalog[slotB].emoji },
+            ingredients: slots.map((k) => ({
+              key: k,
+              name: catalog[k].name,
+              emoji: catalog[k].emoji,
+            })),
           },
         });
         result = {
@@ -175,19 +193,20 @@ function LabPage() {
         };
       }
 
-      // Salva scoperta
+      // Salva scoperta (manteniamo input_a/input_b per compatibilità con i
+      // primi due ingredienti, e l'array completo in `inputs`).
       const { data: saved } = await supabase
         .from("discoveries")
         .insert({
           agent,
-          input_a: slotA,
-          input_b: slotB,
+          input_a: slots[0],
+          input_b: slots[1] ?? slots[0],
+          inputs: slots,
           ...result,
         })
         .select()
         .single();
 
-      // Se ricetta nota, premia con un badge nei "rewards"
       if (!result.is_ai) {
         await supabase.from("rewards").insert({
           agent,
@@ -201,8 +220,7 @@ function LabPage() {
         setFlash(saved as Discovery);
         setDiscoveries((d) => [saved as Discovery, ...d]);
       }
-      setSlotA(null);
-      setSlotB(null);
+      setSlots([]);
       await load();
     } finally {
       setBusy(false);
@@ -215,14 +233,15 @@ function LabPage() {
   };
 
   const canCombine =
-    slotA &&
-    slotB &&
+    slots.length >= 2 &&
     !busy &&
     (() => {
-      const a = inventory.find((i) => i.ingredient_key === slotA);
-      const b = inventory.find((i) => i.ingredient_key === slotB);
-      if (!a || !b) return false;
-      if (slotA === slotB) return a.qty >= 2;
+      const counts: Record<string, number> = {};
+      for (const k of slots) counts[k] = (counts[k] ?? 0) + 1;
+      for (const [k, need] of Object.entries(counts)) {
+        const have = inventory.find((i) => i.ingredient_key === k)?.qty ?? 0;
+        if (have < need) return false;
+      }
       return true;
     })();
 
