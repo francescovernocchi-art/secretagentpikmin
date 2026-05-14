@@ -246,6 +246,7 @@ function PartEditor({
   const [emoji, setEmoji] = useState(part?.emoji ?? "🛠️");
   const [description, setDescription] = useState(part?.description ?? "");
   const [sortOrder, setSortOrder] = useState(part?.sort_order ?? existing.length + 1);
+  const [rarity, setRarity] = useState<string>(part?.rarity ?? "comune");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -259,6 +260,7 @@ function PartEditor({
     if (!name.trim() || name.trim().length > 60) return "Nome richiesto (max 60).";
     if (!emoji.trim() || emoji.trim().length > 8) return "Emoji richiesta (max 8 caratteri).";
     if (description.trim().length > 200) return "Descrizione max 200 caratteri.";
+    if (!["comune", "raro", "leggendario"].includes(rarity)) return "Rarità non valida.";
     return null;
   };
 
@@ -276,6 +278,7 @@ function PartEditor({
       emoji: emoji.trim(),
       description: description.trim() || null,
       sort_order: Number(sortOrder) || 0,
+      rarity,
     };
     const { error: dbErr } = isNew
       ? await supabase.from("ship_parts").insert(payload)
