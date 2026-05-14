@@ -925,7 +925,14 @@ function MappaPage() {
                 >
                   <span className="text-2xl">{d.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground truncate">{d.name}</p>
+                    <p className="text-sm text-foreground truncate flex items-center gap-1.5">
+                      {d.name}
+                      {d.kind === "ship_part" && d.payload_key && (
+                        <span className={`text-[9px] uppercase tracking-wider ${RARITY_COLOR[shipParts.find((p) => p.key === d.payload_key)?.rarity ?? "comune"]}`}>
+                          🚀 {pikminCostFor(shipParts.find((p) => p.key === d.payload_key)?.rarity)} 🌱
+                        </span>
+                      )}
+                    </p>
                     <p className="text-[10px] text-muted-foreground">
                       {Math.round(dist)}m {inRange ? "· nel raggio!" : `· entro ${d.radius_m}m`}
                       {fuzzy ? ` · GPS ±${Math.round(acc)}m` : ""}
