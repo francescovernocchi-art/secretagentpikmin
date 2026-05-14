@@ -370,6 +370,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pikmin_events: {
+        Row: {
+          agent: string
+          amount: number
+          created_at: string
+          id: string
+          meta: Json | null
+          reason: string
+        }
+        Insert: {
+          agent: string
+          amount: number
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          reason: string
+        }
+        Update: {
+          agent?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          reason?: string
+        }
+        Relationships: []
+      }
+      pikmin_squad: {
+        Row: {
+          count: number
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       recipe_unlocks: {
         Row: {
           agent: string
@@ -483,6 +528,7 @@ export type Database = {
           id: string
           key: string
           name: string
+          rarity: string
           sort_order: number
         }
         Insert: {
@@ -492,6 +538,7 @@ export type Database = {
           id?: string
           key: string
           name: string
+          rarity?: string
           sort_order?: number
         }
         Update: {
@@ -501,6 +548,7 @@ export type Database = {
           id?: string
           key?: string
           name?: string
+          rarity?: string
           sort_order?: number
         }
         Relationships: []
@@ -548,7 +596,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      adjust_pikmin: {
+        Args: {
+          p_agent: string
+          p_delta: number
+          p_meta?: Json
+          p_reason: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
