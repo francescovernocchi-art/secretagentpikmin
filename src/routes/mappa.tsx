@@ -507,6 +507,93 @@ function MappaPage() {
           </span>
         </div>
 
+        {/* Log eventi raccolta */}
+        <div className="panel-strong rounded-2xl overflow-hidden">
+          <button
+            onClick={() => setShowLog((s) => !s)}
+            className="w-full flex items-center justify-between px-3 py-2 text-[10px] uppercase tracking-[0.3em] text-primary/80"
+          >
+            <span className="flex items-center gap-1.5">
+              <ScrollText className="h-3 w-3" /> Log raccolte ({eventLog.length})
+            </span>
+            <span className="text-muted-foreground normal-case tracking-normal text-[10px]">
+              {showLog ? "Nascondi" : "Mostra"}
+            </span>
+          </button>
+          <AnimatePresence initial={false}>
+            {showLog && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="border-t border-border"
+              >
+                <div className="p-2 space-y-1.5 max-h-64 overflow-auto">
+                  {eventLog.length === 0 && (
+                    <p className="text-xs text-muted-foreground px-2 py-3 text-center">
+                      Nessun evento ancora. Raccogli un drop per vederlo qui.
+                    </p>
+                  )}
+                  {eventLog.map((ev) => {
+                    const suspect = ev.mode === "manual" || ev.dist_m > ev.radius_m;
+                    return (
+                      <div
+                        key={ev.id}
+                        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] border ${
+                          suspect
+                            ? "border-amber-500/40 bg-amber-500/5"
+                            : "border-border bg-background/30"
+                        }`}
+                      >
+                        <span className="text-base">{ev.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-foreground">{ev.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(ev.at).toLocaleString("it-IT", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            · {ev.dist_m}m / {ev.radius_m}m · GPS ±{ev.acc_m}m
+                          </p>
+                        </div>
+                        <span
+                          className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider ${
+                            ev.mode === "manual"
+                              ? "bg-amber-500/15 text-amber-400 border border-amber-500/40"
+                              : "bg-primary/15 text-primary border border-primary/40"
+                          }`}
+                        >
+                          {ev.mode === "manual" ? (
+                            <>
+                              <Hand className="h-2.5 w-2.5" /> manuale
+                            </>
+                          ) : (
+                            <>
+                              <Zap className="h-2.5 w-2.5" /> auto
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {eventLog.length > 0 && (
+                  <div className="border-t border-border px-3 py-2 flex justify-end">
+                    <button
+                      onClick={clearLog}
+                      className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive"
+                    >
+                      Svuota log
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Form di creazione drop (papà) */}
         <AnimatePresence>
           {pendingPos && isPapa && (
