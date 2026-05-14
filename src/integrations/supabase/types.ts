@@ -14,6 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      discoveries: {
+        Row: {
+          agent: string
+          created_at: string
+          description: string | null
+          id: string
+          input_a: string
+          input_b: string
+          is_ai: boolean
+          result_emoji: string
+          result_name: string
+          xp: number
+        }
+        Insert: {
+          agent?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          input_a: string
+          input_b: string
+          is_ai?: boolean
+          result_emoji: string
+          result_name: string
+          xp?: number
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          input_a?: string
+          input_b?: string
+          is_ai?: boolean
+          result_emoji?: string
+          result_name?: string
+          xp?: number
+        }
+        Relationships: []
+      }
+      ingredients: {
+        Row: {
+          color: string | null
+          created_at: string
+          emoji: string
+          key: string
+          name: string
+          rarity: string
+          source: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          emoji: string
+          key: string
+          name: string
+          rarity?: string
+          source?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          emoji?: string
+          key?: string
+          name?: string
+          rarity?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      inventory: {
+        Row: {
+          agent: string
+          id: string
+          ingredient_key: string
+          qty: number
+          updated_at: string
+        }
+        Insert: {
+          agent?: string
+          id?: string
+          ingredient_key: string
+          qty?: number
+          updated_at?: string
+        }
+        Update: {
+          agent?: string
+          id?: string
+          ingredient_key?: string
+          qty?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_ingredient_key_fkey"
+            columns: ["ingredient_key"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       memories: {
         Row: {
           content: string | null
@@ -97,6 +198,54 @@ export type Database = {
           xp?: number
         }
         Relationships: []
+      }
+      recipes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          input_a: string
+          input_b: string
+          result_emoji: string
+          result_name: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          input_a: string
+          input_b: string
+          result_emoji: string
+          result_name: string
+          xp?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          input_a?: string
+          input_b?: string
+          result_emoji?: string
+          result_name?: string
+          xp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_input_a_fkey"
+            columns: ["input_a"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "recipes_input_b_fkey"
+            columns: ["input_b"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["key"]
+          },
+        ]
       }
       rewards: {
         Row: {
