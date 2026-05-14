@@ -154,6 +154,12 @@ function MissioniPage() {
                 <div className="text-right">
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">XP</p>
                   <p className="font-display text-xl text-primary text-glow">+{m.xp}</p>
+                  {partByKey(m.reward_part_key) && (
+                    <p className="mt-1 text-[10px] text-amber-300 flex items-center gap-1 justify-end">
+                      <Rocket className="h-3 w-3" />
+                      <span>{partByKey(m.reward_part_key)!.emoji}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -176,13 +182,22 @@ function MissioniPage() {
                         title: m.title,
                         icon: "🏅",
                       });
-                      // Drop ingredienti per il Laboratorio
                       const drops = rollIngredients("mission");
                       await grantIngredients("lorenzo", drops);
+                      if (m.reward_part_key) {
+                        try {
+                          await collectShipPart({
+                            partKey: m.reward_part_key,
+                            collectedBy: "lorenzo",
+                            source: "mission",
+                            missionId: m.id,
+                          });
+                        } catch {}
+                      }
                     }}
                     className="btn-neon px-3 py-1.5 text-xs flex items-center gap-1"
                   >
-                    <Trophy className="h-3 w-3" /> Approva & Premia
+                    <Trophy className="h-3 w-3" /> Approva &amp; Premia
                   </button>
                 )}
                 {isAdmin && (
