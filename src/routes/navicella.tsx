@@ -85,14 +85,17 @@ function ShipPage() {
       title="Navicella"
       subtitle="Recupera i pezzi · ripara per partire"
       action={
-        isPapa && (
-          <button
-            onClick={() => setCreating(true)}
-            className="btn-neon px-3 py-2 text-xs flex items-center gap-1"
-          >
-            <Plus className="h-4 w-4" /> Pezzo
-          </button>
-        )
+        <div className="flex items-center gap-2">
+          <PikminCounter compact />
+          {isPapa && (
+            <button
+              onClick={() => setCreating(true)}
+              className="btn-neon px-3 py-2 text-xs flex items-center gap-1"
+            >
+              <Plus className="h-4 w-4" /> Pezzo
+            </button>
+          )}
+        </div>
       }
     >
       {/* Stato navicella */}
