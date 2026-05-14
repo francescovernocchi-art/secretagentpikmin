@@ -7,7 +7,7 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { consumeIngredient, grantIngredients } from "@/lib/ingredients";
 import { inventDiscovery } from "@/lib/lab.functions";
-import { FlaskConical, Sparkles, X, Plus } from "lucide-react";
+import { FlaskConical, Sparkles, X, Plus, BookPlus } from "lucide-react";
 
 export const Route = createFileRoute("/lab")({
   component: LabPage,
@@ -62,6 +62,7 @@ function LabPage() {
   const [slotB, setSlotB] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<Discovery | null>(null);
+  const [showRecipeForm, setShowRecipeForm] = useState(false);
 
   const callInvent = useServerFn(inventDiscovery);
 
@@ -224,9 +225,18 @@ function LabPage() {
       subtitle="Esperimenti segreti · combina ingredienti"
       action={
         session?.role === "papa" && (
-          <button onClick={giveStarter} className="panel px-3 py-2 text-xs flex items-center gap-1">
-            <Plus className="h-3.5 w-3.5" /> Kit
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowRecipeForm(true)}
+              className="panel px-3 py-2 text-xs flex items-center gap-1"
+              title="Aggiungi ricetta"
+            >
+              <BookPlus className="h-3.5 w-3.5" /> Ricetta
+            </button>
+            <button onClick={giveStarter} className="panel px-3 py-2 text-xs flex items-center gap-1">
+              <Plus className="h-3.5 w-3.5" /> Kit
+            </button>
+          </div>
         )
       }
     >
@@ -352,7 +362,243 @@ function LabPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Form nuova ricetta (solo papà) */}
+      <AnimatePresence>
+        {showRecipeForm && session?.role === "papa" && (
+          <RecipeForm
+            catalog={catalog}
+            existing={recipes}
+            onClose={() => setShowRecipeForm(false)}
+            onCreated={async () => {
+              setShowRecipeForm(false);
+              await load();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </PageShell>
+  );
+}
+
+interface RecipeFormProps {
+  catalog: Record<string, Ingredient>;
+  existing: Recipe[];
+  onClose: () => void;
+  onCreated: () => void;
+}
+
+function RecipeForm({ catalog, existing, onClose, onCreated }: RecipeFormProps) {
+  const ingredients = useMemo(
+    () => Object.values(catalog).sort((a, b) => a.name.localeCompare(b.name)),
+    [catalog],
+  );
+  const [inputA, setInputA] = useState("");
+  const [inputB, setInputB] = useState("");
+  const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState("");
+  const [description, setDescription] = useState("");
+  const [xp, setXp] = useState(25);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const duplicate = useMemo(() => {
+    if (!inputA || !inputB) return false;
+    return existing.some(
+      (r) =>
+        (r.input_a === inputA && r.input_b === inputB) ||
+        (r.input_a === inputB && r.input_b === inputA),
+    );
+  }, [existing, inputA, inputB]);
+
+  const submit = async () => {
+    setError(null);
+    const trimmedName = name.trim();
+    const trimmedEmoji = emoji.trim();
+    const trimmedDesc = description.trim();
+
+    if (!inputA || !inputB) return setError("Scegli entrambi gli ingredienti.");
+    if (!trimmedName || trimmedName.length > 80)
+      return setError("Nome risultato richiesto (max 80).");
+    if (!trimmedEmoji || trimmedEmoji.length > 8)
+      return setError("Emoji richiesta (max 8 caratteri).");
+    if (trimmedDesc.length > 240)
+      return setError("Descrizione troppo lunga (max 240).");
+    const xpInt = Math.round(Number(xp));
+    if (!Number.isFinite(xpInt) || xpInt < 0 || xpInt > 999)
+      return setError("XP fuori range (0-999).");
+    if (duplicate) return setError("Esiste già una ricetta con questa coppia.");
+
+    setSaving(true);
+    const { error: dbErr } = await supabase.from("recipes").insert({
+      input_a: inputA,
+      input_b: inputB,
+      result_name: trimmedName,
+      result_emoji: trimmedEmoji,
+      description: trimmedDesc || null,
+      xp: xpInt,
+    });
+    setSaving(false);
+    if (dbErr) {
+      setError(dbErr.message);
+      return;
+    }
+    onCreated();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-night/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+    >
+      <motion.div
+        initial={{ y: 30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 30, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="panel-strong w-full max-w-md p-5 space-y-3 max-h-[88vh] overflow-y-auto"
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">
+            // Nuova ricetta
+          </p>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <IngredientSelect
+            label="Ingrediente A"
+            value={inputA}
+            onChange={setInputA}
+            options={ingredients}
+          />
+          <IngredientSelect
+            label="Ingrediente B"
+            value={inputB}
+            onChange={setInputB}
+            options={ingredients}
+          />
+        </div>
+
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <Field label="Nome risultato">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={80}
+              placeholder="Es. Pozione di luce"
+              className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm"
+            />
+          </Field>
+          <Field label="Emoji">
+            <input
+              value={emoji}
+              onChange={(e) => setEmoji(e.target.value)}
+              maxLength={8}
+              placeholder="✨"
+              className="w-20 bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-center text-xl"
+            />
+          </Field>
+        </div>
+
+        <Field label="Descrizione (opzionale)">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={240}
+            rows={2}
+            placeholder="Cosa succede quando si combinano…"
+            className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 text-sm resize-none"
+          />
+        </Field>
+
+        <Field label={`XP (${xp})`}>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={xp}
+            onChange={(e) => setXp(Number(e.target.value))}
+            className="w-full accent-primary"
+          />
+        </Field>
+
+        {duplicate && (
+          <p className="text-[11px] text-amber-300">
+            Una ricetta con questa coppia esiste già.
+          </p>
+        )}
+        {error && <p className="text-[11px] text-destructive">{error}</p>}
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="panel flex-1 py-2 text-xs"
+            disabled={saving}
+          >
+            Annulla
+          </button>
+          <button
+            onClick={submit}
+            disabled={saving || duplicate}
+            className="btn-neon flex-1 py-2 text-xs disabled:opacity-40"
+          >
+            {saving ? "Salvo…" : "Salva ricetta"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+}
+
+function IngredientSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: Ingredient[];
+}) {
+  const sel = options.find((o) => o.key === value);
+  return (
+    <Field label={label}>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-night/60 border border-primary/20 rounded-lg px-3 py-2 pl-9 text-sm appearance-none"
+        >
+          <option value="">— scegli —</option>
+          {options.map((o) => (
+            <option key={o.key} value={o.key}>
+              {o.emoji} {o.name}
+            </option>
+          ))}
+        </select>
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-lg pointer-events-none">
+          {sel?.emoji ?? "·"}
+        </span>
+      </div>
+    </Field>
   );
 }
 
