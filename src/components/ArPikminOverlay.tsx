@@ -171,7 +171,7 @@ export function ArPikminOverlay() {
       if (baselineRef.current == null) {
         baselineRef.current = alpha;
         lastValidAlphaRef.current = alpha;
-        spawnTarget(alpha);
+        spawnTarget(alpha, true);
         return;
       }
 
