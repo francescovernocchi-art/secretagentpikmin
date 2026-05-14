@@ -588,7 +588,7 @@ function LabPage() {
               <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">
                 {flash.is_ai ? "// Esperimento" : "// Ricetta scoperta!"}
               </p>
-              <p className="text-7xl mt-3">{flash.result_emoji}</p>
+              <div className="mt-3 flex justify-center"><ResultIcon value={flash.result_emoji} className="text-7xl" alt={flash.result_name} /></div>
               <p className="font-display text-xl text-glow mt-2">{flash.result_name}</p>
               {flash.description && (
                 <p className="text-xs text-muted-foreground mt-2">{flash.description}</p>
