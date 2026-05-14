@@ -370,6 +370,21 @@ function NewMissionSheet({
             </select>
           </label>
         </div>
+        {availableParts.length > 0 && (
+          <label className="block text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Rocket className="h-3 w-3 text-amber-300" /> Ricompensa: pezzo navicella (opzionale)</span>
+            <select
+              value={rewardPartKey}
+              onChange={(e) => setRewardPartKey(e.target.value)}
+              className="mt-1 w-full rounded-xl bg-night/60 border border-border px-3 py-2 text-sm outline-none focus:border-primary"
+            >
+              <option value="">— nessun pezzo —</option>
+              {availableParts.map((p) => (
+                <option key={p.key} value={p.key}>{p.emoji} {p.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <button onClick={() => create()} className="btn-neon w-full py-3 text-sm">Crea Missione</button>
 
         <div className="pt-2">
