@@ -253,8 +253,15 @@ export function ArPikminOverlay() {
 
   const handleVisibility = () => {
     if (document.visibilityState !== "visible") return;
-    // tornando in foreground iOS spesso "perde" l'orientamento: reset baseline
-    baselineRef.current = null;
+    // Tornando in foreground iOS spesso "perde" l'orientamento.
+    // Invece di azzerare baseline (che farebbe saltare il Pikmin in una
+    // posizione casuale), chiediamo una ricalibrazione "morbida": al primo
+    // nuovo evento allineiamo baseline e target.alpha al drift della bussola.
+    if (baselineRef.current != null && lastValidAlphaRef.current != null) {
+      pendingSoftRecalibrateRef.current = true;
+    } else {
+      baselineRef.current = null;
+    }
     lastEventAtRef.current = Date.now();
     attach();
   };
