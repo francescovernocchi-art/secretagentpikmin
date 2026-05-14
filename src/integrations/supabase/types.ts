@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_positions: {
+        Row: {
+          accuracy: number | null
+          agent_id: string
+          agent_name: string
+          emoji: string
+          lat: number
+          lng: number
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          accuracy?: number | null
+          agent_id: string
+          agent_name: string
+          emoji?: string
+          lat: number
+          lng: number
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          accuracy?: number | null
+          agent_id?: string
+          agent_name?: string
+          emoji?: string
+          lat?: number
+          lng?: number
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agents: {
         Row: {
           created_at: string
