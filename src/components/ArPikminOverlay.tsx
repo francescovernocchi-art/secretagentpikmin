@@ -315,7 +315,7 @@ export function ArPikminOverlay() {
         });
         toast.success("📜 Nuova missione sbloccata!");
       } else {
-        toast("Punta la fotocamera con la torcia 🔦 e scatta!");
+        toast("Punta la fotocamera (attiva la torcia 🔦) e scatta.");
         setGrantBusy(false);
         return;
       }

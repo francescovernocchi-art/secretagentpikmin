@@ -213,7 +213,7 @@ function RecipesPage() {
           <Sparkles className="h-5 w-5 text-primary mx-auto opacity-70" />
           <p>
             {recipes.length === 0
-              ? "Nessuna ricetta nota. Sperimenta nel Lab o chiedi a papà di aggiungerne!"
+              ? "Nessuna ricetta nota. Sperimenta nel Lab o chiedi al Comandante di aggiungerne."
               : "Nessuna ricetta corrisponde al filtro."}
           </p>
         </div>
@@ -250,7 +250,7 @@ function RecipesPage() {
             >
               <Sparkles className="h-5 w-5 text-primary mx-auto mb-2 animate-pulse" />
               <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">
-                // Ricetta completata!
+                // Ricetta completata
               </p>
               <p className="text-7xl mt-3">{flash.result_emoji}</p>
               <p className="font-display text-xl text-glow mt-2">{flash.result_name}</p>

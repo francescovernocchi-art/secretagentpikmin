@@ -46,7 +46,7 @@ function LoginPage() {
       <div className="fixed inset-0 grid-bg flex flex-col items-center justify-center gap-6 px-6">
         <Radar size={180} />
         <p className="font-display text-primary text-glow text-sm uppercase tracking-[0.4em] animate-flicker">
-          Connessione alla Base Segreta…
+          Connessione alla base in corso…
         </p>
       </div>
     );
@@ -63,9 +63,9 @@ function LoginPage() {
         <div className="relative">
           <img src="/icon-512.png" alt="" width={96} height={96} className="rounded-2xl glow-ring" />
         </div>
-        <p className="text-[11px] uppercase tracking-[0.45em] text-primary/80">// Accesso Riservato</p>
+        <p className="text-[11px] uppercase tracking-[0.45em] text-primary/80">// Accesso riservato</p>
         <h1 className="font-display text-3xl text-glow">007-PIKMIN</h1>
-        <p className="text-sm text-muted-foreground">Inserisci il tuo PIN agente</p>
+        <p className="text-sm text-muted-foreground">Inserisci il PIN agente</p>
       </motion.div>
 
       <div className="flex gap-3">
@@ -117,7 +117,7 @@ function LoginPage() {
       </div>
 
       <p className="text-xs text-muted-foreground/70 text-center max-w-xs">
-        PIN demo — Papà: <span className="text-primary">0077</span> · Lorenzo:{" "}
+        PIN demo · Comandante <span className="text-primary">0077</span> · Lorenzo{" "}
         <span className="text-primary">1234</span>
       </p>
     </div>
