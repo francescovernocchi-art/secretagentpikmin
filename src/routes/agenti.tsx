@@ -184,7 +184,7 @@ function AgentiPage() {
             >
               <div className="flex items-center justify-between">
                 <p className="text-[10px] uppercase tracking-[0.3em] text-primary/80">
-                  // Nuovo agente
+                  // {editingId ? "Modifica agente" : "Nuovo agente"}
                 </p>
                 <button onClick={reset} className="text-muted-foreground">
                   <X className="h-4 w-4" />
