@@ -251,6 +251,18 @@ export function ArPikminOverlay() {
         </div>
       )}
 
+      {/* Sensori in stallo → bottone ricalibra */}
+      {stalled && !needsPermission && !noSensor && (
+        <div className="absolute top-2 right-2 z-20">
+          <button
+            onClick={recalibrate}
+            className="text-[10px] uppercase tracking-[0.25em] px-3 py-1.5 rounded-full border border-primary/60 bg-background/40 backdrop-blur text-primary"
+          >
+            ↻ Ricalibra
+          </button>
+        </div>
+      )}
+
       {/* Indicatore direzionale (solo quando il bersaglio è lontano) */}
       {arrow != null && pos.lock < 0.5 && (
         <motion.div
