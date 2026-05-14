@@ -135,8 +135,8 @@ export function ArPikminOverlay() {
   const ingredientPoolRef = useRef<IngredientRow[]>(FALLBACK_INGREDIENTS);
   const [grantBusy, setGrantBusy] = useState(false);
 
-  const spawnTarget = (baselineAlpha: number) => {
-    const t = pickTarget(baselineAlpha, ingredientPoolRef.current);
+  const spawnTarget = (baselineAlpha: number, centered = false) => {
+    const t = pickTarget(baselineAlpha, ingredientPoolRef.current, { centered });
     targetBornAtRef.current = Date.now();
     lastSeenAtRef.current = 0;
     setTarget(t);
