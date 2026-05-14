@@ -795,17 +795,22 @@ function MappaPage() {
               </div>
 
               <div className="grid grid-cols-5 gap-1.5">
-                {DROP_TEMPLATES.map((t, i) => (
+                {allTemplates.map((t, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedTpl(i)}
-                    className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xl border ${
-                      selectedTpl === i
+                    className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xl border relative ${
+                      safeTplIndex === i
                         ? "border-primary bg-primary/15 text-glow"
-                        : "border-border bg-background/40"
+                        : t.kind === "ship_part"
+                          ? "border-amber-400/40 bg-amber-400/5"
+                          : "border-border bg-background/40"
                     }`}
                     title={t.name}
                   >
+                    {t.kind === "ship_part" && (
+                      <Rocket className="absolute top-0.5 right-0.5 h-2.5 w-2.5 text-amber-300" />
+                    )}
                     <span>{t.emoji}</span>
                     <span className="text-[8px] uppercase tracking-wider mt-0.5 text-muted-foreground">
                       +{t.xp}
@@ -814,12 +819,18 @@ function MappaPage() {
                 ))}
               </div>
 
-              <p className="text-xs text-foreground">
-                <b>{DROP_TEMPLATES[selectedTpl].emoji} {DROP_TEMPLATES[selectedTpl].name}</b>
-                <span className="text-muted-foreground"> · raggio 5m</span>
-              </p>
+              {currentTpl && (
+                <p className="text-xs text-foreground">
+                  <b>
+                    {currentTpl.emoji} {currentTpl.name}
+                  </b>
+                  <span className="text-muted-foreground">
+                    {currentTpl.kind === "ship_part" ? " · pezzo navicella · raggio 5m" : " · raggio 5m"}
+                  </span>
+                </p>
+              )}
 
-              {DROP_TEMPLATES[selectedTpl].kind === "mission" && (
+              {currentTpl?.kind === "mission" && (
                 <textarea
                   value={missionText}
                   onChange={(e) => setMissionText(e.target.value)}
