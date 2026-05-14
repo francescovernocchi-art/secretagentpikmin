@@ -7,7 +7,7 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { consumeIngredient, grantIngredients } from "@/lib/ingredients";
 import { inventDiscovery } from "@/lib/lab.functions";
-import { FlaskConical, Sparkles, X, Plus } from "lucide-react";
+import { FlaskConical, Sparkles, X, Plus, BookPlus } from "lucide-react";
 
 export const Route = createFileRoute("/lab")({
   component: LabPage,
