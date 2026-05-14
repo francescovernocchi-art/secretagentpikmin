@@ -311,6 +311,7 @@ function NewMissionSheet({
   const [xp, setXp] = useState(20);
   const [difficulty, setDifficulty] = useState("facile");
   const [rewardPartKey, setRewardPartKey] = useState<string>("");
+  const [coinReward, setCoinReward] = useState<number>(10);
 
   const create = async (preset?: typeof SAMPLES[number]) => {
     const payload = preset ?? { title, description, xp, difficulty };
@@ -320,6 +321,7 @@ function NewMissionSheet({
       status: "nuova",
       created_by: "papa",
       reward_part_key: !preset && rewardPartKey ? rewardPartKey : null,
+      coin_reward: !preset ? coinReward : 5,
     });
     onClose();
   };
