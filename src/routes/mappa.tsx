@@ -79,6 +79,33 @@ function MappaPage() {
   const [missionText, setMissionText] = useState("");
   const [saving, setSaving] = useState(false);
   const [collecting, setCollecting] = useState<string | null>(null);
+  const [eventLog, setEventLog] = useState<CollectEvent[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem("drop_event_log") ?? "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [showLog, setShowLog] = useState(false);
+
+  const logEvent = (ev: CollectEvent) => {
+    setEventLog((prev) => {
+      const next = [ev, ...prev].slice(0, 50);
+      try {
+        localStorage.setItem("drop_event_log", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const clearLog = () => {
+    if (!confirm("Cancellare tutto il log eventi?")) return;
+    setEventLog([]);
+    try {
+      localStorage.removeItem("drop_event_log");
+    } catch {}
+  };
 
   useEffect(() => {
     placeModeRef.current = placeMode;
