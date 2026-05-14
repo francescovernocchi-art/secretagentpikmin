@@ -164,9 +164,26 @@ export function ArPikminOverlay() {
 
       if (baselineRef.current == null) {
         baselineRef.current = alpha;
+        lastValidAlphaRef.current = alpha;
         spawnTarget(alpha);
         return;
       }
+
+      // Soft recalibrate: il device era in background o i sensori si sono
+      // resettati. Riallineiamo baseline + target.alpha al drift della
+      // bussola così il Pikmin resta dove l'utente lo stava guardando.
+      if (pendingSoftRecalibrateRef.current && lastValidAlphaRef.current != null) {
+        const drift = deltaDeg(alpha, lastValidAlphaRef.current); // alpha - last
+        if (Math.abs(drift) > 0.5) {
+          baselineRef.current = ((baselineRef.current + drift) % 360 + 360) % 360;
+          setTarget((t) =>
+            t ? { ...t, alpha: ((t.alpha + drift) % 360 + 360) % 360 } : t,
+          );
+        }
+        pendingSoftRecalibrateRef.current = false;
+      }
+
+      lastValidAlphaRef.current = alpha;
       setTarget((t) => {
         if (!t) return t;
         const dA = deltaDeg(alpha, t.alpha); // - = ruotare a destra
