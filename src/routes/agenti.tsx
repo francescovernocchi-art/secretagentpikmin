@@ -20,7 +20,7 @@ type Agent = {
   created_at: string;
 };
 
-const EMOJI_CHOICES = ["🕶️", "🧒", "👩", "👨", "👵", "👴", "🧑‍🚀", "🦸", "🧙", "🐱", "🐶", "🤖"];
+const EMOJI_CHOICES = ["🕶️", "🧑", "👩", "👨", "👵", "👴", "🧑‍🚀", "🥷", "🛰️", "🐺", "🦊", "🤖"];
 
 function AgentiPage() {
   const session = typeof window !== "undefined" ? getSession() : null;
@@ -88,7 +88,7 @@ function AgentiPage() {
       if (original.name !== cleanName) changes.push(`nome → "${cleanName}"`);
       if (original.emoji !== emoji) changes.push(`avatar → ${emoji}`);
       if (original.role !== role)
-        changes.push(`ruolo → ${role === "papa" ? "Creator" : "Collector"}`);
+        changes.push(`ruolo → ${role === "papa" ? "Comandante" : "Operativo"}`);
       if (changes.length === 0) {
         toast.info("Nessuna modifica da salvare");
         return;
@@ -124,7 +124,7 @@ function AgentiPage() {
       else toast.error("Errore: " + error.message);
       return;
     }
-    toast.success(`${emoji} ${cleanName} aggiunto come ${role === "papa" ? "Creator" : "Collector"}`);
+    toast.success(`${emoji} ${cleanName} aggiunto come ${role === "papa" ? "Comandante" : "Operativo"}`);
     reset();
     load();
   };
@@ -150,7 +150,7 @@ function AgentiPage() {
         <div className="panel-strong p-6 text-center space-y-3">
           <Shield className="h-8 w-8 text-primary mx-auto" />
           <p className="text-sm text-foreground">
-            Solo gli agenti con ruolo <b>Papà / Creator</b> possono gestire la lista agenti.
+            Solo gli agenti con ruolo <b>Papà / Comandante</b> possono gestire la lista agenti.
           </p>
           <Link to="/base" className="inline-flex items-center gap-2 text-xs text-primary">
             <ArrowLeft className="h-3 w-3" /> Torna alla base
@@ -262,7 +262,7 @@ function AgentiPage() {
                         : "border-border bg-background/40"
                     }`}
                   >
-                    <p className="text-xs text-foreground font-medium">🕶️ Creator</p>
+                    <p className="text-xs text-foreground font-medium">🕶️ Comandante</p>
                     <p className="text-[10px] text-muted-foreground">
                       Piazza drop, missioni, gestisce
                     </p>
@@ -275,7 +275,7 @@ function AgentiPage() {
                         : "border-border bg-background/40"
                     }`}
                   >
-                    <p className="text-xs text-foreground font-medium">🧒 Collector</p>
+                    <p className="text-xs text-foreground font-medium">🎯 Operativo</p>
                     <p className="text-[10px] text-muted-foreground">
                       Raccoglie drop, completa missioni
                     </p>
@@ -334,7 +334,7 @@ function AgentiPage() {
                     )}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    {a.role === "papa" ? "Creator" : "Collector"} · PIN {a.pin}
+                    {a.role === "papa" ? "Comandante" : "Operativo"} · PIN {a.pin}
                   </p>
                 </div>
                 <button

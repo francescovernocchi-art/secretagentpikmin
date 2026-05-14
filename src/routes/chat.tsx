@@ -21,11 +21,11 @@ interface Msg {
 const QUICK = [
   "Missione ricevuta",
   "Agente pronto",
-  "Ti voglio bene",
+  "Rientro alla base",
   "Base attiva",
-  "Pikmin trovato",
+  "Pikmin individuato",
 ];
-const STICKERS = ["🟢", "🛰️", "🌱", "🔭", "🕶️", "💚"];
+const STICKERS = ["🟢", "🛰️", "🌱", "🔭", "🕶️", "📡"];
 
 function Decoded({ text }: { text: string }) {
   const [shown, setShown] = useState("");

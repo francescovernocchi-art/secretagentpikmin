@@ -25,11 +25,11 @@ interface Mission {
 }
 
 const SAMPLES = [
-  { title: "Trova qualcosa di verde", description: "Cerca nella natura un oggetto verde brillante.", xp: 15, difficulty: "facile" },
-  { title: "Disegna una nuova creatura", description: "Inventa un nuovo tipo di Pikmin.", xp: 25, difficulty: "media" },
-  { title: "Fai una foto a una pianta", description: "Documenta una pianta misteriosa.", xp: 20, difficulty: "facile" },
-  { title: "Missione sorriso", description: "Fai sorridere qualcuno oggi.", xp: 30, difficulty: "media" },
-  { title: "Codice segreto della buonanotte", description: "Inventa un codice prima di dormire.", xp: 50, difficulty: "rara" },
+  { title: "Ricognizione zona verde", description: "Individua un obiettivo verde e fotografalo come prova.", xp: 15, difficulty: "facile" },
+  { title: "Scheda creatura", description: "Schizza un nuovo modello di Pikmin per l'archivio.", xp: 25, difficulty: "media" },
+  { title: "Documenta il bersaglio botanico", description: "Foto nitida di una pianta sospetta.", xp: 20, difficulty: "facile" },
+  { title: "Operazione 'Buon segnale'", description: "Migliora la giornata di un civile (senza farti notare).", xp: 30, difficulty: "media" },
+  { title: "Cifrario notturno", description: "Inventa un codice cifrato personale prima del rientro alla base.", xp: 50, difficulty: "rara" },
 ];
 
 function MissioniPage() {
