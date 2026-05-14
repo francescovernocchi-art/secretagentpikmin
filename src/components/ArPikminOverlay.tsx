@@ -13,29 +13,29 @@ const FALLBACK_INGREDIENTS = [
   { key: "seed_yellow", name: "Seme Giallo", emoji: "🟡" },
   { key: "seed_blue", name: "Seme Blu", emoji: "🔵" },
   { key: "water", name: "Goccia d'acqua", emoji: "💧" },
-  { key: "leaf", name: "Foglia magica", emoji: "🍃" },
-  { key: "honey", name: "Miele dorato", emoji: "🍯" },
-  { key: "mushroom", name: "Fungo strano", emoji: "🍄" },
+  { key: "leaf", name: "Foglia rara", emoji: "🍃" },
+  { key: "honey", name: "Resina dorata", emoji: "🍯" },
+  { key: "mushroom", name: "Spora ignota", emoji: "🍄" },
   { key: "rock_frag", name: "Frammento di roccia", emoji: "🪨" },
   { key: "spark", name: "Scintilla", emoji: "✨" },
-  { key: "star_dust", name: "Polvere di stelle", emoji: "🌟" },
+  { key: "star_dust", name: "Polvere stellare", emoji: "🌟" },
 ];
 
 const OBJECTS = [
-  { key: "treasure_box", name: "Cassa del tesoro", emoji: "🎁", xp: 20 },
+  { key: "treasure_box", name: "Cassa cifrata", emoji: "🎁", xp: 20 },
   { key: "ancient_key", name: "Chiave antica", emoji: "🗝️", xp: 25 },
-  { key: "crystal", name: "Cristallo segreto", emoji: "💎", xp: 30 },
+  { key: "crystal", name: "Cristallo criptato", emoji: "💎", xp: 30 },
   { key: "ufo_relic", name: "Reliquia UFO", emoji: "🛸", xp: 35 },
   { key: "old_map", name: "Mappa consumata", emoji: "🗺️", xp: 15 },
 ];
 
 const MISSION_HINTS = [
-  "Cerca qualcosa di rosso in cucina 🍅",
-  "Conta tutte le finestre della casa 🪟",
-  "Trova un libro più vecchio di te 📚",
-  "Disegna ciò che vedi dalla tua finestra ✏️",
-  "Costruisci una torre con 5 oggetti 🗼",
-  "Saluta papà con un codice segreto 🤫",
+  "Individua un obiettivo rosso in cucina 🍅",
+  "Conta le finestre della casa 🪟",
+  "Recupera un libro più vecchio di te 📚",
+  "Schizza la vista dalla tua finestra ✏️",
+  "Costruisci una struttura con 5 oggetti 🗼",
+  "Saluta papà con un codice operativo 🤫",
 ];
 
 type TargetKind = "pikmin" | "ingredient" | "object" | "mission";
