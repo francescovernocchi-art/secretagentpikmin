@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, Loader2, X, UserPlus, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Shield, Loader2, X, UserPlus, ArrowLeft, Pencil, Check } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
@@ -29,6 +29,7 @@ function AgentiPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
   const [role, setRole] = useState<"papa" | "lorenzo">("lorenzo");
@@ -55,16 +56,59 @@ function AgentiPage() {
     setRole("lorenzo");
     setEmoji(EMOJI_CHOICES[0]);
     setShowForm(false);
+    setEditingId(null);
   };
 
-  const create = async () => {
+  const startEdit = (a: Agent) => {
+    setEditingId(a.id);
+    setName(a.name);
+    setPin(a.pin);
+    setRole(a.role);
+    setEmoji(a.emoji);
+    setShowForm(true);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const submit = async () => {
     const cleanName = name.trim();
     if (cleanName.length < 2 || cleanName.length > 30) {
       toast.error("Il nome deve avere fra 2 e 30 caratteri");
       return;
     }
-    if (!/^\d{4}$/.test(pin)) {
+    if (!editingId && !/^\d{4}$/.test(pin)) {
       toast.error("Il PIN deve essere di 4 cifre");
+      return;
+    }
+    if (editingId) {
+      const original = agents.find((a) => a.id === editingId);
+      if (!original) return;
+      const changes: string[] = [];
+      if (original.name !== cleanName) changes.push(`nome → "${cleanName}"`);
+      if (original.emoji !== emoji) changes.push(`avatar → ${emoji}`);
+      if (original.role !== role)
+        changes.push(`ruolo → ${role === "papa" ? "Creator" : "Collector"}`);
+      if (changes.length === 0) {
+        toast.info("Nessuna modifica da salvare");
+        return;
+      }
+      if (!confirm(`Confermare le modifiche a "${original.name}"?\n\n• ${changes.join("\n• ")}`)) {
+        return;
+      }
+      setSaving(true);
+      const { error } = await supabase
+        .from("agents")
+        .update({ name: cleanName, role, emoji })
+        .eq("id", editingId);
+      setSaving(false);
+      if (error) {
+        toast.error("Errore: " + error.message);
+        return;
+      }
+      toast.success("Agente aggiornato");
+      reset();
+      load();
       return;
     }
     setSaving(true);
@@ -140,7 +184,7 @@ function AgentiPage() {
             >
               <div className="flex items-center justify-between">
                 <p className="text-[10px] uppercase tracking-[0.3em] text-primary/80">
-                  // Nuovo agente
+                  // {editingId ? "Modifica agente" : "Nuovo agente"}
                 </p>
                 <button onClick={reset} className="text-muted-foreground">
                   <X className="h-4 w-4" />
@@ -184,18 +228,25 @@ function AgentiPage() {
               </div>
 
               {/* PIN */}
-              <div>
-                <label className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  PIN segreto (4 cifre)
-                </label>
-                <input
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  inputMode="numeric"
-                  placeholder="0000"
-                  className="w-full mt-1 bg-background/40 border border-border rounded-lg px-3 py-2 text-lg font-mono tracking-[0.5em] text-center"
-                />
-              </div>
+              {!editingId && (
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    PIN segreto (4 cifre)
+                  </label>
+                  <input
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    inputMode="numeric"
+                    placeholder="0000"
+                    className="w-full mt-1 bg-background/40 border border-border rounded-lg px-3 py-2 text-lg font-mono tracking-[0.5em] text-center"
+                  />
+                </div>
+              )}
+              {editingId && (
+                <p className="text-[10px] text-muted-foreground">
+                  Il PIN non può essere modificato. Per cambiarlo, elimina e ricrea l'agente.
+                </p>
+              )}
 
               {/* Ruolo */}
               <div>
@@ -233,12 +284,18 @@ function AgentiPage() {
               </div>
 
               <button
-                onClick={create}
+                onClick={submit}
                 disabled={saving}
                 className="btn-neon w-full py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Crea agente
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : editingId ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {editingId ? "Salva modifiche" : "Crea agente"}
               </button>
             </motion.div>
           )}
@@ -280,6 +337,14 @@ function AgentiPage() {
                     {a.role === "papa" ? "Creator" : "Collector"} · PIN {a.pin}
                   </p>
                 </div>
+                <button
+                  onClick={() => startEdit(a)}
+                  className="text-muted-foreground hover:text-primary p-1.5"
+                  aria-label="Modifica"
+                  title="Modifica agente"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
                 <button
                   onClick={() => remove(a)}
                   disabled={isMe}
