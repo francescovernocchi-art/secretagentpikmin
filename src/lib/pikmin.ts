@@ -30,7 +30,7 @@ export async function addPikmin(amount: number, reason: string, agent: string, m
     p_delta: amount,
     p_reason: reason,
     p_agent: agent,
-    p_meta: meta ?? null,
+    p_meta: (meta ?? null) as any,
   });
   if (error) throw error;
   return data as number;
@@ -43,7 +43,7 @@ export async function spendPikmin(amount: number, reason: string, agent: string,
     p_delta: -amount,
     p_reason: reason,
     p_agent: agent,
-    p_meta: meta ?? null,
+    p_meta: (meta ?? null) as any,
   });
   if (error) throw error;
   return data as number;
