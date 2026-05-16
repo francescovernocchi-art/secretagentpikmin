@@ -1050,6 +1050,97 @@ function MappaPage() {
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={!!shipConfirm}
+        onOpenChange={(o) => {
+          if (!o) setShipConfirm(null);
+        }}
+      >
+        <AlertDialogContent className="panel-strong border-primary/40">
+          {shipConfirm && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2 font-display">
+                  <Rocket className="h-5 w-5 text-amber-300" />
+                  {enough ? "Spedire la squadra?" : "Pikmin insufficienti"}
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-3 pt-1">
+                    <div className="flex items-center gap-3 rounded-lg border border-border bg-background/40 p-3">
+                      <span className="text-3xl">{shipConfirm.drop.emoji}</span>
+                      <div className="min-w-0">
+                        <p className="text-foreground font-semibold truncate">
+                          {shipConfirm.drop.name}
+                        </p>
+                        <p
+                          className={`text-[11px] uppercase tracking-widest ${RARITY_COLOR[shipConfirm.rarity]}`}
+                        >
+                          Pezzo {RARITY_LABEL[shipConfirm.rarity]}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      <div className="panel px-2 py-2">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          Costo
+                        </p>
+                        <p className="font-display text-lg text-primary text-glow">
+                          {shipConfirm.cost} 🌱
+                        </p>
+                      </div>
+                      <div
+                        className={`panel px-2 py-2 ${enough ? "" : "border-destructive/60 bg-destructive/10"}`}
+                      >
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          Disponibili
+                        </p>
+                        <p
+                          className={`font-display text-lg ${enough ? "text-primary" : "text-destructive"}`}
+                        >
+                          {shipConfirm.have} 🌱
+                        </p>
+                      </div>
+                    </div>
+
+                    {enough ? (
+                      <p className="text-xs text-muted-foreground">
+                        La squadra di {shipConfirm.cost} 🌱 partirà subito per recuperare il pezzo.
+                        Dopo la missione resteranno{" "}
+                        <b className="text-primary">
+                          {shipConfirm.have - shipConfirm.cost} 🌱
+                        </b>{" "}
+                        Pikmin alla base.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-destructive">
+                        Mancano <b>{shipConfirm.cost - shipConfirm.have} 🌱</b> Pikmin per spedire
+                        la squadra. Cattura altri Pikmin dal Radar o scopri ricette nel Lab e
+                        riprova.
+                      </p>
+                    )}
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>
+                  {enough ? "Annulla" : "Chiudi"}
+                </AlertDialogCancel>
+                {enough && (
+                  <AlertDialogAction
+                    onClick={confirmShipDispatch}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Rocket className="h-4 w-4 mr-1" />
+                    Spedisci squadra
+                  </AlertDialogAction>
+                )}
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
     </PageShell>
   );
 }
