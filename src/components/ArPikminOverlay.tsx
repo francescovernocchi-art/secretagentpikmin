@@ -342,7 +342,7 @@ export function ArPikminOverlay({ permissionPreGranted = false }: { permissionPr
 
   useEffect(() => {
     const anyEvt = (DeviceOrientationEvent as any);
-    if (typeof anyEvt?.requestPermission === "function") {
+    if (!permissionPreGranted && typeof anyEvt?.requestPermission === "function") {
       setNeedsPermission(true);
       // Anche in attesa del permesso iOS, se l'utente non tocca "Attiva AR"
       // entro qualche secondo mostriamo comunque un Pikmin in modalità fallback
