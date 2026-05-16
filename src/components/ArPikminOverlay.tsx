@@ -104,7 +104,7 @@ const TARGET_MIN_LIFETIME_MS = 8000;
 // Tempo extra durante il quale il target resta bloccato dopo essere stato visto
 const TARGET_HOLD_AFTER_SEEN_MS = 5000;
 
-export function ArPikminOverlay() {
+export function ArPikminOverlay({ permissionPreGranted = false }: { permissionPreGranted?: boolean } = {}) {
   const [target, setTarget] = useState<Target | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number; visible: boolean; lock: number }>({
     x: 50,
