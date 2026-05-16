@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, X, RefreshCcw, Image as ImageIcon, Loader2, Check } from "lucide-react";
+import { Camera, X, RefreshCcw, Image as ImageIcon, Loader2, Check, Zap, Smartphone, ShieldCheck, Compass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArPikminOverlay } from "@/components/ArPikminOverlay";
 
