@@ -69,9 +69,10 @@ export function CameraCapture({
     }
   };
 
-  // start / stop camera
+  // start / stop camera (solo dopo che la guida AR è stata superata)
   useEffect(() => {
     if (!open) return;
+    if (!arStarted) return;
     let cancelled = false;
 
     const start = async () => {
