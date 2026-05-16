@@ -546,26 +546,27 @@ function MappaPage() {
       }
     }
 
-    // Pre-check Pikmin per i pezzi navicella: serve un costo in base alla rarità
-    let shipCost = 0;
-    let shipPartMeta: ShipPartLite | undefined;
+    // Per i pezzi navicella: apri dialog di conferma con costo Pikmin
     if (d.kind === "ship_part" && d.payload_key) {
-      shipPartMeta = shipParts.find((p) => p.key === d.payload_key);
-      shipCost = pikminCostFor(shipPartMeta?.rarity);
-      const ok = confirm(
-        `Per recuperare "${d.name}" servono ${shipCost} 🌱 Pikmin (rarità ${RARITY_LABEL[shipPartMeta?.rarity ?? "comune"]}).\n\nSpedire la squadra?`,
-      );
-      if (!ok) return;
+      const meta = shipParts.find((p) => p.key === d.payload_key);
+      const rarity = meta?.rarity ?? "comune";
+      const cost = pikminCostFor(rarity);
+      let have = 0;
       try {
-        await spendPikmin(shipCost, "ship_part", role, { drop_id: d.id, part_key: d.payload_key });
-      } catch (e: any) {
-        toast.error("Pikmin insufficienti", {
-          description: e?.message ?? `Servono ${shipCost} 🌱 Pikmin per spedire la squadra.`,
-        });
-        return;
-      }
+        have = await getPikminCount();
+      } catch {}
+      setShipConfirm({ drop: d, cost, rarity, have, manual: !!opts?.manual, dist });
+      return;
     }
 
+    await runCollect(d, { manual: !!opts?.manual, dist, shipCost: 0 });
+  };
+
+  const runCollect = async (
+    d: Drop,
+    ctx: { manual: boolean; dist: number; shipCost: number },
+  ) => {
+    if (!me) return;
     setCollecting(d.id);
     try {
       const { error } = await supabase
@@ -603,7 +604,7 @@ function MappaPage() {
           });
           if (!res.alreadyCollected) {
             toast.success(`🚀 Pezzo navicella recuperato: ${d.emoji} ${d.name}`, {
-              description: `Squadra spedita: −${shipCost} 🌱 Pikmin`,
+              description: `Squadra spedita: −${ctx.shipCost} 🌱 Pikmin`,
             });
             navigator.vibrate?.([80, 60, 80, 60, 200]);
           }
@@ -618,8 +619,8 @@ function MappaPage() {
         drop_id: d.id,
         name: d.name,
         emoji: d.emoji,
-        mode: opts?.manual ? "manual" : "auto",
-        dist_m: Math.round(dist),
+        mode: ctx.manual ? "manual" : "auto",
+        dist_m: Math.round(ctx.dist),
         acc_m: Math.round(me.acc),
         radius_m: d.radius_m,
         at: new Date().toISOString(),
@@ -629,6 +630,23 @@ function MappaPage() {
     } finally {
       setCollecting(null);
     }
+  };
+
+  const confirmShipDispatch = async () => {
+    if (!shipConfirm) return;
+    const { drop, cost, manual, dist } = shipConfirm;
+    if (shipConfirm.have < cost) return; // safety
+    try {
+      await spendPikmin(cost, "ship_part", role, { drop_id: drop.id, part_key: drop.payload_key });
+    } catch (e: any) {
+      toast.error("Pikmin insufficienti", {
+        description: e?.message ?? `Servono ${cost} 🌱 Pikmin per spedire la squadra.`,
+      });
+      setShipConfirm(null);
+      return;
+    }
+    setShipConfirm(null);
+    await runCollect(drop, { manual, dist, shipCost: cost });
   };
 
   const removeDrop = async (id: string) => {
