@@ -34,6 +34,40 @@ export function CameraCapture({
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
   const [progress, setProgress] = useState(0);
   const [attempt, setAttempt] = useState(0);
+  // Schermata di guida prima di avviare AR + fotocamera (solo in modalità radar)
+  const [arStarted, setArStarted] = useState(!radarOverlay);
+  const [arPermissionGranted, setArPermissionGranted] = useState(false);
+  const [requestingPerm, setRequestingPerm] = useState(false);
+
+  // Quando il modal si chiude, resetta lo stato della guida per la prossima apertura
+  useEffect(() => {
+    if (!open) {
+      setArStarted(!radarOverlay);
+      setArPermissionGranted(false);
+      setRequestingPerm(false);
+    }
+  }, [open, radarOverlay]);
+
+  const startAr = async () => {
+    setRequestingPerm(true);
+    try {
+      const anyEvt = DeviceOrientationEvent as any;
+      if (typeof anyEvt?.requestPermission === "function") {
+        try {
+          const res = await anyEvt.requestPermission();
+          if (res === "granted") setArPermissionGranted(true);
+        } catch {
+          /* iframe o utente nega: ArPikminOverlay userà il fallback */
+        }
+      } else {
+        // Android / desktop: nessun gate, andiamo dritti
+        setArPermissionGranted(true);
+      }
+    } finally {
+      setRequestingPerm(false);
+      setArStarted(true);
+    }
+  };
 
   // start / stop camera
   useEffect(() => {
