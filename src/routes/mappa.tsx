@@ -139,6 +139,18 @@ function MappaPage() {
   });
   const [showLog, setShowLog] = useState(false);
 
+  // Dialog conferma spedizione squadra Pikmin per pezzi navicella
+  type ShipConfirm = {
+    drop: Drop;
+    cost: number;
+    rarity: string;
+    have: number;
+    manual: boolean;
+    dist: number;
+  };
+  const [shipConfirm, setShipConfirm] = useState<ShipConfirm | null>(null);
+  const enough = shipConfirm ? shipConfirm.have >= shipConfirm.cost : false;
+
   const logEvent = (ev: CollectEvent) => {
     setEventLog((prev) => {
       const next = [ev, ...prev].slice(0, 50);
