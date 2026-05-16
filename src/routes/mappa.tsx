@@ -8,8 +8,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { grantIngredients } from "@/lib/ingredients";
 import { collectShipPart } from "@/lib/ship";
-import { spendPikmin, pikminCostFor, RARITY_LABEL, RARITY_COLOR } from "@/lib/pikmin";
+import { spendPikmin, pikminCostFor, RARITY_LABEL, RARITY_COLOR, getPikminCount } from "@/lib/pikmin";
 import { PikminCounter } from "@/components/PikminCounter";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import "leaflet/dist/leaflet.css";
 
 export const Route = createFileRoute("/mappa")({
