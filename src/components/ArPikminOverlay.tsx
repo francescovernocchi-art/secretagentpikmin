@@ -333,11 +333,28 @@ export function ArPikminOverlay() {
     }
   };
 
+  // Spawn immediato senza sensore (fallback per desktop / iframe / permessi negati)
+  const spawnFallback = () => {
+    const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
+    setTarget({ kind: "pikmin", src: p.src, name: p.name, alpha: 0, beta: 0 });
+    setPos({ x: 30 + Math.random() * 40, y: 30 + Math.random() * 30, visible: true, lock: 1 });
+  };
+
   useEffect(() => {
     const anyEvt = (DeviceOrientationEvent as any);
     if (typeof anyEvt?.requestPermission === "function") {
       setNeedsPermission(true);
-      return;
+      // Anche in attesa del permesso iOS, se l'utente non tocca "Attiva AR"
+      // entro qualche secondo mostriamo comunque un Pikmin in modalità fallback
+      // così la caccia funziona sempre.
+      const t = setTimeout(() => {
+        if (!gotEventRef.current) {
+          setNoSensor(true);
+          setNeedsPermission(false);
+          spawnFallback();
+        }
+      }, 4000);
+      return () => clearTimeout(t);
     }
     attach();
     startWatchdog();
@@ -346,9 +363,7 @@ export function ArPikminOverlay() {
     const fallbackTimer = setTimeout(() => {
       if (!gotEventRef.current) {
         setNoSensor(true);
-        const p = AR_POOL[Math.floor(Math.random() * AR_POOL.length)];
-        setTarget({ kind: "pikmin", src: p.src, name: p.name, alpha: 0, beta: 0 });
-        setPos({ x: 30 + Math.random() * 40, y: 30 + Math.random() * 30, visible: true, lock: 1 });
+        spawnFallback();
       }
     }, 1800);
 
@@ -373,14 +388,24 @@ export function ArPikminOverlay() {
         attach();
         startWatchdog();
         document.addEventListener("visibilitychange", handleVisibility);
+        // Safety net: se anche dopo il permesso i sensori non emettono
+        // (iframe cross-origin, browser senza giroscopio), fallback dopo 2s
+        setTimeout(() => {
+          if (!gotEventRef.current) {
+            setNoSensor(true);
+            spawnFallback();
+          }
+        }, 2000);
       } else {
-        // Permesso negato → modalità fallback
+        // Permesso negato → modalità fallback con Pikmin visibile
         setNeedsPermission(false);
         setNoSensor(true);
+        spawnFallback();
       }
     } catch {
       setNeedsPermission(false);
       setNoSensor(true);
+      spawnFallback();
     }
   };
 
