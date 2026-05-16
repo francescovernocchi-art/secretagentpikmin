@@ -222,7 +222,104 @@ export function CameraCapture({
 
           {/* viewport */}
           <div className="relative flex-1 overflow-hidden">
-            {!preview ? (
+            {radarOverlay && !arStarted ? (
+              <div className="absolute inset-0 overflow-y-auto">
+                <div className="min-h-full flex flex-col items-center justify-center px-5 py-8 gap-5 text-center">
+                  <motion.div
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 18 }}
+                    className="relative h-24 w-24 rounded-full border-2 border-primary glow-ring flex items-center justify-center"
+                  >
+                    <Compass className="h-10 w-10 text-primary text-glow" />
+                    <motion.div
+                      className="absolute inset-0 rounded-full border border-primary/40"
+                      animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                    />
+                  </motion.div>
+
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">
+                      // Caccia AR
+                    </p>
+                    <h2 className="font-display text-2xl text-glow text-foreground">
+                      Prima di iniziare
+                    </h2>
+                    <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                      Per agganciare i Pikmin servono due permessi del telefono.
+                      Tocca <b className="text-primary">Attiva AR</b> e accetta entrambi.
+                    </p>
+                  </div>
+
+                  <ol className="w-full max-w-sm space-y-2 text-left">
+                    <li className="panel p-3 flex items-start gap-3">
+                      <span className="mt-0.5 h-7 w-7 shrink-0 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center text-primary">
+                        <Camera className="h-3.5 w-3.5" />
+                      </span>
+                      <div className="text-xs">
+                        <p className="text-foreground font-semibold">1. Fotocamera</p>
+                        <p className="text-muted-foreground">
+                          Apparirà il pop-up del browser. Tocca <b>"Consenti"</b> per
+                          inquadrare la zona di caccia.
+                        </p>
+                      </div>
+                    </li>
+                    <li className="panel p-3 flex items-start gap-3">
+                      <span className="mt-0.5 h-7 w-7 shrink-0 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center text-primary">
+                        <Smartphone className="h-3.5 w-3.5" />
+                      </span>
+                      <div className="text-xs">
+                        <p className="text-foreground font-semibold">
+                          2. Movimento e orientamento <span className="text-primary">(iOS)</span>
+                        </p>
+                        <p className="text-muted-foreground">
+                          iPhone chiederà l'accesso a <b>"Movimento e orientamento"</b>.
+                          Tocca <b>"Consenti"</b>, serve per puntare la bussola sul Pikmin.
+                        </p>
+                      </div>
+                    </li>
+                    <li className="panel p-3 flex items-start gap-3">
+                      <span className="mt-0.5 h-7 w-7 shrink-0 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center text-primary">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                      </span>
+                      <div className="text-xs">
+                        <p className="text-foreground font-semibold">3. Punta e scatta</p>
+                        <p className="text-muted-foreground">
+                          Quando il mirino diventa verde fisso, premi il pulsante grande
+                          per catturare il Pikmin.
+                        </p>
+                      </div>
+                    </li>
+                  </ol>
+
+                  <div className="panel-strong p-3 text-[10px] text-primary/80 uppercase tracking-widest max-w-sm w-full">
+                    Suggerimento iOS: se hai negato per sbaglio, vai in
+                    <span className="normal-case tracking-normal text-primary"> Impostazioni → Safari → Movimento e orientamento </span>
+                    e riapri la pagina.
+                  </div>
+
+                  <button
+                    onClick={startAr}
+                    disabled={requestingPerm}
+                    className="btn-neon w-full max-w-sm py-4 text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {requestingPerm ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Zap className="h-5 w-5" />
+                    )}
+                    Attiva AR
+                  </button>
+                  <button
+                    onClick={handleClose}
+                    className="text-[10px] uppercase tracking-widest text-muted-foreground"
+                  >
+                    Annulla
+                  </button>
+                </div>
+              </div>
+            ) : !preview ? (
               <>
                 <video
                   ref={videoRef}
@@ -243,7 +340,7 @@ export function CameraCapture({
                       Scansione attiva…
                     </p>
                     {/* Pikmin AR — appare solo quando inquadri la posizione esatta */}
-                    <ArPikminOverlay />
+                    <ArPikminOverlay permissionPreGranted={arPermissionGranted} />
                   </>
                 )}
                 {error && (
@@ -259,7 +356,7 @@ export function CameraCapture({
 
           {/* controls */}
           <div className="p-5 pb-8 flex items-center justify-between gap-4 bg-gradient-to-t from-black to-transparent">
-            {!preview ? (
+            {radarOverlay && !arStarted ? null : !preview ? (
               <>
                 <button
                   onClick={() => fileRef.current?.click()}
