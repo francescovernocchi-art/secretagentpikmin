@@ -105,7 +105,7 @@ export function CameraCapture({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, [open, facing]);
+  }, [open, facing, arStarted]);
 
   const reset = () => {
     setPreview(null);
