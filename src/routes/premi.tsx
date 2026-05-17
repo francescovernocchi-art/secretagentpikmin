@@ -140,6 +140,14 @@ function PremiPage() {
             <p className="text-[10px] text-muted-foreground">
               {new Date(r.created_at).toLocaleDateString("it-IT")}
             </p>
+            {isAdmin && (
+              <button
+                onClick={() => removeOne(r.id)}
+                className="mt-1 text-[10px] text-destructive/80 hover:text-destructive flex items-center gap-1"
+              >
+                <Trash2 className="h-3 w-3" /> Elimina
+              </button>
+            )}
           </motion.div>
         ))}
         {rewards.length === 0 && (
