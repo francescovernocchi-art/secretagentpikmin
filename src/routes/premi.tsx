@@ -66,6 +66,16 @@ function PremiPage() {
     if (data) setRewards((r) => [data as Reward, ...r]);
   };
 
+  const removeOne = async (id: string) => {
+    await supabase.from("rewards").delete().eq("id", id);
+    setRewards((r) => r.filter((x) => x.id !== id));
+  };
+
+  const resetAll = async () => {
+    await supabase.from("rewards").delete().not("id", "is", null);
+    setRewards([]);
+  };
+
   return (
     <PageShell title="Premi & Badge" subtitle="Onorificenze segrete">
       <div className="panel-strong p-4 flex items-center gap-3">
