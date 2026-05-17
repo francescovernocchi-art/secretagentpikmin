@@ -8,7 +8,18 @@ import { CameraCapture } from "@/components/CameraCapture";
 import { grantIngredients, rollIngredients } from "@/lib/ingredients";
 import { collectShipPart } from "@/lib/ship";
 import { addCoins } from "@/lib/coins";
-import { Plus, Check, Trophy, Sparkles, X, Camera, Rocket, Coins } from "lucide-react";
+import { Plus, Check, Trophy, Sparkles, X, Camera, Rocket, Coins, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/missioni")({
   component: MissioniPage,
