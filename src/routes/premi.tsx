@@ -80,10 +80,31 @@ function PremiPage() {
     <PageShell title="Premi & Badge" subtitle="Onorificenze segrete">
       <div className="panel-strong p-4 flex items-center gap-3">
         <Trophy className="h-8 w-8 text-primary text-glow" />
-        <div>
+        <div className="flex-1">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Totale</p>
           <p className="font-display text-2xl text-glow">{rewards.length} medaglie</p>
         </div>
+        {isAdmin && rewards.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="rounded-lg border border-destructive/40 px-3 py-2 text-xs text-destructive flex items-center gap-1">
+                <RotateCcw className="h-3 w-3" /> Azzera
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Azzerare tutte le medaglie?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Verranno eliminate {rewards.length} medaglie. L'azione non è reversibile.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annulla</AlertDialogCancel>
+                <AlertDialogAction onClick={resetAll}>Azzera tutto</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {isAdmin && (
