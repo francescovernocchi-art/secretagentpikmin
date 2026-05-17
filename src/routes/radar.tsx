@@ -43,10 +43,12 @@ function RadarPage() {
     const newDrops = rollIngredients("radar");
     await grantIngredients("lorenzo", newDrops);
     setDrops(newDrops);
-    // +1 Pikmin alla squadra
+    // +1 Pikmin alla squadra, tipo casuale
     const session = getSession();
+    const types = ["red", "yellow", "blue", "purple", "white", "rock", "wing", "ice", "glow"];
+    const type = types[Math.floor(Math.random() * types.length)];
     try {
-      await addPikmin(1, "radar", session?.name ?? "lorenzo");
+      await addPikmin(1, "radar", session?.name ?? "lorenzo", { type });
     } catch {}
   };
 
