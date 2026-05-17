@@ -92,6 +92,53 @@ export type Database = {
         }
         Relationships: []
       }
+      battle_logs: {
+        Row: {
+          agent: string
+          created_at: string
+          enemy_id: string | null
+          enemy_name: string
+          id: string
+          pikmin_lost: Json
+          pikmin_sent: Json
+          result: string
+          rewards: Json
+          summary: string | null
+        }
+        Insert: {
+          agent?: string
+          created_at?: string
+          enemy_id?: string | null
+          enemy_name: string
+          id?: string
+          pikmin_lost?: Json
+          pikmin_sent?: Json
+          result: string
+          rewards?: Json
+          summary?: string | null
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          enemy_id?: string | null
+          enemy_name?: string
+          id?: string
+          pikmin_lost?: Json
+          pikmin_sent?: Json
+          result?: string
+          rewards?: Json
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "battle_logs_enemy_id_fkey"
+            columns: ["enemy_id"]
+            isOneToOne: false
+            referencedRelation: "enemies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coin_transactions: {
         Row: {
           agent: string
@@ -215,6 +262,72 @@ export type Database = {
         }
         Relationships: []
       }
+      enemies: {
+        Row: {
+          behavior: string | null
+          created_at: string
+          damage: number
+          danger_level: number
+          description: string | null
+          emoji: string
+          habitat: string | null
+          hp: number
+          id: string
+          image_url: string | null
+          key: string
+          name: string
+          pikmin_eat_max: number
+          pikmin_eat_min: number
+          recommended_pikmin: string[]
+          source_url: string | null
+          spawn_probability: number
+          speed: string | null
+          updated_at: string
+        }
+        Insert: {
+          behavior?: string | null
+          created_at?: string
+          damage?: number
+          danger_level?: number
+          description?: string | null
+          emoji?: string
+          habitat?: string | null
+          hp?: number
+          id?: string
+          image_url?: string | null
+          key: string
+          name: string
+          pikmin_eat_max?: number
+          pikmin_eat_min?: number
+          recommended_pikmin?: string[]
+          source_url?: string | null
+          spawn_probability?: number
+          speed?: string | null
+          updated_at?: string
+        }
+        Update: {
+          behavior?: string | null
+          created_at?: string
+          damage?: number
+          danger_level?: number
+          description?: string | null
+          emoji?: string
+          habitat?: string | null
+          hp?: number
+          id?: string
+          image_url?: string | null
+          key?: string
+          name?: string
+          pikmin_eat_max?: number
+          pikmin_eat_min?: number
+          recommended_pikmin?: string[]
+          source_url?: string | null
+          spawn_probability?: number
+          speed?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           color: string | null
@@ -277,6 +390,53 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ingredients"
             referencedColumns: ["key"]
+          },
+        ]
+      }
+      map_enemy_spawns: {
+        Row: {
+          active: boolean
+          defeated_at: string | null
+          defeated_by: string | null
+          enemy_id: string
+          expires_at: string | null
+          id: string
+          lat: number
+          lng: number
+          radius_m: number
+          spawned_at: string
+        }
+        Insert: {
+          active?: boolean
+          defeated_at?: string | null
+          defeated_by?: string | null
+          enemy_id: string
+          expires_at?: string | null
+          id?: string
+          lat: number
+          lng: number
+          radius_m?: number
+          spawned_at?: string
+        }
+        Update: {
+          active?: boolean
+          defeated_at?: string | null
+          defeated_by?: string | null
+          enemy_id?: string
+          expires_at?: string | null
+          id?: string
+          lat?: number
+          lng?: number
+          radius_m?: number
+          spawned_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "map_enemy_spawns_enemy_id_fkey"
+            columns: ["enemy_id"]
+            isOneToOne: false
+            referencedRelation: "enemies"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -397,18 +557,78 @@ export type Database = {
         }
         Relationships: []
       }
+      pikmin_species: {
+        Row: {
+          abilities: string[]
+          color: string | null
+          combat_use: string | null
+          created_at: string
+          description: string | null
+          exploration_use: string | null
+          first_appearance: string | null
+          id: string
+          image_url: string | null
+          key: string
+          name: string
+          resistances: string[]
+          sort_order: number
+          source_url: string | null
+          updated_at: string
+          weaknesses: string[]
+        }
+        Insert: {
+          abilities?: string[]
+          color?: string | null
+          combat_use?: string | null
+          created_at?: string
+          description?: string | null
+          exploration_use?: string | null
+          first_appearance?: string | null
+          id?: string
+          image_url?: string | null
+          key: string
+          name: string
+          resistances?: string[]
+          sort_order?: number
+          source_url?: string | null
+          updated_at?: string
+          weaknesses?: string[]
+        }
+        Update: {
+          abilities?: string[]
+          color?: string | null
+          combat_use?: string | null
+          created_at?: string
+          description?: string | null
+          exploration_use?: string | null
+          first_appearance?: string | null
+          id?: string
+          image_url?: string | null
+          key?: string
+          name?: string
+          resistances?: string[]
+          sort_order?: number
+          source_url?: string | null
+          updated_at?: string
+          weaknesses?: string[]
+        }
+        Relationships: []
+      }
       pikmin_squad: {
         Row: {
+          breakdown: Json
           count: number
           id: string
           updated_at: string
         }
         Insert: {
+          breakdown?: Json
           count?: number
           id: string
           updated_at?: string
         }
         Update: {
+          breakdown?: Json
           count?: number
           id?: string
           updated_at?: string
