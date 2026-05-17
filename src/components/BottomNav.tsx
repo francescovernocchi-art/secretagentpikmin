@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, MessageSquare, Target, Trophy, User, FlaskConical, Map, Rocket, ShoppingBag } from "lucide-react";
+import { Radio, MessageSquare, Target, Trophy, User, FlaskConical, Map, Rocket, ShoppingBag, BookOpen, Skull } from "lucide-react";
 import { motion } from "framer-motion";
 
 const items = [
@@ -10,6 +10,8 @@ const items = [
   { to: "/navicella", icon: Rocket, label: "Nave" },
   { to: "/lab", icon: FlaskConical, label: "Lab" },
   { to: "/mercato", icon: ShoppingBag, label: "Market" },
+  { to: "/archivio", icon: BookOpen, label: "Archivio" },
+  { to: "/nemici", icon: Skull, label: "Nemici" },
   { to: "/premi", icon: Trophy, label: "Premi" },
   { to: "/profilo", icon: User, label: "Agente" },
 ] as const;
@@ -18,12 +20,12 @@ export function BottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 safe-bottom">
-      <div className="mx-2 mb-2 panel-strong px-1 py-1">
-        <ul className="grid grid-cols-9 gap-0.5">
+      <div className="mx-2 mb-2 panel-strong px-1 py-1 overflow-x-auto">
+        <ul className="flex gap-0.5 min-w-max">
           {items.map(({ to, icon: Icon, label }) => {
             const active = path.startsWith(to);
             return (
-              <li key={to}>
+              <li key={to} className="shrink-0 w-[10.5%] min-w-[44px]">
                 <Link
                   to={to}
                   className="relative flex flex-col items-center justify-center rounded-xl px-1 py-2 text-[10px] font-medium text-muted-foreground transition-colors"
