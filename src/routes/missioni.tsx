@@ -124,6 +124,34 @@ function MissioniPage() {
         ))}
       </div>
 
+      {isAdmin && missions.length > 0 && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="w-full rounded-lg border border-destructive/40 px-3 py-2 text-xs text-destructive flex items-center justify-center gap-1">
+              <Trash2 className="h-3 w-3" /> Elimina tutte le missioni ({missions.length})
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminare tutte le missioni?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Verranno rimosse {missions.length} missioni (incluse quelle completate e approvate). L'azione non è reversibile.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annulla</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  await supabase.from("missions").delete().not("id", "is", null);
+                }}
+              >
+                Elimina tutto
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
       {visible.length === 0 && (
         <p className="text-center text-xs text-muted-foreground py-10">Nessuna missione qui.</p>
       )}
