@@ -14,6 +14,7 @@ import { Route as RicetteRouteImport } from './routes/ricette'
 import { Route as RadarRouteImport } from './routes/radar'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PremiRouteImport } from './routes/premi'
+import { Route as NemiciRouteImport } from './routes/nemici'
 import { Route as NavicellaRouteImport } from './routes/navicella'
 import { Route as MissioniRouteImport } from './routes/missioni'
 import { Route as MercatoRouteImport } from './routes/mercato'
@@ -22,6 +23,7 @@ import { Route as LabRouteImport } from './routes/lab'
 import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BaseRouteImport } from './routes/base'
+import { Route as ArchivioRouteImport } from './routes/archivio'
 import { Route as AgentiRouteImport } from './routes/agenti'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -48,6 +50,11 @@ const ProfiloRoute = ProfiloRouteImport.update({
 const PremiRoute = PremiRouteImport.update({
   id: '/premi',
   path: '/premi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NemiciRoute = NemiciRouteImport.update({
+  id: '/nemici',
+  path: '/nemici',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NavicellaRoute = NavicellaRouteImport.update({
@@ -90,6 +97,11 @@ const BaseRoute = BaseRouteImport.update({
   path: '/base',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArchivioRoute = ArchivioRouteImport.update({
+  id: '/archivio',
+  path: '/archivio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentiRoute = AgentiRouteImport.update({
   id: '/agenti',
   path: '/agenti',
@@ -104,6 +116,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenti': typeof AgentiRoute
+  '/archivio': typeof ArchivioRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
@@ -112,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/mercato': typeof MercatoRoute
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
+  '/nemici': typeof NemiciRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -121,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agenti': typeof AgentiRoute
+  '/archivio': typeof ArchivioRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
@@ -129,6 +144,7 @@ export interface FileRoutesByTo {
   '/mercato': typeof MercatoRoute
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
+  '/nemici': typeof NemiciRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -139,6 +155,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agenti': typeof AgentiRoute
+  '/archivio': typeof ArchivioRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
@@ -147,6 +164,7 @@ export interface FileRoutesById {
   '/mercato': typeof MercatoRoute
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
+  '/nemici': typeof NemiciRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -158,6 +176,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agenti'
+    | '/archivio'
     | '/base'
     | '/chat'
     | '/inventario'
@@ -166,6 +185,7 @@ export interface FileRouteTypes {
     | '/mercato'
     | '/missioni'
     | '/navicella'
+    | '/nemici'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -175,6 +195,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agenti'
+    | '/archivio'
     | '/base'
     | '/chat'
     | '/inventario'
@@ -183,6 +204,7 @@ export interface FileRouteTypes {
     | '/mercato'
     | '/missioni'
     | '/navicella'
+    | '/nemici'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -192,6 +214,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agenti'
+    | '/archivio'
     | '/base'
     | '/chat'
     | '/inventario'
@@ -200,6 +223,7 @@ export interface FileRouteTypes {
     | '/mercato'
     | '/missioni'
     | '/navicella'
+    | '/nemici'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -210,6 +234,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentiRoute: typeof AgentiRoute
+  ArchivioRoute: typeof ArchivioRoute
   BaseRoute: typeof BaseRoute
   ChatRoute: typeof ChatRoute
   InventarioRoute: typeof InventarioRoute
@@ -218,6 +243,7 @@ export interface RootRouteChildren {
   MercatoRoute: typeof MercatoRoute
   MissioniRoute: typeof MissioniRoute
   NavicellaRoute: typeof NavicellaRoute
+  NemiciRoute: typeof NemiciRoute
   PremiRoute: typeof PremiRoute
   ProfiloRoute: typeof ProfiloRoute
   RadarRoute: typeof RadarRoute
@@ -260,6 +286,13 @@ declare module '@tanstack/react-router' {
       path: '/premi'
       fullPath: '/premi'
       preLoaderRoute: typeof PremiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nemici': {
+      id: '/nemici'
+      path: '/nemici'
+      fullPath: '/nemici'
+      preLoaderRoute: typeof NemiciRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/navicella': {
@@ -318,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BaseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/archivio': {
+      id: '/archivio'
+      path: '/archivio'
+      fullPath: '/archivio'
+      preLoaderRoute: typeof ArchivioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agenti': {
       id: '/agenti'
       path: '/agenti'
@@ -338,6 +378,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentiRoute: AgentiRoute,
+  ArchivioRoute: ArchivioRoute,
   BaseRoute: BaseRoute,
   ChatRoute: ChatRoute,
   InventarioRoute: InventarioRoute,
@@ -346,6 +387,7 @@ const rootRouteChildren: RootRouteChildren = {
   MercatoRoute: MercatoRoute,
   MissioniRoute: MissioniRoute,
   NavicellaRoute: NavicellaRoute,
+  NemiciRoute: NemiciRoute,
   PremiRoute: PremiRoute,
   ProfiloRoute: ProfiloRoute,
   RadarRoute: RadarRoute,

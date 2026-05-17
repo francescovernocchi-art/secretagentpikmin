@@ -264,7 +264,9 @@ function LabPage() {
         setDiscoveries((d) => [saved as Discovery, ...d]);
         // Bonus pikmin per la squadra: +3 se è una scoperta nuova (AI), +1 da ricetta nota
         try {
-          await addPikmin(result.is_ai ? 3 : 1, "lab", agent, { discovery_id: (saved as any).id });
+          const types = ["red", "yellow", "blue", "purple", "white", "rock", "wing", "ice", "glow"];
+          const type = types[Math.floor(Math.random() * types.length)];
+          await addPikmin(result.is_ai ? 3 : 1, "lab", agent, { discovery_id: (saved as any).id, type });
         } catch {}
       }
       setSlots([]);
