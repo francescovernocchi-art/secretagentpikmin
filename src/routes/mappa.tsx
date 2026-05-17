@@ -703,6 +703,7 @@ function MappaPage() {
         {/* Mappa */}
         <div className="panel-strong relative overflow-hidden rounded-2xl">
           <div ref={mapEl} className="w-full h-[55vh] min-h-[360px] rounded-2xl" />
+          <EnemyLayer mapRef={mapRef} ready={ready} me={me} />
 
           {/* Istruzioni place mode */}
           <AnimatePresence>
