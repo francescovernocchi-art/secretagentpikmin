@@ -4,7 +4,18 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
-import { Plus, Trophy } from "lucide-react";
+import { Plus, Trophy, Trash2, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { PIKMIN } from "@/assets/pikmin";
 import { Pikmin3D } from "@/components/Pikmin3D";
 
