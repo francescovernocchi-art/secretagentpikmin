@@ -4,7 +4,18 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
-import { Plus, Trophy } from "lucide-react";
+import { Plus, Trophy, Trash2, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { PIKMIN } from "@/assets/pikmin";
 import { Pikmin3D } from "@/components/Pikmin3D";
 
@@ -55,14 +66,45 @@ function PremiPage() {
     if (data) setRewards((r) => [data as Reward, ...r]);
   };
 
+  const removeOne = async (id: string) => {
+    await supabase.from("rewards").delete().eq("id", id);
+    setRewards((r) => r.filter((x) => x.id !== id));
+  };
+
+  const resetAll = async () => {
+    await supabase.from("rewards").delete().not("id", "is", null);
+    setRewards([]);
+  };
+
   return (
     <PageShell title="Premi & Badge" subtitle="Onorificenze segrete">
       <div className="panel-strong p-4 flex items-center gap-3">
         <Trophy className="h-8 w-8 text-primary text-glow" />
-        <div>
+        <div className="flex-1">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Totale</p>
           <p className="font-display text-2xl text-glow">{rewards.length} medaglie</p>
         </div>
+        {isAdmin && rewards.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="rounded-lg border border-destructive/40 px-3 py-2 text-xs text-destructive flex items-center gap-1">
+                <RotateCcw className="h-3 w-3" /> Azzera
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Azzerare tutte le medaglie?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Verranno eliminate {rewards.length} medaglie. L'azione non è reversibile.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annulla</AlertDialogCancel>
+                <AlertDialogAction onClick={resetAll}>Azzera tutto</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {isAdmin && (
@@ -98,6 +140,14 @@ function PremiPage() {
             <p className="text-[10px] text-muted-foreground">
               {new Date(r.created_at).toLocaleDateString("it-IT")}
             </p>
+            {isAdmin && (
+              <button
+                onClick={() => removeOne(r.id)}
+                className="mt-1 text-[10px] text-destructive/80 hover:text-destructive flex items-center gap-1"
+              >
+                <Trash2 className="h-3 w-3" /> Elimina
+              </button>
+            )}
           </motion.div>
         ))}
         {rewards.length === 0 && (
