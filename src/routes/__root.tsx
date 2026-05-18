@@ -11,6 +11,7 @@ import {
 import { useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { BuzzButton } from "@/components/BuzzButton";
+import { TacticalBackground } from "@/components/TacticalBackground";
 import { getSession } from "@/lib/session";
 
 import appCss from "../styles.css?url";
@@ -138,10 +139,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {isApp ? (
-        <div className="grid-bg min-h-screen">
-          <Outlet />
-          <BuzzButton />
-          <BottomNav />
+        <div className="relative min-h-screen">
+          <TacticalBackground />
+          <div className="relative z-10">
+            <Outlet />
+            <BuzzButton />
+            <BottomNav />
+          </div>
         </div>
       ) : (
         <Outlet />
