@@ -138,10 +138,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {isApp ? (
-        <div className="grid-bg min-h-screen">
-          <Outlet />
-          <BuzzButton />
-          <BottomNav />
+        <div className="relative min-h-screen">
+          <TacticalBackground />
+          <div className="relative z-10">
+            <Outlet />
+            <BuzzButton />
+            <BottomNav />
+          </div>
         </div>
       ) : (
         <Outlet />
