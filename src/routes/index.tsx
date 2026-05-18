@@ -13,14 +13,25 @@ function LoginPage() {
   const navigate = useNavigate();
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
-  const [booting, setBooting] = useState(true);
+  const [booting, setBooting] = useState(false);
+  const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setBooting(false), 1400);
-    if (typeof window !== "undefined" && getSession()) {
-      navigate({ to: "/base" });
+    // Splash breve solo lato client, evita mismatch SSR e loading infinito
+    setBooting(true);
+    const t = setTimeout(() => setBooting(false), 900);
+    const stuckTimer = setTimeout(() => setStuck(true), 6000);
+    try {
+      if (getSession()) {
+        navigate({ to: "/base" });
+      }
+    } catch (e) {
+      console.warn("[boot] session check failed", e);
     }
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(stuckTimer);
+    };
   }, [navigate]);
 
   const press = (k: string) => {
