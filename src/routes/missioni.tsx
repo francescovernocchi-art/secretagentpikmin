@@ -165,7 +165,7 @@ function MissioniPage() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="panel p-4"
+              className="dossier p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
