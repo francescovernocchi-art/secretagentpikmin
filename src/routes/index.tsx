@@ -59,6 +59,29 @@ function LoginPage() {
         <p className="font-display text-primary text-glow text-sm uppercase tracking-[0.4em] animate-flicker">
           Connessione alla base in corso…
         </p>
+        {stuck && (
+          <div className="flex flex-col items-center gap-3 mt-4">
+            <p className="text-xs text-muted-foreground max-w-xs text-center">
+              La base non risponde. Puoi continuare in modalità offline o riprovare.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setBooting(false)}
+                className="panel px-4 py-2 text-xs text-primary"
+              >
+                Continua comunque
+              </button>
+              <button
+                onClick={() => {
+                  if (typeof window !== "undefined") window.location.reload();
+                }}
+                className="panel px-4 py-2 text-xs text-foreground"
+              >
+                Riprova
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
