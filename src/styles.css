@@ -168,3 +168,22 @@
 .animate-radar-ping { animation: radar-ping 2.4s ease-out infinite; }
 .animate-float-slow { animation: float-slow 4s ease-in-out infinite; }
 .animate-flicker { animation: flicker 2s ease-in-out infinite; }
+
+@keyframes intro-glitch {
+  0%, 100% { transform: translate(0, 0); filter: none; }
+  20% { transform: translate(-2px, 1px); filter: hue-rotate(20deg); }
+  40% { transform: translate(2px, -1px); filter: hue-rotate(-15deg) saturate(1.4); }
+  60% { transform: translate(-1px, 0); filter: none; }
+  80% { transform: translate(1px, 1px); filter: hue-rotate(10deg); }
+}
+.intro-glitch {
+  animation: intro-glitch 0.12s steps(2) 1;
+  text-shadow:
+    1px 0 0 oklch(0.7 0.25 20 / 0.8),
+    -1px 0 0 oklch(0.7 0.25 220 / 0.8),
+    0 0 12px var(--neon-glow);
+}
+@keyframes intro-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
