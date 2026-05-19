@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +24,7 @@ import {
   type EnemyRow,
   type PikminType,
 } from "@/lib/enemies";
-import { Skull, Swords, X } from "lucide-react";
+import { Skull, Swords, X, Eye, EyeOff, Footprints, Radar as RadarIcon } from "lucide-react";
 
 type Spawn = {
   id: string;
@@ -43,9 +43,47 @@ type Props = {
   me: { lat: number; lng: number; acc: number } | null;
 };
 
-const SPAWN_INTERVAL_MS = 60_000; // tenta uno spawn ogni 60s
-const SPAWN_LIFETIME_MS = 8 * 60_000; // un nemico resta 8 minuti
-const AUTO_ATTACK_AFTER_MS = 2 * 60_000; // dopo 2 min senza intervento, attacca
+const SPAWN_INTERVAL_MS = 60_000;
+const SPAWN_LIFETIME_MS = 8 * 60_000;
+const AUTO_ATTACK_AFTER_MS = 2 * 60_000;
+
+const MOVE_TICK_MS = 1800;
+const PATROL_RADIUS_M = 80;
+const DETECTION_RADIUS_M = 25;
+// const ATTACK_RADIUS_M = 10;
+const HIDE_DURATION_MS = 30_000;
+const FLEE_COOLDOWN_MS = 60_000;
+
+type LivePos = {
+  lat: number;
+  lng: number;
+  homeLat: number;
+  homeLng: number;
+  heading: number; // radians
+  behavior: "pattuglia" | "aggressivo" | "guardiano" | "timido";
+  detectionM: number;
+};
+
+function distMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function pickBehavior(enemy: EnemyRow): LivePos["behavior"] {
+  const b = (enemy.behavior ?? "").toLowerCase();
+  if (b.includes("aggress")) return "aggressivo";
+  if (b.includes("guard") || b.includes("statico")) return "guardiano";
+  if (b.includes("timid") || b.includes("fugg") || b.includes("paur")) return "timido";
+  if (enemy.danger_level >= 4) return "aggressivo";
+  if (enemy.danger_level <= 1) return "timido";
+  return "pattuglia";
+}
 
 export function EnemyLayer({ mapRef, ready, me }: Props) {
   const session = typeof window !== "undefined" ? getSession() : null;
@@ -54,15 +92,24 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
   const [enemies, setEnemies] = useState<EnemyRow[]>([]);
   const [spawns, setSpawns] = useState<Spawn[]>([]);
   const [active, setActive] = useState<{ spawn: Spawn; enemy: EnemyRow } | null>(null);
+  const [proximity, setProximity] = useState<{ spawn: Spawn; enemy: EnemyRow; dist: number } | null>(null);
   const [breakdown, setBreakdown] = useState<BattleSquad>({});
   const [squad, setSquad] = useState<BattleSquad>({});
   const [resultBox, setResultBox] = useState<string | null>(null);
+  const [, setTick] = useState(0); // re-render on movement
+  const [hiddenUntil, setHiddenUntil] = useState<number>(0);
 
   const markersRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
+  const detectionCirclesRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
   const notifiedRef = useRef<Set<string>>(new Set());
   const autoAttackedRef = useRef<Set<string>>(new Set());
+  const livePosRef = useRef<globalThis.Map<string, LivePos>>(new globalThis.Map());
+  const proximityDismissedRef = useRef<globalThis.Map<string, number>>(new globalThis.Map());
+  const detectedRef = useRef<Set<string>>(new Set());
 
-  // load enemies catalog once
+  const isHidden = useMemo(() => hiddenUntil > Date.now(), [hiddenUntil]);
+
+  // load enemies catalog
   useEffect(() => {
     (async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,16 +143,36 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     };
   }, []);
 
+  // init live positions when spawns arrive
+  useEffect(() => {
+    for (const s of spawns) {
+      if (!livePosRef.current.has(s.id)) {
+        const enemy = enemies.find((e) => e.id === s.enemy_id);
+        livePosRef.current.set(s.id, {
+          lat: s.lat,
+          lng: s.lng,
+          homeLat: s.lat,
+          homeLng: s.lng,
+          heading: Math.random() * Math.PI * 2,
+          behavior: enemy ? pickBehavior(enemy) : "pattuglia",
+          detectionM: DETECTION_RADIUS_M + (enemy ? enemy.danger_level * 4 : 0),
+        });
+      }
+    }
+    // cleanup positions for despawned
+    for (const id of Array.from(livePosRef.current.keys())) {
+      if (!spawns.find((s) => s.id === id)) livePosRef.current.delete(id);
+    }
+  }, [spawns, enemies]);
+
   // spawn loop
   useEffect(() => {
     if (!me || enemies.length === 0) return;
     const tryspawn = async () => {
-      // limit: max 3 spawn attivi globali
-      if (spawns.length >= 3) return;
+      if (spawns.length >= 4) return;
       const enemy = rollEnemy(enemies);
       if (!enemy) return;
-      // posizione casuale entro 30-200m dal giocatore
-      const distM = 30 + Math.random() * 170;
+      const distM = 40 + Math.random() * 160;
       const bearing = Math.random() * Math.PI * 2;
       const dLat = (distM * Math.cos(bearing)) / 111320;
       const dLng = (distM * Math.sin(bearing)) / (111320 * Math.cos((me.lat * Math.PI) / 180));
@@ -118,35 +185,105 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
           enemy_id: enemy.id,
           lat,
           lng,
-          radius_m: 25,
+          radius_m: PATROL_RADIUS_M,
           active: true,
           expires_at: new Date(Date.now() + SPAWN_LIFETIME_MS).toISOString(),
         })
         .select()
         .single();
       if (created) {
-        toast.warning(`⚠️ Attenzione! Un ${enemy.name} si aggira nella zona.`, { duration: 5000 });
-        try { navigator.vibrate?.(120); } catch {}
+        toast.warning(`⚠️ Un ${enemy.name} si aggira nella zona.`, { duration: 4500 });
+        try { navigator.vibrate?.(120); } catch { /* ignore */ }
       }
     };
-    // first attempt after 15s to give the map time to settle
     const first = setTimeout(tryspawn, 15_000);
     const id = setInterval(tryspawn, SPAWN_INTERVAL_MS);
     return () => { clearTimeout(first); clearInterval(id); };
   }, [me, enemies, spawns.length]);
 
-  // notify on new spawns + auto-attack if ignored
+  // movement + detection tick
   useEffect(() => {
-    for (const s of spawns) {
-      if (!notifiedRef.current.has(s.id)) {
-        notifiedRef.current.add(s.id);
+    const tick = () => {
+      // move each enemy
+      for (const s of spawns) {
+        const pos = livePosRef.current.get(s.id);
+        if (!pos) continue;
         const enemy = enemies.find((e) => e.id === s.enemy_id);
-        if (enemy) {
-          // notification handled at spawn creation; nothing extra needed here
+        if (!enemy) continue;
+
+        // base step distance (m) depending on behavior + danger
+        const baseStep = 2 + enemy.danger_level * 0.8;
+        let stepM = baseStep * (0.4 + Math.random() * 0.9);
+
+        // direction logic
+        let heading = pos.heading + (Math.random() - 0.5) * 0.9;
+        const playerDist = me ? distMeters(pos, me) : Infinity;
+        const playerVisible = me && !isHidden;
+
+        if (playerVisible && playerDist < pos.detectionM * 1.5) {
+          const bearingToPlayer = Math.atan2(me!.lng - pos.lng, me!.lat - pos.lat);
+          if (pos.behavior === "aggressivo") {
+            heading = bearingToPlayer;
+            stepM *= 1.4;
+          } else if (pos.behavior === "timido") {
+            heading = bearingToPlayer + Math.PI;
+            stepM *= 1.6;
+          }
+        }
+        if (pos.behavior === "guardiano") stepM *= 0.4;
+
+        const dLat = (stepM * Math.cos(heading)) / 111320;
+        const dLng = (stepM * Math.sin(heading)) / (111320 * Math.cos((pos.lat * Math.PI) / 180));
+        let nextLat = pos.lat + dLat;
+        let nextLng = pos.lng + dLng;
+
+        // clamp to patrol area around home
+        const fromHome = distMeters({ lat: nextLat, lng: nextLng }, { lat: pos.homeLat, lng: pos.homeLng });
+        const maxRadius = pos.behavior === "guardiano" ? 25 : PATROL_RADIUS_M;
+        if (fromHome > maxRadius) {
+          // turn back toward home
+          heading = Math.atan2(pos.homeLng - pos.lng, pos.homeLat - pos.lat);
+          const back = (stepM * Math.cos(heading)) / 111320;
+          const back2 = (stepM * Math.sin(heading)) / (111320 * Math.cos((pos.lat * Math.PI) / 180));
+          nextLat = pos.lat + back;
+          nextLng = pos.lng + back2;
+        }
+
+        pos.lat = nextLat;
+        pos.lng = nextLng;
+        pos.heading = heading;
+      }
+
+      // detection
+      if (me && !isHidden && !active && !proximity) {
+        for (const s of spawns) {
+          const pos = livePosRef.current.get(s.id);
+          const enemy = enemies.find((e) => e.id === s.enemy_id);
+          if (!pos || !enemy) continue;
+          const d = distMeters(pos, me);
+          const dismissed = proximityDismissedRef.current.get(s.id) ?? 0;
+          if (d <= pos.detectionM && Date.now() > dismissed) {
+            if (!detectedRef.current.has(s.id)) {
+              detectedRef.current.add(s.id);
+              try { navigator.vibrate?.([60, 40, 100]); } catch { /* ignore */ }
+              toast.error(`⚠️ NEMICO VICINO · ${enemy.name} (${Math.round(d)}m)`, { duration: 4000 });
+            }
+            setProximity({ spawn: s, enemy, dist: d });
+            break;
+          } else if (d > pos.detectionM * 1.5) {
+            detectedRef.current.delete(s.id);
+          }
         }
       }
-    }
-    // auto-attack
+
+      setTick((t) => (t + 1) & 0xffff);
+    };
+    const id = setInterval(tick, MOVE_TICK_MS);
+    return () => clearInterval(id);
+  }, [spawns, enemies, me, isHidden, active, proximity]);
+
+  // auto-attack
+  useEffect(() => {
     const t = setInterval(() => {
       const now = Date.now();
       for (const s of spawns) {
@@ -166,7 +303,6 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     const bk = await getPikminBreakdown();
     const total = Object.values(bk).reduce((a, b) => a + (b ?? 0), 0);
     if (total === 0) return;
-    // sceglie qualche pikmin a caso
     const losses: BattleSquad = {};
     let toEat = Math.min(total, enemy.pikmin_eat_min);
     const order = (Object.keys(bk) as PikminType[]).filter((t) => (bk[t] ?? 0) > 0);
@@ -201,7 +337,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     toast.error(summary, { duration: 6000 });
   };
 
-  // render markers
+  // render markers + detection circles
   useEffect(() => {
     if (!ready) return;
     (async () => {
@@ -214,17 +350,34 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         seen.add(s.id);
         const enemy = enemies.find((e) => e.id === s.enemy_id);
         if (!enemy) continue;
+        const pos = livePosRef.current.get(s.id) ?? { lat: s.lat, lng: s.lng };
+        const nearby = me ? distMeters(pos, me) <= (livePosRef.current.get(s.id)?.detectionM ?? DETECTION_RADIUS_M) : false;
+        const color = nearby ? "#ff3030" : "#ff7a7a";
+
         const existing = markersRef.current.get(s.id);
         if (existing) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (existing as any).setLatLng([s.lat, s.lng]);
+          (existing as any).setLatLng([pos.lat, pos.lng]);
+          // update label color if needed
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const el = (existing as any).getElement?.();
+          if (el) {
+            const badge = el.querySelector("[data-enemy-badge]");
+            if (badge) {
+              (badge as HTMLElement).style.color = color;
+              (badge as HTMLElement).style.borderColor = color;
+              (badge as HTMLElement).style.boxShadow = `0 0 8px ${color}`;
+            }
+            const ico = el.querySelector("[data-enemy-ico]");
+            if (ico) (ico as HTMLElement).style.filter = `drop-shadow(0 0 8px ${color})`;
+          }
         } else {
           const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px)">
-            <div style="background:#0a0a0a;color:#ff7a7a;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid #ff5e5e;box-shadow:0 0 8px #ff5e5e">⚠️ ${enemy.name}</div>
-            <div style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px #ff5e5e)">${enemy.emoji}</div>
+            <div data-enemy-badge style="background:#0a0a0a;color:${color};font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid ${color};box-shadow:0 0 8px ${color}">⚠️ ${enemy.name}</div>
+            <div data-enemy-ico style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})">${enemy.emoji}</div>
           </div>`;
           const icon = L.divIcon({ className: "", html, iconSize: [120, 44], iconAnchor: [60, 28] });
-          const marker = L.marker([s.lat, s.lng], { icon, zIndexOffset: 950 }).addTo(map);
+          const marker = L.marker([pos.lat, pos.lng], { icon, zIndexOffset: 950 }).addTo(map);
           marker.on("click", async () => {
             const bk = await getPikminBreakdown();
             setBreakdown(bk);
@@ -232,20 +385,77 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
             setActive({ spawn: s, enemy });
           });
           markersRef.current.set(s.id, marker);
+
+          // detection circle
+          const live = livePosRef.current.get(s.id);
+          const circle = L.circle([pos.lat, pos.lng], {
+            radius: live?.detectionM ?? DETECTION_RADIUS_M,
+            color: "#ff3030",
+            weight: 1,
+            opacity: 0.35,
+            fillOpacity: 0.05,
+            dashArray: "3 6",
+          }).addTo(map);
+          detectionCirclesRef.current.set(s.id, circle);
+        }
+        // move detection circle
+        const circle = detectionCirclesRef.current.get(s.id);
+        if (circle) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (circle as any).setLatLng([pos.lat, pos.lng]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (circle as any).setStyle({ opacity: nearby ? 0.7 : 0.35, color: nearby ? "#ff2020" : "#ff7a7a" });
         }
       }
-      // remove stale
       for (const [id, m] of markersRef.current.entries()) {
         if (!seen.has(id)) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           map.removeLayer(m as any);
           markersRef.current.delete(id);
+          const c = detectionCirclesRef.current.get(id);
+          if (c) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            map.removeLayer(c as any);
+            detectionCirclesRef.current.delete(id);
+          }
         }
       }
     })();
-  }, [ready, spawns, enemies, mapRef]);
+    // re-run on every tick via setTick
+  });
 
   const totalSquad = Object.values(squad).reduce((a, b) => a + (b ?? 0), 0);
+
+  const openBattleFromProximity = async () => {
+    if (!proximity) return;
+    const bk = await getPikminBreakdown();
+    setBreakdown(bk);
+    setSquad({});
+    setActive({ spawn: proximity.spawn, enemy: proximity.enemy });
+    setProximity(null);
+  };
+
+  const flee = () => {
+    if (!proximity) return;
+    proximityDismissedRef.current.set(proximity.spawn.id, Date.now() + FLEE_COOLDOWN_MS);
+    toast.message(`Sei scappato da ${proximity.enemy.name}.`);
+    try { navigator.vibrate?.(20); } catch { /* ignore */ }
+    setProximity(null);
+  };
+
+  const hide = () => {
+    if (!proximity) return;
+    setHiddenUntil(Date.now() + HIDE_DURATION_MS);
+    proximityDismissedRef.current.set(proximity.spawn.id, Date.now() + HIDE_DURATION_MS);
+    toast.message(`Sei nascosto per ${HIDE_DURATION_MS / 1000}s.`);
+    setProximity(null);
+  };
+
+  const observe = () => {
+    // keep proximity open but mark as observed (don't reopen for 30s)
+    if (!proximity) return;
+    proximityDismissedRef.current.set(proximity.spawn.id, Date.now() + 30_000);
+  };
 
   const fight = async () => {
     if (!active || totalSquad === 0) return;
@@ -253,7 +463,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     const res = simulateBattle(enemy, squad);
     await applyPikminLosses(res.pikminLost, agent);
     if (res.outcome === "vittoria" && res.rewards.coins > 0) {
-      try { await addCoins(agent, res.rewards.coins, "battle_reward", { enemy: enemy.name }); } catch {}
+      try { await addCoins(agent, res.rewards.coins, "battle_reward", { enemy: enemy.name }); } catch { /* ignore */ }
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase as any).from("battle_logs").insert({
@@ -278,15 +488,55 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     setSquad({});
   };
 
-  const flee = async () => {
-    if (!active) return;
-    toast.message(`Hai ritirato la squadra. ${active.enemy.name} resta nella zona.`);
+  const closeBattle = () => {
     setActive(null);
   };
 
   return (
     <>
-      <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
+      {/* Hidden indicator */}
+      {isHidden && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[1100] panel px-3 py-1 text-[10px] uppercase tracking-widest flex items-center gap-1 text-emerald-300 border-emerald-500/50">
+          <EyeOff className="h-3 w-3" /> Nascosto
+        </div>
+      )}
+
+      {/* Proximity alert dialog */}
+      <Dialog open={!!proximity} onOpenChange={(o) => !o && setProximity(null)}>
+        <DialogContent className="max-w-sm">
+          {proximity && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display text-lg text-glow flex items-center gap-2 text-destructive">
+                  <RadarIcon className="h-5 w-5 animate-pulse" /> NEMICO VICINO
+                </DialogTitle>
+                <DialogDescription>
+                  {proximity.enemy.emoji} <b>{proximity.enemy.name}</b> · {Math.round(proximity.dist)}m · pericolosità {proximity.enemy.danger_level}/5
+                </DialogDescription>
+              </DialogHeader>
+              <div className="text-[11px] text-muted-foreground -mt-1">
+                HP {proximity.enemy.hp} · Danno {proximity.enemy.damage} · Comp.: {livePosRef.current.get(proximity.spawn.id)?.behavior ?? "?"}
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <button onClick={openBattleFromProximity} className="btn-neon py-2 text-xs flex items-center justify-center gap-1">
+                  <Swords className="h-3 w-3" /> Ingaggia
+                </button>
+                <button onClick={hide} className="panel py-2 text-xs flex items-center justify-center gap-1">
+                  <EyeOff className="h-3 w-3" /> Nasconditi
+                </button>
+                <button onClick={flee} className="panel py-2 text-xs flex items-center justify-center gap-1">
+                  <Footprints className="h-3 w-3" /> Fuggi
+                </button>
+                <button onClick={observe} className="panel py-2 text-xs flex items-center justify-center gap-1">
+                  <Eye className="h-3 w-3" /> Osserva
+                </button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!active} onOpenChange={(o) => !o && closeBattle()}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           {active && (
             <>
@@ -346,7 +596,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
               </div>
 
               <div className="flex gap-2 pt-3">
-                <button onClick={flee} className="flex-1 panel py-2 text-xs flex items-center justify-center gap-1">
+                <button onClick={closeBattle} className="flex-1 panel py-2 text-xs flex items-center justify-center gap-1">
                   <X className="h-3 w-3" /> Ritirata
                 </button>
                 <button
