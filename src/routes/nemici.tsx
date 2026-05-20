@@ -201,7 +201,12 @@ function NemiciPage() {
                 draft && (
                   <div className="space-y-2 mt-2 text-xs">
                     <EditField label="Nome" value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} />
-                    <EditField label="URL immagine" value={draft.image_url ?? ""} onChange={(v) => setDraft({ ...draft, image_url: v })} />
+                    <ImageUploader
+                      label="Immagine"
+                      url={draft.image_url ?? ""}
+                      onUrl={(v) => setDraft({ ...draft, image_url: v })}
+                      pathHint={`${draft.id}`}
+                    />
                     <EditField label="Descrizione" textarea value={draft.description ?? ""} onChange={(v) => setDraft({ ...draft, description: v })} />
                     <div className="grid grid-cols-2 gap-2">
                       <EditNumber label="Pericolosità (1-5)" value={draft.danger_level} onChange={(v) => setDraft({ ...draft, danger_level: Math.min(5, Math.max(1, v)) })} />
