@@ -88,6 +88,7 @@ function pickBehavior(enemy: EnemyRow): LivePos["behavior"] {
 export function EnemyLayer({ mapRef, ready, me }: Props) {
   const session = typeof window !== "undefined" ? getSession() : null;
   const agent = session?.name ?? "lorenzo";
+  const isAdmin = session?.role === "papa";
 
   const [enemies, setEnemies] = useState<EnemyRow[]>([]);
   const [spawns, setSpawns] = useState<Spawn[]>([]);
@@ -100,6 +101,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
   const [resultBox, setResultBox] = useState<string | null>(null);
   const [, setTick] = useState(0); // re-render on movement
   const [hiddenUntil, setHiddenUntil] = useState<number>(0);
+  const [placeEnemyOpen, setPlaceEnemyOpen] = useState(false);
+  const [placeEnemyMode, setPlaceEnemyMode] = useState<EnemyRow | null>(null);
 
   const markersRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
   const detectionCirclesRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
