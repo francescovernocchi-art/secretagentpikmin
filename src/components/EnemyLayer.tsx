@@ -375,11 +375,14 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
             if (ico) (ico as HTMLElement).style.filter = `drop-shadow(0 0 8px ${color})`;
           }
         } else {
+          const iconHtml = enemy.image_url
+            ? `<img src="${enemy.image_url}" alt="" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 8px ${color})" onerror="this.outerHTML='<div style=&quot;font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})&quot;>${enemy.emoji}</div>'" />`
+            : `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})">${enemy.emoji}</div>`;
           const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px)">
             <div data-enemy-badge style="background:#0a0a0a;color:${color};font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid ${color};box-shadow:0 0 8px ${color}">⚠️ ${enemy.name}</div>
-            <div data-enemy-ico style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})">${enemy.emoji}</div>
+            <div data-enemy-ico>${iconHtml}</div>
           </div>`;
-          const icon = L.divIcon({ className: "", html, iconSize: [120, 44], iconAnchor: [60, 28] });
+          const icon = L.divIcon({ className: "", html, iconSize: [120, 56], iconAnchor: [60, 32] });
           const marker = L.marker([pos.lat, pos.lng], { icon, zIndexOffset: 950 }).addTo(map);
           marker.on("click", () => {
             setCard({ spawn: s, enemy });
