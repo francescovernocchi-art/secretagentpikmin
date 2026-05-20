@@ -381,11 +381,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
           </div>`;
           const icon = L.divIcon({ className: "", html, iconSize: [120, 44], iconAnchor: [60, 28] });
           const marker = L.marker([pos.lat, pos.lng], { icon, zIndexOffset: 950 }).addTo(map);
-          marker.on("click", async () => {
-            const bk = await getPikminBreakdown();
-            setBreakdown(bk);
-            setSquad({});
-            setActive({ spawn: s, enemy });
+          marker.on("click", () => {
+            setCard({ spawn: s, enemy });
           });
           markersRef.current.set(s.id, marker);
 
