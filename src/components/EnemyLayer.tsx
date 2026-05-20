@@ -174,8 +174,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
       if (spawns.length >= 5) return;
       const enemy = rollEnemy(enemies);
       if (!enemy) return;
-      // Spawn entro il raggio del comune: 60-350m dal giocatore (stessa area degli oggetti)
-      const distM = 60 + Math.random() * 290;
+      // Spawn entro il comune: 200m - 10km dal giocatore
+      const distM = 200 + Math.random() * 9800;
       const bearing = Math.random() * Math.PI * 2;
       const dLat = (distM * Math.cos(bearing)) / 111320;
       const dLng = (distM * Math.sin(bearing)) / (111320 * Math.cos((me.lat * Math.PI) / 180));
