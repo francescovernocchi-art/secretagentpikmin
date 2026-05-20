@@ -93,6 +93,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
   const [spawns, setSpawns] = useState<Spawn[]>([]);
   const [active, setActive] = useState<{ spawn: Spawn; enemy: EnemyRow } | null>(null);
   const [proximity, setProximity] = useState<{ spawn: Spawn; enemy: EnemyRow; dist: number } | null>(null);
+  const [card, setCard] = useState<{ spawn: Spawn; enemy: EnemyRow } | null>(null);
+  const [scanned, setScanned] = useState<Set<string>>(new Set());
   const [breakdown, setBreakdown] = useState<BattleSquad>({});
   const [squad, setSquad] = useState<BattleSquad>({});
   const [resultBox, setResultBox] = useState<string | null>(null);
