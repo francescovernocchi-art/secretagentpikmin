@@ -88,6 +88,7 @@ function pickBehavior(enemy: EnemyRow): LivePos["behavior"] {
 export function EnemyLayer({ mapRef, ready, me }: Props) {
   const session = typeof window !== "undefined" ? getSession() : null;
   const agent = session?.name ?? "lorenzo";
+  const isAdmin = session?.role === "papa";
 
   const [enemies, setEnemies] = useState<EnemyRow[]>([]);
   const [spawns, setSpawns] = useState<Spawn[]>([]);
@@ -100,6 +101,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
   const [resultBox, setResultBox] = useState<string | null>(null);
   const [, setTick] = useState(0); // re-render on movement
   const [hiddenUntil, setHiddenUntil] = useState<number>(0);
+  const [placeEnemyOpen, setPlaceEnemyOpen] = useState(false);
+  const [placeEnemyMode, setPlaceEnemyMode] = useState<EnemyRow | null>(null);
 
   const markersRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
   const detectionCirclesRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
@@ -144,6 +147,43 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
       supabase.removeChannel(ch);
     };
   }, []);
+
+  // Admin place mode: handle map clicks to spawn the selected enemy
+  useEffect(() => {
+    if (!ready || !placeEnemyMode) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const map = mapRef.current as any;
+    if (!map) return;
+    const onClick = async (e: { latlng: { lat: number; lng: number } }) => {
+      const enemy = placeEnemyMode;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("map_enemy_spawns").insert({
+        enemy_id: enemy.id,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        radius_m: PATROL_RADIUS_M,
+        active: true,
+        expires_at: new Date(Date.now() + SPAWN_LIFETIME_MS).toISOString(),
+      });
+      if (error) {
+        toast.error("Spawn fallito: " + error.message);
+      } else {
+        toast.success(`${enemy.emoji} ${enemy.name} piazzato sulla mappa`);
+        try { navigator.vibrate?.(50); } catch { /* ignore */ }
+      }
+      setPlaceEnemyMode(null);
+    };
+    map.on("click", onClick);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const container = (map as any).getContainer?.();
+    if (container) container.style.cursor = "crosshair";
+    return () => {
+      map.off("click", onClick);
+      if (container) container.style.cursor = "";
+    };
+  }, [placeEnemyMode, ready, mapRef]);
+
+
 
   // init live positions when spawns arrive
   useEffect(() => {
@@ -503,6 +543,56 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
           <EyeOff className="h-3 w-3" /> Nascosto
         </div>
       )}
+
+      {/* Admin: piazza nemico */}
+      {isAdmin && (
+        <>
+          <button
+            onClick={() => setPlaceEnemyOpen(true)}
+            className="fixed top-32 right-3 z-[1100] panel-strong px-3 py-2 text-xs flex items-center gap-1.5 text-destructive border-destructive/40"
+          >
+            <Skull className="h-3.5 w-3.5" /> Piazza nemico
+          </button>
+          {placeEnemyMode && (
+            <div className="fixed top-44 right-3 z-[1100] panel px-3 py-1.5 text-[10px] uppercase tracking-widest text-destructive border-destructive/40">
+              Tocca la mappa · {placeEnemyMode.emoji} {placeEnemyMode.name}
+              <button onClick={() => setPlaceEnemyMode(null)} className="ml-2 text-muted-foreground">✕</button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Picker nemico per admin */}
+      <Dialog open={placeEnemyOpen} onOpenChange={setPlaceEnemyOpen}>
+        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-glow flex items-center gap-2">
+              <Skull className="h-5 w-5 text-destructive" /> Scegli il nemico
+            </DialogTitle>
+            <DialogDescription>Poi tocca la mappa nel punto in cui vuoi farlo apparire.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            {enemies.map((e) => (
+              <button
+                key={e.id}
+                onClick={() => { setPlaceEnemyMode(e); setPlaceEnemyOpen(false); }}
+                className="panel p-2 text-left flex items-center gap-2 active:scale-[0.98]"
+              >
+                <span className="text-2xl">{e.emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-display text-glow truncate">{e.name}</p>
+                  <p className="text-[10px] text-muted-foreground">Pericolosità {e.danger_level}/5</p>
+                </div>
+              </button>
+            ))}
+            {enemies.length === 0 && (
+              <p className="col-span-2 text-xs text-muted-foreground text-center py-4">Nessun nemico nel bestiario.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* Enemy card (click marker) */}
       <Dialog open={!!card} onOpenChange={(o) => !o && setCard(null)}>
