@@ -148,6 +148,43 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     };
   }, []);
 
+  // Admin place mode: handle map clicks to spawn the selected enemy
+  useEffect(() => {
+    if (!ready || !placeEnemyMode) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const map = mapRef.current as any;
+    if (!map) return;
+    const onClick = async (e: { latlng: { lat: number; lng: number } }) => {
+      const enemy = placeEnemyMode;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("map_enemy_spawns").insert({
+        enemy_id: enemy.id,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        radius_m: PATROL_RADIUS_M,
+        active: true,
+        expires_at: new Date(Date.now() + SPAWN_LIFETIME_MS).toISOString(),
+      });
+      if (error) {
+        toast.error("Spawn fallito: " + error.message);
+      } else {
+        toast.success(`${enemy.emoji} ${enemy.name} piazzato sulla mappa`);
+        try { navigator.vibrate?.(50); } catch { /* ignore */ }
+      }
+      setPlaceEnemyMode(null);
+    };
+    map.on("click", onClick);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const container = (map as any).getContainer?.();
+    if (container) container.style.cursor = "crosshair";
+    return () => {
+      map.off("click", onClick);
+      if (container) container.style.cursor = "";
+    };
+  }, [placeEnemyMode, ready, mapRef]);
+
+
+
   // init live positions when spawns arrive
   useEffect(() => {
     for (const s of spawns) {
