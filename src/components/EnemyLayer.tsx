@@ -93,6 +93,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
   const [spawns, setSpawns] = useState<Spawn[]>([]);
   const [active, setActive] = useState<{ spawn: Spawn; enemy: EnemyRow } | null>(null);
   const [proximity, setProximity] = useState<{ spawn: Spawn; enemy: EnemyRow; dist: number } | null>(null);
+  const [card, setCard] = useState<{ spawn: Spawn; enemy: EnemyRow } | null>(null);
+  const [scanned, setScanned] = useState<Set<string>>(new Set());
   const [breakdown, setBreakdown] = useState<BattleSquad>({});
   const [squad, setSquad] = useState<BattleSquad>({});
   const [resultBox, setResultBox] = useState<string | null>(null);
@@ -172,8 +174,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
       if (spawns.length >= 5) return;
       const enemy = rollEnemy(enemies);
       if (!enemy) return;
-      // Spawn entro il raggio del comune: 60-350m dal giocatore (stessa area degli oggetti)
-      const distM = 60 + Math.random() * 290;
+      // Spawn entro il comune: 200m - 10km dal giocatore
+      const distM = 200 + Math.random() * 9800;
       const bearing = Math.random() * Math.PI * 2;
       const dLat = (distM * Math.cos(bearing)) / 111320;
       const dLng = (distM * Math.sin(bearing)) / (111320 * Math.cos((me.lat * Math.PI) / 180));
@@ -373,17 +375,17 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
             if (ico) (ico as HTMLElement).style.filter = `drop-shadow(0 0 8px ${color})`;
           }
         } else {
+          const iconHtml = enemy.image_url
+            ? `<img src="${enemy.image_url}" alt="" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 8px ${color})" onerror="this.outerHTML='<div style=&quot;font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})&quot;>${enemy.emoji}</div>'" />`
+            : `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})">${enemy.emoji}</div>`;
           const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px)">
             <div data-enemy-badge style="background:#0a0a0a;color:${color};font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid ${color};box-shadow:0 0 8px ${color}">⚠️ ${enemy.name}</div>
-            <div data-enemy-ico style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})">${enemy.emoji}</div>
+            <div data-enemy-ico>${iconHtml}</div>
           </div>`;
-          const icon = L.divIcon({ className: "", html, iconSize: [120, 44], iconAnchor: [60, 28] });
+          const icon = L.divIcon({ className: "", html, iconSize: [120, 56], iconAnchor: [60, 32] });
           const marker = L.marker([pos.lat, pos.lng], { icon, zIndexOffset: 950 }).addTo(map);
-          marker.on("click", async () => {
-            const bk = await getPikminBreakdown();
-            setBreakdown(bk);
-            setSquad({});
-            setActive({ spawn: s, enemy });
+          marker.on("click", () => {
+            setCard({ spawn: s, enemy });
           });
           markersRef.current.set(s.id, marker);
 
@@ -502,7 +504,82 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         </div>
       )}
 
-      {/* Proximity alert dialog */}
+      {/* Enemy card (click marker) */}
+      <Dialog open={!!card} onOpenChange={(o) => !o && setCard(null)}>
+        <DialogContent className="max-w-sm">
+          {card && (() => {
+            const isScanned = scanned.has(card.spawn.id);
+            const live = livePosRef.current.get(card.spawn.id);
+            const dist = me ? Math.round(distMeters({ lat: live?.lat ?? card.spawn.lat, lng: live?.lng ?? card.spawn.lng }, me)) : null;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="font-display text-lg text-glow flex items-center gap-2">
+                    <span className="text-2xl">{card.enemy.emoji}</span> {card.enemy.name}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {card.enemy.habitat ?? "Avvistato sulla mappa"}{dist !== null ? ` · ${dist}m da te` : ""}
+                  </DialogDescription>
+                </DialogHeader>
+                <WikiImage src={card.enemy.image_url} alt={card.enemy.name} fallback={card.enemy.emoji} className="w-full h-32 p-2" />
+                {card.enemy.description && (
+                  <p className="text-xs text-muted-foreground leading-relaxed">{card.enemy.description}</p>
+                )}
+                {isScanned ? (
+                  <div className="panel p-2 space-y-1 text-[11px]">
+                    <p className="flex items-center gap-1 text-primary"><RadarIcon className="h-3 w-3" /> SCAN COMPLETATO</p>
+                    <p>Pericolosità: <b className="text-destructive">{card.enemy.danger_level}/5</b> · HP {card.enemy.hp} · Danno {card.enemy.damage}</p>
+                    <p>Comportamento: {live?.behavior ?? card.enemy.behavior ?? "?"}</p>
+                    <p>Pikmin consigliati: {(card.enemy.recommended_pikmin ?? []).length === 0 ? "—" : (card.enemy.recommended_pikmin ?? []).map((t) => (
+                      <span key={t} className="mr-1">{PIKMIN_TYPE_EMOJI[t as PikminType]} {PIKMIN_TYPE_LABEL[t as PikminType]}</span>
+                    ))}</p>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground italic">Dati sconosciuti. Esegui uno scan per rivelare pericolosità e Pikmin consigliati.</p>
+                )}
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      setScanned((s) => new Set(s).add(card.spawn.id));
+                      try { navigator.vibrate?.(40); } catch { /* ignore */ }
+                      toast.success(`Scan: ${card.enemy.name} pericolosità ${card.enemy.danger_level}/5`);
+                    }}
+                    className="panel py-2 text-xs flex items-center justify-center gap-1"
+                  >
+                    <RadarIcon className="h-3 w-3" /> Scan
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const bk = await getPikminBreakdown();
+                      setBreakdown(bk);
+                      setSquad({});
+                      setActive({ spawn: card.spawn, enemy: card.enemy });
+                      setCard(null);
+                    }}
+                    className="btn-neon py-2 text-xs flex items-center justify-center gap-1"
+                  >
+                    <Swords className="h-3 w-3" /> Battaglia
+                  </button>
+                  <button
+                    onClick={() => {
+                      setHiddenUntil(Date.now() + HIDE_DURATION_MS);
+                      proximityDismissedRef.current.set(card.spawn.id, Date.now() + HIDE_DURATION_MS);
+                      try { navigator.vibrate?.(20); } catch { /* ignore */ }
+                      toast.message(`Sei nascosto per ${HIDE_DURATION_MS / 1000}s. ${card.enemy.name} non ti vede.`);
+                      setCard(null);
+                    }}
+                    className="panel py-2 text-xs flex items-center justify-center gap-1"
+                  >
+                    <EyeOff className="h-3 w-3" /> Nasconditi
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+
       <Dialog open={!!proximity} onOpenChange={(o) => !o && setProximity(null)}>
         <DialogContent className="max-w-sm">
           {proximity && (
