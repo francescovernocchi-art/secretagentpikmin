@@ -544,6 +544,56 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         </div>
       )}
 
+      {/* Admin: piazza nemico */}
+      {isAdmin && (
+        <>
+          <button
+            onClick={() => setPlaceEnemyOpen(true)}
+            className="fixed top-32 right-3 z-[1100] panel-strong px-3 py-2 text-xs flex items-center gap-1.5 text-destructive border-destructive/40"
+          >
+            <Skull className="h-3.5 w-3.5" /> Piazza nemico
+          </button>
+          {placeEnemyMode && (
+            <div className="fixed top-44 right-3 z-[1100] panel px-3 py-1.5 text-[10px] uppercase tracking-widest text-destructive border-destructive/40">
+              Tocca la mappa · {placeEnemyMode.emoji} {placeEnemyMode.name}
+              <button onClick={() => setPlaceEnemyMode(null)} className="ml-2 text-muted-foreground">✕</button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Picker nemico per admin */}
+      <Dialog open={placeEnemyOpen} onOpenChange={setPlaceEnemyOpen}>
+        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-glow flex items-center gap-2">
+              <Skull className="h-5 w-5 text-destructive" /> Scegli il nemico
+            </DialogTitle>
+            <DialogDescription>Poi tocca la mappa nel punto in cui vuoi farlo apparire.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            {enemies.map((e) => (
+              <button
+                key={e.id}
+                onClick={() => { setPlaceEnemyMode(e); setPlaceEnemyOpen(false); }}
+                className="panel p-2 text-left flex items-center gap-2 active:scale-[0.98]"
+              >
+                <span className="text-2xl">{e.emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-display text-glow truncate">{e.name}</p>
+                  <p className="text-[10px] text-muted-foreground">Pericolosità {e.danger_level}/5</p>
+                </div>
+              </button>
+            ))}
+            {enemies.length === 0 && (
+              <p className="col-span-2 text-xs text-muted-foreground text-center py-4">Nessun nemico nel bestiario.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
+
       {/* Enemy card (click marker) */}
       <Dialog open={!!card} onOpenChange={(o) => !o && setCard(null)}>
         <DialogContent className="max-w-sm">
