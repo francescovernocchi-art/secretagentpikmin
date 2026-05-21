@@ -220,7 +220,10 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     if (!me || enemies.length === 0) return;
     const tryspawn = async () => {
       if (spawns.length >= 5) return;
-      const enemy = rollEnemy(enemies);
+      // Spawnano solo creature attive nella fase corrente del giorno.
+      const pool = enemies.filter((e) => isActiveNow(e.activity_period, phase));
+      if (pool.length === 0) return;
+      const enemy = rollEnemy(pool);
       if (!enemy) return;
       // Spawn entro il comune: 200m - 10km dal giocatore
       const distM = 200 + Math.random() * 9800;
