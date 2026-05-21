@@ -253,7 +253,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     const first = setTimeout(tryspawn, 15_000);
     const id = setInterval(tryspawn, SPAWN_INTERVAL_MS);
     return () => { clearTimeout(first); clearInterval(id); };
-  }, [me, enemies, spawns.length]);
+  }, [me, enemies, spawns.length, phase]);
 
   // movement + detection tick
   useEffect(() => {
