@@ -353,6 +353,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         if (now - new Date(s.spawned_at).getTime() < AUTO_ATTACK_AFTER_MS) continue;
         const enemy = enemies.find((e) => e.id === s.enemy_id);
         if (!enemy) continue;
+        // Le creature che dormono non attaccano di sorpresa.
+        if (!isActiveNow(enemy.activity_period, phase)) continue;
         autoAttackedRef.current.add(s.id);
         runAutoAttack(s, enemy);
       }
