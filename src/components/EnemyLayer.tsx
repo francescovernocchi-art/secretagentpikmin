@@ -231,7 +231,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
           lng,
           radius_m: PATROL_RADIUS_M,
           active: true,
-          expires_at: new Date(Date.now() + SPAWN_LIFETIME_MS).toISOString(),
+          expires_at: null,
         })
         .select()
         .single();
