@@ -98,12 +98,14 @@ type EnemyDraft = {
   pikmin_eat_max: number;
   recommended_pikmin: string[];
   source_url: string;
+  activity_period: "diurno" | "notturno" | "crepuscolare" | "sempre";
 };
 
 const EMPTY_ENEMY: EnemyDraft = {
   key: "", name: "", emoji: "👾", image_url: "", description: "",
   danger_level: 1, habitat: "", behavior: "", speed: "", damage: 1, hp: 10,
   spawn_probability: 0.1, pikmin_eat_min: 1, pikmin_eat_max: 3, recommended_pikmin: [], source_url: "",
+  activity_period: "sempre",
 };
 
 function EnemiesAdmin({ folder }: { folder: "enemies" }) {
@@ -140,7 +142,7 @@ function EnemiesAdmin({ folder }: { folder: "enemies" }) {
   return (
     <div className="space-y-3">
       <NewButton label="Nuovo nemico" onClick={() => setDraft({ ...EMPTY_ENEMY })} />
-      <Grid items={items} onPick={(it) => setDraft({ ...EMPTY_ENEMY, ...it, image_url: it.image_url ?? "", description: it.description ?? "", habitat: it.habitat ?? "", behavior: it.behavior ?? "", speed: it.speed ?? "", source_url: it.source_url ?? "", recommended_pikmin: it.recommended_pikmin ?? [] })} />
+      <Grid items={items} onPick={(it) => setDraft({ ...EMPTY_ENEMY, ...it, image_url: it.image_url ?? "", description: it.description ?? "", habitat: it.habitat ?? "", behavior: it.behavior ?? "", speed: it.speed ?? "", source_url: it.source_url ?? "", recommended_pikmin: it.recommended_pikmin ?? [], activity_period: it.activity_period ?? "sempre" })} />
       <Dialog open={!!draft} onOpenChange={(o) => !o && setDraft(null)}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display text-glow">{draft?.id ? "Modifica nemico" : "Nuovo nemico"}</DialogTitle></DialogHeader>
@@ -163,6 +165,19 @@ function EnemiesAdmin({ folder }: { folder: "enemies" }) {
                 <NumField step={0.05} label="Spawn (0-1)" value={draft.spawn_probability} onChange={(v) => setDraft({ ...draft, spawn_probability: Math.min(1, Math.max(0, v)) })} />
               </Row>
               <Field label="Pikmin consigliati (red,yellow,blue,...)" value={draft.recommended_pikmin.join(",")} onChange={(v) => setDraft({ ...draft, recommended_pikmin: v.split(",").map((s) => s.trim()).filter(Boolean) })} />
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Periodo di attività</span>
+                <select
+                  value={draft.activity_period}
+                  onChange={(e) => setDraft({ ...draft, activity_period: e.target.value as EnemyDraft["activity_period"] })}
+                  className="mt-1 w-full rounded-lg bg-night/60 border border-border px-2 py-1.5 text-xs outline-none focus:border-primary"
+                >
+                  <option value="sempre">♾️ Sempre attivo</option>
+                  <option value="diurno">☀️ Diurno (caccia di giorno, dorme di notte)</option>
+                  <option value="notturno">🌙 Notturno (caccia di notte, dorme di giorno)</option>
+                  <option value="crepuscolare">🌆 Crepuscolare (alba e tramonto)</option>
+                </select>
+              </label>
               <Field label="URL fonte" value={draft.source_url} onChange={(v) => setDraft({ ...draft, source_url: v })} />
               <SaveBar onSave={save} onDelete={draft.id ? () => remove(draft.id!) : undefined} />
             </div>

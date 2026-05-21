@@ -25,6 +25,7 @@ import {
   type PikminType,
 } from "@/lib/enemies";
 import { Skull, Swords, X, Eye, EyeOff, Footprints, Radar as RadarIcon } from "lucide-react";
+import { getDayPhase, isActiveNow, PHASE_EMOJI, PHASE_LABEL, PHASE_COLOR, type DayPhase } from "@/lib/daycycle";
 
 type Spawn = {
   id: string;
@@ -44,7 +45,7 @@ type Props = {
 };
 
 const SPAWN_INTERVAL_MS = 60_000;
-const SPAWN_LIFETIME_MS = 8 * 60_000;
+// I nemici restano sulla mappa finché non vengono uccisi: nessuna scadenza.
 const AUTO_ATTACK_AFTER_MS = 2 * 60_000;
 
 const MOVE_TICK_MS = 1800;
@@ -103,6 +104,13 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
   const [hiddenUntil, setHiddenUntil] = useState<number>(0);
   const [placeEnemyOpen, setPlaceEnemyOpen] = useState(false);
   const [placeEnemyMode, setPlaceEnemyMode] = useState<EnemyRow | null>(null);
+  const [phase, setPhase] = useState<DayPhase>(getDayPhase());
+
+  // Track day/night phase (refresh every minute)
+  useEffect(() => {
+    const t = setInterval(() => setPhase(getDayPhase()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const markersRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
   const detectionCirclesRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
@@ -163,7 +171,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         lng: e.latlng.lng,
         radius_m: PATROL_RADIUS_M,
         active: true,
-        expires_at: new Date(Date.now() + SPAWN_LIFETIME_MS).toISOString(),
+        expires_at: null,
       });
       if (error) {
         toast.error("Spawn fallito: " + error.message);
@@ -212,7 +220,10 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     if (!me || enemies.length === 0) return;
     const tryspawn = async () => {
       if (spawns.length >= 5) return;
-      const enemy = rollEnemy(enemies);
+      // Spawnano solo creature attive nella fase corrente del giorno.
+      const pool = enemies.filter((e) => isActiveNow(e.activity_period, phase));
+      if (pool.length === 0) return;
+      const enemy = rollEnemy(pool);
       if (!enemy) return;
       // Spawn entro il comune: 200m - 10km dal giocatore
       const distM = 200 + Math.random() * 9800;
@@ -230,7 +241,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
           lng,
           radius_m: PATROL_RADIUS_M,
           active: true,
-          expires_at: new Date(Date.now() + SPAWN_LIFETIME_MS).toISOString(),
+          expires_at: null,
         })
         .select()
         .single();
@@ -242,7 +253,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     const first = setTimeout(tryspawn, 15_000);
     const id = setInterval(tryspawn, SPAWN_INTERVAL_MS);
     return () => { clearTimeout(first); clearInterval(id); };
-  }, [me, enemies, spawns.length]);
+  }, [me, enemies, spawns.length, phase]);
 
   // movement + detection tick
   useEffect(() => {
@@ -253,6 +264,12 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         if (!pos) continue;
         const enemy = enemies.find((e) => e.id === s.enemy_id);
         if (!enemy) continue;
+
+        // Se la creatura non è nel suo periodo attivo: dorme.
+        // Niente movimento, niente caccia.
+        if (!isActiveNow(enemy.activity_period, phase)) {
+          continue;
+        }
 
         // base step distance (m) depending on behavior + danger
         const baseStep = 2 + enemy.danger_level * 0.8;
@@ -303,6 +320,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
           const pos = livePosRef.current.get(s.id);
           const enemy = enemies.find((e) => e.id === s.enemy_id);
           if (!pos || !enemy) continue;
+          // Le creature che dormono non rilevano il giocatore.
+          if (!isActiveNow(enemy.activity_period, phase)) continue;
           const d = distMeters(pos, me);
           const dismissed = proximityDismissedRef.current.get(s.id) ?? 0;
           if (d <= pos.detectionM && Date.now() > dismissed) {
@@ -323,7 +342,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     };
     const id = setInterval(tick, MOVE_TICK_MS);
     return () => clearInterval(id);
-  }, [spawns, enemies, me, isHidden, active, proximity]);
+  }, [spawns, enemies, me, isHidden, active, proximity, phase]);
 
   // auto-attack
   useEffect(() => {
@@ -334,6 +353,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         if (now - new Date(s.spawned_at).getTime() < AUTO_ATTACK_AFTER_MS) continue;
         const enemy = enemies.find((e) => e.id === s.enemy_id);
         if (!enemy) continue;
+        // Le creature che dormono non attaccano di sorpresa.
+        if (!isActiveNow(enemy.activity_period, phase)) continue;
         autoAttackedRef.current.add(s.id);
         runAutoAttack(s, enemy);
       }
@@ -394,32 +415,36 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         const enemy = enemies.find((e) => e.id === s.enemy_id);
         if (!enemy) continue;
         const pos = livePosRef.current.get(s.id) ?? { lat: s.lat, lng: s.lng };
+        const sleeping = !isActiveNow(enemy.activity_period, phase);
         const nearby = me ? distMeters(pos, me) <= (livePosRef.current.get(s.id)?.detectionM ?? DETECTION_RADIUS_M) : false;
-        const color = nearby ? "#ff3030" : "#ff7a7a";
+        const color = sleeping ? "#8ab4ff" : nearby ? "#ff3030" : "#ff7a7a";
+        const opacityVal = sleeping ? 0.55 : 1;
+        const badgeText = sleeping ? `💤 ${enemy.name}` : `⚠️ ${enemy.name}`;
 
         const existing = markersRef.current.get(s.id);
         if (existing) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (existing as any).setLatLng([pos.lat, pos.lng]);
-          // update label color if needed
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const el = (existing as any).getElement?.();
           if (el) {
+            el.style.opacity = String(opacityVal);
             const badge = el.querySelector("[data-enemy-badge]");
             if (badge) {
               (badge as HTMLElement).style.color = color;
               (badge as HTMLElement).style.borderColor = color;
               (badge as HTMLElement).style.boxShadow = `0 0 8px ${color}`;
+              (badge as HTMLElement).textContent = badgeText;
             }
             const ico = el.querySelector("[data-enemy-ico]");
-            if (ico) (ico as HTMLElement).style.filter = `drop-shadow(0 0 8px ${color})`;
+            if (ico) (ico as HTMLElement).style.filter = `drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}`;
           }
         } else {
           const iconHtml = enemy.image_url
-            ? `<img src="${enemy.image_url}" alt="" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 8px ${color})" onerror="this.outerHTML='<div style=&quot;font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})&quot;>${enemy.emoji}</div>'" />`
-            : `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})">${enemy.emoji}</div>`;
-          const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px)">
-            <div data-enemy-badge style="background:#0a0a0a;color:${color};font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid ${color};box-shadow:0 0 8px ${color}">⚠️ ${enemy.name}</div>
+            ? `<img src="${enemy.image_url}" alt="" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}" onerror="this.outerHTML='<div style=&quot;font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})&quot;>${enemy.emoji}</div>'" />`
+            : `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}">${enemy.emoji}</div>`;
+          const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px);opacity:${opacityVal}">
+            <div data-enemy-badge style="background:#0a0a0a;color:${color};font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid ${color};box-shadow:0 0 8px ${color}">${badgeText}</div>
             <div data-enemy-ico>${iconHtml}</div>
           </div>`;
           const icon = L.divIcon({ className: "", html, iconSize: [120, 56], iconAnchor: [60, 32] });
@@ -447,7 +472,10 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (circle as any).setLatLng([pos.lat, pos.lng]);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (circle as any).setStyle({ opacity: nearby ? 0.7 : 0.35, color: nearby ? "#ff2020" : "#ff7a7a" });
+          (circle as any).setStyle({
+            opacity: sleeping ? 0 : nearby ? 0.7 : 0.35,
+            color: sleeping ? "#8ab4ff" : nearby ? "#ff2020" : "#ff7a7a",
+          });
         }
       }
       for (const [id, m] of markersRef.current.entries()) {
@@ -537,9 +565,22 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
 
   return (
     <>
+      {/* Day/night phase pill */}
+      <div
+        className="fixed top-3 left-1/2 -translate-x-1/2 z-[1100] panel-strong px-3 py-1.5 text-[10px] uppercase tracking-widest flex items-center gap-1.5"
+        style={{ color: PHASE_COLOR[phase], borderColor: `${PHASE_COLOR[phase]}66` }}
+      >
+        <span className="text-sm leading-none">{PHASE_EMOJI[phase]}</span>
+        <span>{PHASE_LABEL[phase]}</span>
+        <span className="text-muted-foreground normal-case">·</span>
+        <span className="text-muted-foreground normal-case text-[10px]">
+          {new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+        </span>
+      </div>
+
       {/* Hidden indicator */}
       {isHidden && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[1100] panel px-3 py-1 text-[10px] uppercase tracking-widest flex items-center gap-1 text-emerald-300 border-emerald-500/50">
+        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[1100] panel px-3 py-1 text-[10px] uppercase tracking-widest flex items-center gap-1 text-emerald-300 border-emerald-500/50">
           <EyeOff className="h-3 w-3" /> Nascosto
         </div>
       )}
