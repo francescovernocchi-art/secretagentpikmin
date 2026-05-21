@@ -415,32 +415,36 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         const enemy = enemies.find((e) => e.id === s.enemy_id);
         if (!enemy) continue;
         const pos = livePosRef.current.get(s.id) ?? { lat: s.lat, lng: s.lng };
+        const sleeping = !isActiveNow(enemy.activity_period, phase);
         const nearby = me ? distMeters(pos, me) <= (livePosRef.current.get(s.id)?.detectionM ?? DETECTION_RADIUS_M) : false;
-        const color = nearby ? "#ff3030" : "#ff7a7a";
+        const color = sleeping ? "#8ab4ff" : nearby ? "#ff3030" : "#ff7a7a";
+        const opacityVal = sleeping ? 0.55 : 1;
+        const badgeText = sleeping ? `💤 ${enemy.name}` : `⚠️ ${enemy.name}`;
 
         const existing = markersRef.current.get(s.id);
         if (existing) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (existing as any).setLatLng([pos.lat, pos.lng]);
-          // update label color if needed
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const el = (existing as any).getElement?.();
           if (el) {
+            el.style.opacity = String(opacityVal);
             const badge = el.querySelector("[data-enemy-badge]");
             if (badge) {
               (badge as HTMLElement).style.color = color;
               (badge as HTMLElement).style.borderColor = color;
               (badge as HTMLElement).style.boxShadow = `0 0 8px ${color}`;
+              (badge as HTMLElement).textContent = badgeText;
             }
             const ico = el.querySelector("[data-enemy-ico]");
-            if (ico) (ico as HTMLElement).style.filter = `drop-shadow(0 0 8px ${color})`;
+            if (ico) (ico as HTMLElement).style.filter = `drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}`;
           }
         } else {
           const iconHtml = enemy.image_url
-            ? `<img src="${enemy.image_url}" alt="" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 8px ${color})" onerror="this.outerHTML='<div style=&quot;font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})&quot;>${enemy.emoji}</div>'" />`
-            : `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})">${enemy.emoji}</div>`;
-          const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px)">
-            <div data-enemy-badge style="background:#0a0a0a;color:${color};font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid ${color};box-shadow:0 0 8px ${color}">⚠️ ${enemy.name}</div>
+            ? `<img src="${enemy.image_url}" alt="" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}" onerror="this.outerHTML='<div style=&quot;font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})&quot;>${enemy.emoji}</div>'" />`
+            : `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}">${enemy.emoji}</div>`;
+          const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px);opacity:${opacityVal}">
+            <div data-enemy-badge style="background:#0a0a0a;color:${color};font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid ${color};box-shadow:0 0 8px ${color}">${badgeText}</div>
             <div data-enemy-ico>${iconHtml}</div>
           </div>`;
           const icon = L.divIcon({ className: "", html, iconSize: [120, 56], iconAnchor: [60, 32] });
@@ -468,7 +472,10 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (circle as any).setLatLng([pos.lat, pos.lng]);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (circle as any).setStyle({ opacity: nearby ? 0.7 : 0.35, color: nearby ? "#ff2020" : "#ff7a7a" });
+          (circle as any).setStyle({
+            opacity: sleeping ? 0 : nearby ? 0.7 : 0.35,
+            color: sleeping ? "#8ab4ff" : nearby ? "#ff2020" : "#ff7a7a",
+          });
         }
       }
       for (const [id, m] of markersRef.current.entries()) {
