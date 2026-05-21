@@ -264,6 +264,7 @@ export type Database = {
       }
       enemies: {
         Row: {
+          activity_period: string
           behavior: string | null
           created_at: string
           damage: number
@@ -285,6 +286,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          activity_period?: string
           behavior?: string | null
           created_at?: string
           damage?: number
@@ -306,6 +308,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          activity_period?: string
           behavior?: string | null
           created_at?: string
           damage?: number
