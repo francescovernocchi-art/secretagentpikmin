@@ -565,9 +565,22 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
 
   return (
     <>
+      {/* Day/night phase pill */}
+      <div
+        className="fixed top-3 left-1/2 -translate-x-1/2 z-[1100] panel-strong px-3 py-1.5 text-[10px] uppercase tracking-widest flex items-center gap-1.5"
+        style={{ color: PHASE_COLOR[phase], borderColor: `${PHASE_COLOR[phase]}66` }}
+      >
+        <span className="text-sm leading-none">{PHASE_EMOJI[phase]}</span>
+        <span>{PHASE_LABEL[phase]}</span>
+        <span className="text-muted-foreground normal-case">·</span>
+        <span className="text-muted-foreground normal-case text-[10px]">
+          {new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+        </span>
+      </div>
+
       {/* Hidden indicator */}
       {isHidden && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[1100] panel px-3 py-1 text-[10px] uppercase tracking-widest flex items-center gap-1 text-emerald-300 border-emerald-500/50">
+        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[1100] panel px-3 py-1 text-[10px] uppercase tracking-widest flex items-center gap-1 text-emerald-300 border-emerald-500/50">
           <EyeOff className="h-3 w-3" /> Nascosto
         </div>
       )}
