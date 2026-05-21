@@ -1,9 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, MessageSquare, Target, Trophy, User, FlaskConical, Map, Rocket, ShoppingBag, BookOpen, Skull } from "lucide-react";
+import { Radio, MessageSquare, Target, Trophy, User, FlaskConical, Map, Rocket, ShoppingBag, BookOpen, Skull, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 import { hapticTap } from "@/lib/haptic";
+import { getSession } from "@/lib/session";
 
-const items = [
+const baseItems = [
   { to: "/base", icon: Radio, label: "Base" },
   { to: "/chat", icon: MessageSquare, label: "Chat" },
   { to: "/missioni", icon: Target, label: "Mission" },
@@ -16,6 +17,8 @@ const items = [
   { to: "/premi", icon: Trophy, label: "Premi" },
   { to: "/profilo", icon: User, label: "Agente" },
 ] as const;
+
+const adminItem = { to: "/atelier", icon: Wrench, label: "Atelier" } as const;
 
 export function BottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
