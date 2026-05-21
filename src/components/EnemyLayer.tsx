@@ -104,6 +104,13 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
   const [hiddenUntil, setHiddenUntil] = useState<number>(0);
   const [placeEnemyOpen, setPlaceEnemyOpen] = useState(false);
   const [placeEnemyMode, setPlaceEnemyMode] = useState<EnemyRow | null>(null);
+  const [phase, setPhase] = useState<DayPhase>(getDayPhase());
+
+  // Track day/night phase (refresh every minute)
+  useEffect(() => {
+    const t = setInterval(() => setPhase(getDayPhase()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const markersRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
   const detectionCirclesRef = useRef<globalThis.Map<string, unknown>>(new globalThis.Map());
