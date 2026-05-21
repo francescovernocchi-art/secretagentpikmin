@@ -165,6 +165,19 @@ function EnemiesAdmin({ folder }: { folder: "enemies" }) {
                 <NumField step={0.05} label="Spawn (0-1)" value={draft.spawn_probability} onChange={(v) => setDraft({ ...draft, spawn_probability: Math.min(1, Math.max(0, v)) })} />
               </Row>
               <Field label="Pikmin consigliati (red,yellow,blue,...)" value={draft.recommended_pikmin.join(",")} onChange={(v) => setDraft({ ...draft, recommended_pikmin: v.split(",").map((s) => s.trim()).filter(Boolean) })} />
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Periodo di attività</span>
+                <select
+                  value={draft.activity_period}
+                  onChange={(e) => setDraft({ ...draft, activity_period: e.target.value as EnemyDraft["activity_period"] })}
+                  className="mt-1 w-full rounded-lg bg-night/60 border border-border px-2 py-1.5 text-xs outline-none focus:border-primary"
+                >
+                  <option value="sempre">♾️ Sempre attivo</option>
+                  <option value="diurno">☀️ Diurno (caccia di giorno, dorme di notte)</option>
+                  <option value="notturno">🌙 Notturno (caccia di notte, dorme di giorno)</option>
+                  <option value="crepuscolare">🌆 Crepuscolare (alba e tramonto)</option>
+                </select>
+              </label>
               <Field label="URL fonte" value={draft.source_url} onChange={(v) => setDraft({ ...draft, source_url: v })} />
               <SaveBar onSave={save} onDelete={draft.id ? () => remove(draft.id!) : undefined} />
             </div>
