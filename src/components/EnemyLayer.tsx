@@ -25,6 +25,7 @@ import {
   type PikminType,
 } from "@/lib/enemies";
 import { Skull, Swords, X, Eye, EyeOff, Footprints, Radar as RadarIcon } from "lucide-react";
+import { getDayPhase, isActiveNow, PHASE_EMOJI, PHASE_LABEL, PHASE_COLOR, type DayPhase } from "@/lib/daycycle";
 
 type Spawn = {
   id: string;
