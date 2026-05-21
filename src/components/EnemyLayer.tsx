@@ -45,7 +45,7 @@ type Props = {
 };
 
 const SPAWN_INTERVAL_MS = 60_000;
-const SPAWN_LIFETIME_MS = 8 * 60_000;
+// I nemici restano sulla mappa finché non vengono uccisi: nessuna scadenza.
 const AUTO_ATTACK_AFTER_MS = 2 * 60_000;
 
 const MOVE_TICK_MS = 1800;
