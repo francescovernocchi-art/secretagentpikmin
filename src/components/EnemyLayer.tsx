@@ -320,6 +320,8 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
           const pos = livePosRef.current.get(s.id);
           const enemy = enemies.find((e) => e.id === s.enemy_id);
           if (!pos || !enemy) continue;
+          // Le creature che dormono non rilevano il giocatore.
+          if (!isActiveNow(enemy.activity_period, phase)) continue;
           const d = distMeters(pos, me);
           const dismissed = proximityDismissedRef.current.get(s.id) ?? 0;
           if (d <= pos.detectionM && Date.now() > dismissed) {
@@ -340,7 +342,7 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
     };
     const id = setInterval(tick, MOVE_TICK_MS);
     return () => clearInterval(id);
-  }, [spawns, enemies, me, isHidden, active, proximity]);
+  }, [spawns, enemies, me, isHidden, active, proximity, phase]);
 
   // auto-attack
   useEffect(() => {
