@@ -265,6 +265,12 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
         const enemy = enemies.find((e) => e.id === s.enemy_id);
         if (!enemy) continue;
 
+        // Se la creatura non è nel suo periodo attivo: dorme.
+        // Niente movimento, niente caccia.
+        if (!isActiveNow(enemy.activity_period, phase)) {
+          continue;
+        }
+
         // base step distance (m) depending on behavior + danger
         const baseStep = 2 + enemy.danger_level * 0.8;
         let stepM = baseStep * (0.4 + Math.random() * 0.9);
