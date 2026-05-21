@@ -22,6 +22,8 @@ const adminItem = { to: "/atelier", icon: Wrench, label: "Atelier" } as const;
 
 export function BottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const session = typeof window !== "undefined" ? getSession() : null;
+  const items = session?.role === "papa" ? [...baseItems, adminItem] : baseItems;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 safe-bottom">
       <div className="relative mx-2 mb-2 panel-strong px-1 py-1 overflow-hidden">
