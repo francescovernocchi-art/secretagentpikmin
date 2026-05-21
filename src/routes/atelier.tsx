@@ -142,7 +142,7 @@ function EnemiesAdmin({ folder }: { folder: "enemies" }) {
   return (
     <div className="space-y-3">
       <NewButton label="Nuovo nemico" onClick={() => setDraft({ ...EMPTY_ENEMY })} />
-      <Grid items={items} onPick={(it) => setDraft({ ...EMPTY_ENEMY, ...it, image_url: it.image_url ?? "", description: it.description ?? "", habitat: it.habitat ?? "", behavior: it.behavior ?? "", speed: it.speed ?? "", source_url: it.source_url ?? "", recommended_pikmin: it.recommended_pikmin ?? [] })} />
+      <Grid items={items} onPick={(it) => setDraft({ ...EMPTY_ENEMY, ...it, image_url: it.image_url ?? "", description: it.description ?? "", habitat: it.habitat ?? "", behavior: it.behavior ?? "", speed: it.speed ?? "", source_url: it.source_url ?? "", recommended_pikmin: it.recommended_pikmin ?? [], activity_period: it.activity_period ?? "sempre" })} />
       <Dialog open={!!draft} onOpenChange={(o) => !o && setDraft(null)}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display text-glow">{draft?.id ? "Modifica nemico" : "Nuovo nemico"}</DialogTitle></DialogHeader>
