@@ -98,12 +98,14 @@ type EnemyDraft = {
   pikmin_eat_max: number;
   recommended_pikmin: string[];
   source_url: string;
+  activity_period: "diurno" | "notturno" | "crepuscolare" | "sempre";
 };
 
 const EMPTY_ENEMY: EnemyDraft = {
   key: "", name: "", emoji: "👾", image_url: "", description: "",
   danger_level: 1, habitat: "", behavior: "", speed: "", damage: 1, hp: 10,
   spawn_probability: 0.1, pikmin_eat_min: 1, pikmin_eat_max: 3, recommended_pikmin: [], source_url: "",
+  activity_period: "sempre",
 };
 
 function EnemiesAdmin({ folder }: { folder: "enemies" }) {
