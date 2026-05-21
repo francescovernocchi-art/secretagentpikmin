@@ -18,6 +18,7 @@ export type EnemyRow = {
   pikmin_eat_max: number;
   recommended_pikmin: string[];
   source_url: string | null;
+  activity_period?: "diurno" | "notturno" | "crepuscolare" | "sempre" | null;
 };
 
 export type PikminType = "red" | "yellow" | "blue" | "purple" | "white" | "rock" | "wing" | "ice" | "glow";
