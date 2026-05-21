@@ -333,6 +333,7 @@ export type Database = {
           color: string | null
           created_at: string
           emoji: string
+          image_url: string | null
           key: string
           name: string
           price_coins: number | null
@@ -343,6 +344,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           emoji: string
+          image_url?: string | null
           key: string
           name: string
           price_coins?: number | null
@@ -353,6 +355,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           emoji?: string
+          image_url?: string | null
           key?: string
           name?: string
           price_coins?: number | null
@@ -746,6 +749,7 @@ export type Database = {
           description: string | null
           emoji: string
           id: string
+          image_url: string | null
           key: string
           name: string
           rarity: string
@@ -756,6 +760,7 @@ export type Database = {
           description?: string | null
           emoji?: string
           id?: string
+          image_url?: string | null
           key: string
           name: string
           rarity?: string
@@ -766,6 +771,7 @@ export type Database = {
           description?: string | null
           emoji?: string
           id?: string
+          image_url?: string | null
           key?: string
           name?: string
           rarity?: string
