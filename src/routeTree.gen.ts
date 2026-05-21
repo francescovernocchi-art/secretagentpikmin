@@ -23,6 +23,7 @@ import { Route as LabRouteImport } from './routes/lab'
 import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BaseRouteImport } from './routes/base'
+import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as ArchivioRouteImport } from './routes/archivio'
 import { Route as AgentiRouteImport } from './routes/agenti'
 import { Route as IndexRouteImport } from './routes/index'
@@ -97,6 +98,11 @@ const BaseRoute = BaseRouteImport.update({
   path: '/base',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtelierRoute = AtelierRouteImport.update({
+  id: '/atelier',
+  path: '/atelier',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArchivioRoute = ArchivioRouteImport.update({
   id: '/archivio',
   path: '/archivio',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenti': typeof AgentiRoute
   '/archivio': typeof ArchivioRoute
+  '/atelier': typeof AtelierRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agenti': typeof AgentiRoute
   '/archivio': typeof ArchivioRoute
+  '/atelier': typeof AtelierRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/agenti': typeof AgentiRoute
   '/archivio': typeof ArchivioRoute
+  '/atelier': typeof AtelierRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
   '/inventario': typeof InventarioRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/agenti'
     | '/archivio'
+    | '/atelier'
     | '/base'
     | '/chat'
     | '/inventario'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/'
     | '/agenti'
     | '/archivio'
+    | '/atelier'
     | '/base'
     | '/chat'
     | '/inventario'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/'
     | '/agenti'
     | '/archivio'
+    | '/atelier'
     | '/base'
     | '/chat'
     | '/inventario'
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentiRoute: typeof AgentiRoute
   ArchivioRoute: typeof ArchivioRoute
+  AtelierRoute: typeof AtelierRoute
   BaseRoute: typeof BaseRoute
   ChatRoute: typeof ChatRoute
   InventarioRoute: typeof InventarioRoute
@@ -351,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BaseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/atelier': {
+      id: '/atelier'
+      path: '/atelier'
+      fullPath: '/atelier'
+      preLoaderRoute: typeof AtelierRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/archivio': {
       id: '/archivio'
       path: '/archivio'
@@ -379,6 +399,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentiRoute: AgentiRoute,
   ArchivioRoute: ArchivioRoute,
+  AtelierRoute: AtelierRoute,
   BaseRoute: BaseRoute,
   ChatRoute: ChatRoute,
   InventarioRoute: InventarioRoute,
