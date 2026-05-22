@@ -331,6 +331,116 @@ export type Database = {
         }
         Relationships: []
       }
+      expedition_squads: {
+        Row: {
+          agent: string
+          breakdown: Json
+          confirmed: boolean
+          expedition_id: string
+          id: string
+          joined_at: string
+          pikmin_total: number
+        }
+        Insert: {
+          agent: string
+          breakdown?: Json
+          confirmed?: boolean
+          expedition_id: string
+          id?: string
+          joined_at?: string
+          pikmin_total?: number
+        }
+        Update: {
+          agent?: string
+          breakdown?: Json
+          confirmed?: boolean
+          expedition_id?: string
+          id?: string
+          joined_at?: string
+          pikmin_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expedition_squads_expedition_id_fkey"
+            columns: ["expedition_id"]
+            isOneToOne: false
+            referencedRelation: "expeditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expeditions: {
+        Row: {
+          biome: string
+          created_at: string
+          created_by: string
+          difficulty: string
+          duration_minutes: number
+          end_at: string | null
+          events: Json
+          id: string
+          is_coop: boolean
+          partner: string | null
+          power: number
+          resolved_at: string | null
+          result: string | null
+          rewards: Json
+          risk: string
+          started_at: string | null
+          status: string
+          success_chance: number
+          summary: string | null
+          template_key: string
+          title: string
+        }
+        Insert: {
+          biome: string
+          created_at?: string
+          created_by: string
+          difficulty: string
+          duration_minutes: number
+          end_at?: string | null
+          events?: Json
+          id?: string
+          is_coop?: boolean
+          partner?: string | null
+          power?: number
+          resolved_at?: string | null
+          result?: string | null
+          rewards?: Json
+          risk?: string
+          started_at?: string | null
+          status?: string
+          success_chance?: number
+          summary?: string | null
+          template_key: string
+          title: string
+        }
+        Update: {
+          biome?: string
+          created_at?: string
+          created_by?: string
+          difficulty?: string
+          duration_minutes?: number
+          end_at?: string | null
+          events?: Json
+          id?: string
+          is_coop?: boolean
+          partner?: string | null
+          power?: number
+          resolved_at?: string | null
+          result?: string | null
+          rewards?: Json
+          risk?: string
+          started_at?: string | null
+          status?: string
+          success_chance?: number
+          summary?: string | null
+          template_key?: string
+          title?: string
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           color: string | null
@@ -491,6 +601,84 @@ export type Database = {
           id?: string
           sender?: string
           type?: string
+        }
+        Relationships: []
+      }
+      mission_notifications: {
+        Row: {
+          agent: string
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          read_at: string | null
+        }
+        Insert: {
+          agent: string
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          read_at?: string | null
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          read_at?: string | null
+        }
+        Relationships: []
+      }
+      mission_templates: {
+        Row: {
+          biome: string
+          created_at: string
+          description: string | null
+          difficulty: string
+          duration_minutes: number
+          events_pool: Json
+          key: string
+          pikmin_max: number
+          pikmin_min: number
+          pikmin_recommended: number
+          recommended_types: string[]
+          rewards_pool: Json
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          biome: string
+          created_at?: string
+          description?: string | null
+          difficulty: string
+          duration_minutes: number
+          events_pool?: Json
+          key: string
+          pikmin_max?: number
+          pikmin_min?: number
+          pikmin_recommended?: number
+          recommended_types?: string[]
+          rewards_pool?: Json
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          biome?: string
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          duration_minutes?: number
+          events_pool?: Json
+          key?: string
+          pikmin_max?: number
+          pikmin_min?: number
+          pikmin_recommended?: number
+          recommended_types?: string[]
+          rewards_pool?: Json
+          sort_order?: number
+          title?: string
         }
         Relationships: []
       }
