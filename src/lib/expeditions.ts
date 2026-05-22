@@ -72,13 +72,13 @@ export interface ExpeditionEvent {
 }
 
 export const BIOME_META: Record<Biome, { label: string; emoji: string; color: string; types: string[] }> = {
-  foresta: { label: "Foresta", emoji: "🌳", color: "from-emerald-700/40 to-emerald-500/10", types: ["rosso", "foglia"] },
-  lago: { label: "Lago", emoji: "🌊", color: "from-sky-600/40 to-sky-400/10", types: ["blu"] },
-  urbana: { label: "Zona Urbana", emoji: "🏙️", color: "from-yellow-600/40 to-yellow-400/10", types: ["giallo"] },
-  industriale: { label: "Area Industriale", emoji: "⚙️", color: "from-orange-700/40 to-orange-500/10", types: ["giallo", "roccia"] },
-  caverna: { label: "Caverna", emoji: "🪨", color: "from-stone-700/50 to-stone-500/10", types: ["roccia", "viola"] },
-  rovine: { label: "Rovine", emoji: "🏛️", color: "from-amber-700/40 to-amber-500/10", types: ["bianco", "viola"] },
-  serra: { label: "Serra Tropicale", emoji: "🌺", color: "from-pink-600/40 to-pink-400/10", types: ["foglia", "rosso"] },
+  foresta: { label: "Foresta", emoji: "🌳", color: "from-emerald-700/40 to-emerald-500/10", types: ["red", "purple"] },
+  lago: { label: "Lago", emoji: "🌊", color: "from-sky-600/40 to-sky-400/10", types: ["blue"] },
+  urbana: { label: "Zona Urbana", emoji: "🏙️", color: "from-yellow-600/40 to-yellow-400/10", types: ["yellow"] },
+  industriale: { label: "Area Industriale", emoji: "⚙️", color: "from-orange-700/40 to-orange-500/10", types: ["yellow", "rock"] },
+  caverna: { label: "Caverna", emoji: "🪨", color: "from-stone-700/50 to-stone-500/10", types: ["rock", "purple"] },
+  rovine: { label: "Rovine", emoji: "🏛️", color: "from-amber-700/40 to-amber-500/10", types: ["white", "purple"] },
+  serra: { label: "Serra Tropicale", emoji: "🌺", color: "from-pink-600/40 to-pink-400/10", types: ["wing", "red"] },
 };
 
 export const DIFFICULTY_META: Record<Difficulty, { label: string; color: string; mult: number }> = {
