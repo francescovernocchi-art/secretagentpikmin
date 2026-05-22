@@ -1,53 +1,139 @@
 
-# Archivio Pikmin & Nemici — piano di implementazione
+# Spedizioni Cooperative + Base Evolutiva
 
-Funzionalità grande: la divido in 4 step. Confermami se vuoi che proceda in un'unica volta o uno step alla volta.
+Aggiungiamo due grosse modalità al gioco, sviluppate **per fasi** così da avere subito qualcosa di giocabile e rifinire la grafica/atmosfera Pikmin-Nintendo nelle iterazioni successive.
 
-## Cosa farò
+I Pikmin inviati useranno il conteggio esistente (`pikmin_squad`): vengono "occupati" durante la spedizione e tornano (con eventuali perdite) al rientro. Durate **medie**: 15 min – 2 ore in tempo reale.
 
-### 1. Database (una sola migrazione)
-Tabelle nuove con RLS "family open" (coerente col resto del progetto):
+---
 
-- `pikmin_species` — name, image_url, description, abilities[], resistances[], weaknesses[], first_appearance, exploration_use, combat_use, source_url, color, sort_order
-- `enemies` — name, image_url, description, danger_level (1-5), habitat, behavior, speed, damage, spawn_probability (0-1), pikmin_eat_min, pikmin_eat_max, recommended_pikmin[], source_url
-- `map_enemy_spawns` — enemy_id, lat, lng, radius_m, active, spawned_at, expires_at
-- `battle_logs` — enemy_id, result (vittoria|sconfitta|fuga), pikmin_lost (jsonb per colore), rewards (jsonb), created_at, agent
+## FASE 1 — Spedizioni (singole + coop)
 
-Per l'inventario Pikmin **NON** creo una nuova tabella: estendo lo schema esistente. Oggi `pikmin_squad` ha un singolo contatore condiviso ("team"). Aggiungo colonna `breakdown jsonb` con conteggio per tipo (`{red: 5, yellow: 2, ...}`), aggiorno `adjust_pikmin` per accettare un tipo opzionale. Mantengo retrocompatibilità (vecchio counter resta la somma).
+### Nuova sezione `/spedizioni`
+- Hub con tre tab: **Disponibili**, **In corso**, **Storico**.
+- Card missione con: bioma, durata stimata, difficoltà (Facile → Leggendaria), rischio, rarità ricompense, Pikmin min/consigliati/max, partner se coop.
+- Stile Pikmin-like: card grandi, colori naturali, icone bioma, badge difficoltà colorati.
 
-### 2. Seed dati da Pikipedia
-Importo (script in `code--exec` + `insert`) i 9 Pikmin richiesti e ~10-12 nemici principali (Bulborbo Rosso/Maculato, Coleto, Smerlo Acquatico, Ranocchio Diafano, Bombafiamme, Aracnodio, Ragnemma, Drago Imperatore, Babborbo, Rospo Saltatore, ecc.). Ogni record con `source_url` alla pagina Pikipedia e `image_url` direttamente dal CDN della wiki (`pikminitalia.it/wiki/images/...`). Fallback con placeholder emoji se l'immagine non carica (gestito lato componente). I dati saranno modificabili da admin.
+### Flusso lancio spedizione
+1. Tocco card → schermata **Preparazione squadra**.
+2. Slider Pikmin totale + breakdown per tipo (rosso/blu/giallo/roccia/foglia…).
+3. UI mostra in tempo reale:
+   - barra **Potenza spedizione**
+   - **% successo stimata**
+   - **rischio** (basso/medio/alto)
+   - **bonus compatibilità bioma** (es. blu+lago)
+   - effetto numero Pikmin vs consigliato (lento/stabile/veloce)
+4. Conferma → Pikmin sottratti, missione creata, timer parte.
 
-### 3. Pagine nuove
-- **`/archivio`** — Archivio Pikmin: griglia card visual, search bar, filtri (abilità / resistenza), dialog dettagliato con tutte le info + link a Pikipedia. Stile "enciclopedia avventurosa" (panel-strong + glow, header coerente con app).
-- **`/nemici`** — Archivio Nemici: stesso pattern, badge pericolosità 1-5, lista Pikmin consigliati, link fonte.
-- **Admin editor** (solo `role === "papa"`) — pulsante "Modifica" nei dettagli, sheet con form per ogni campo (sia Pikmin che nemici). Niente pagina admin separata: editing inline.
+### Missioni coop
+- Toggle "Coop" alla creazione → notifica al partner (badge campanella in BottomNav + record in `mission_notifications`).
+- Il partner apre la missione, vede squadra dell'altro, aggiunge la propria, può confermare.
+- Quando entrambi confermano → la spedizione parte con **bonus cooperazione** (+15% successo, +rarità ricompense).
+- UI mostra due colonne (Papà / Lorenzo) con conteggi, tipi, contributo alla potenza totale.
 
-Aggiungo le due voci nella `BottomNav` (o nel menu equivalente).
+### Risoluzione spedizione
+- Timer reale (Supabase `end_at`). Quando scade, primo client che apre la sezione esegue la risoluzione (server function) → idempotente.
+- Eventi casuali registrati lungo il percorso: tempesta, mostro, tesoro raro, segnale misterioso, danni, creatura amichevole. Mostrati come **diario spedizione** scorrevole al rientro.
+- Output: ricompense (ingredienti, ship_parts, coins, XP) + eventuali Pikmin persi → applicati con `adjust_pikmin` e `inventory`.
 
-### 4. Spawn nemici su mappa + combattimento
-In `src/routes/mappa.tsx`:
-- Spawner casuale: ogni X secondi (configurabile, default 30s) tira un dado pesato su `spawn_probability` e crea una riga in `map_enemy_spawns` vicino al giocatore (raggio random 30-150m). Più forti = più rari.
-- Render: icona/immagine del nemico sulla mappa.
-- Toast/alert "⚠️ Un {nome} si aggira nella zona" + leggera vibrazione.
-- Tap sul nemico → dialog **Battaglia**:
-  - input quanti Pikmin per colore mandare (max = disponibili)
-  - calcolo: HP nemico vs forza Pikmin con bonus/malus per tipo (es. blu +50% vs acquatici, rocciosi +100% vs corazzati, rossi resistenti al fuoco)
-  - se vinci: XP + monete + (raro) seme/materiale, log con riepilogo
-  - se perdi: nemico mangia tra `eat_min` e `eat_max` Pikmin (preferendo i tipi deboli), spendPikmin per tipo, log
-  - riepilogo testuale: "Coleto ha mangiato 3 rossi e 1 giallo"
-- Se il giocatore ignora un nemico per > 2 min e ha Pikmin nella squadra → attacco automatico (consuma pochi Pikmin).
+### Biomi (seed iniziale)
+Foresta, Lago, Zona Urbana, Area Industriale, Caverna, Rovine, Serra Tropicale. Ogni bioma definisce: Pikmin consigliati, pool ricompense, pool nemici, palette colori UI.
 
-### 5. Dettagli tecnici
-- Componente `<EnemyImage>` / `<PikminImage>` con `onError` → placeholder emoji (mai blocca l'app).
-- Footer "Fonte: [Pikipedia / PikminItalia](source_url) — CC BY-SA" in ogni scheda dettagliata.
-- Realtime: `map_enemy_spawns` via supabase channels così entrambi gli agenti vedono gli stessi spawn.
-- Non tocco le pagine esistenti se non `mappa.tsx` e la nav.
+---
 
-## Cosa NON farò (per evitare scope creep)
-- Non importerò automaticamente *tutti* i nemici della wiki (centinaia di voci) — parto con i 10-12 principali, poi sarà l'admin ad aggiungerne altri dal form.
-- Non implemento upload di immagini custom (uso URL diretti).
-- Niente sistema di crafting nuovo: i "materiali" finiscono come ingredienti esistenti.
+## FASE 2 — Base Evolutiva
 
-## Conferma
-Vuoi che proceda tutto in una sola volta o preferisci splittare (es. prima archivio + dati, poi spawn/battaglia in un secondo turno)?
+### Nuova sezione `/base`
+- Onboarding: l'utente sceglie la **posizione della propria base** sulla mappa (drop pin nel raggio del proprio comune). Salvato in `bases`.
+- Vista principale: **panorama 2D illustrato** della base, con parallax leggero, edifici cliccabili, Pikmin animati che camminano/lavorano/riposano.
+- HUD in alto: livello base, risorse chiave, notifiche costruzioni.
+
+### Strutture costruibili (con livelli 1→5)
+Serra, Laboratorio, Torre Radar, Magazzino, Incubatore, Centro Cura, Officina, Archivio Creature, Torre Comunicazioni, Giardino Pikmin, Cucina, Zona Relax.
+
+Ogni struttura ha:
+- costo risorse (ingredienti dall'inventario + coins)
+- timer costruzione reale
+- bonus passivi (es. Radar → +range mappa; Magazzino → +cap inventario; Incubatore → produzione Pikmin lenta; Torre Comunicazioni → notifiche coop più ricche).
+
+### Visita base partner
+- Pulsante "Visita base di Papà/Lorenzo" → vista in sola lettura + azioni: inviare materiali, dare un boost a una costruzione in corso, lasciare un messaggio Pikmin.
+
+### Evoluzione visiva
+- Sprite/illustrazioni per ogni edificio in 3 stadi (base, evoluto, maestro).
+- Numero di Pikmin animati cresce col livello base. Vegetazione e dettagli aggiuntivi sbloccati a milestone.
+
+---
+
+## FASE 3 — Polish, atmosfera, animazioni
+
+- Loop ambientale: foglie che cadono, vento, riflessi acqua, luci morbide (CSS + framer-motion + qualche SVG animato).
+- Transizioni Nintendo-like tra schermate (zoom morbido + fade).
+- Suoni opzionali (mute di default).
+- Animazioni Pikmin: trasporto pezzi durante costruzioni, festa al completamento, sonno notturno (collegato al day/night già esistente).
+- Notifiche in-app curate: costruzione completata, partner si è unito, ricompense, creatura rara, squadra insufficiente, bonus coop attivato, nuova struttura disponibile.
+
+---
+
+## Dettagli tecnici
+
+### Nuove tabelle Supabase
+```text
+expeditions
+  id, created_by, partner, status (preparing|active|completed|failed),
+  biome, difficulty, mission_template_key,
+  started_at, end_at, resolved_at,
+  power, success_chance, risk,
+  rewards_json, events_json, summary
+
+expedition_squads
+  id, expedition_id, agent, pikmin_total, breakdown jsonb, joined_at
+
+mission_templates       (seed)
+  key, title, description, biome, difficulty,
+  duration_minutes, pikmin_min/recommended/max,
+  recommended_types text[], rewards_pool jsonb, events_pool jsonb
+
+bases
+  agent (PK), lat, lng, level, name, created_at
+
+base_buildings
+  id, agent, type, level, status (idle|building|upgrading),
+  build_end_at, position_x, position_y
+
+base_events            (log per animazioni & notifiche)
+  id, agent, type, payload, created_at
+
+mission_notifications
+  id, agent, kind, payload, read_at
+```
+Tutte con RLS aperta in stile "family open" come il resto del progetto.
+
+### Server functions (TanStack `createServerFn`)
+- `createExpedition`, `joinExpedition`, `confirmExpedition`
+- `resolveExpedition` (idempotente, calcola eventi + ricompense)
+- `placeBase`, `startBuilding`, `completeBuilding`, `boostBuilding`
+- `sendMaterialsToPartner`, `getPartnerBase`
+
+### Frontend
+- Route: `src/routes/spedizioni.tsx`, `src/routes/spedizioni.$id.tsx`, `src/routes/base.tsx`, `src/routes/base.$agent.tsx`.
+- Componenti modulari in `src/components/expeditions/*` e `src/components/base/*`.
+- Hook `useExpeditionTimer`, `useBaseScene`.
+- BottomNav: due nuove voci **Spedizioni** (icona razzo/foglia) e **Base** (icona casetta).
+- Stile: nuovi token CSS in `src/styles.css` per palette bioma + ombre morbide Nintendo-like. Animazioni via framer-motion (già nel progetto) + SVG.
+
+### Notifiche
+Realtime Supabase su `mission_notifications` + `expeditions` per aggiornamento istantaneo lato partner.
+
+### Persistenza
+Timer in DB (`end_at`), cache locale leggera in `localStorage` per UI immediata. Risoluzione avviene anche a gioco chiuso (al primo accesso successivo).
+
+---
+
+## Piano di consegna
+
+1. **Fase 1** (questa release): tabelle + seed biomi/templates, `/spedizioni` completa singola + coop, notifiche partner, risoluzione con eventi e ricompense, UI curata ma essenziale.
+2. **Fase 2** (richiesta successiva): `/base`, posizionamento, costruzioni, visita base partner.
+3. **Fase 3** (richiesta successiva): polish grafico, animazioni Pikmin, suoni, transizioni Nintendo-like.
+
+Approva il piano e parto subito con la **Fase 1**.
