@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, MessageSquare, Target, Trophy, User, FlaskConical, Map, Rocket, ShoppingBag, BookOpen, Skull, Wrench } from "lucide-react";
+import { Radio, MessageSquare, Target, Trophy, User, FlaskConical, Map, Rocket, ShoppingBag, BookOpen, Skull, Wrench, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { hapticTap } from "@/lib/haptic";
 import { getSession } from "@/lib/session";
@@ -8,6 +8,7 @@ const baseItems = [
   { to: "/base", icon: Radio, label: "Base" },
   { to: "/chat", icon: MessageSquare, label: "Chat" },
   { to: "/missioni", icon: Target, label: "Mission" },
+  { to: "/spedizioni", icon: Send, label: "Sped." },
   { to: "/mappa", icon: Map, label: "Mappa" },
   { to: "/navicella", icon: Rocket, label: "Nave" },
   { to: "/lab", icon: FlaskConical, label: "Lab" },

@@ -28,6 +28,7 @@ import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as ArchivioRouteImport } from './routes/archivio'
 import { Route as AgentiRouteImport } from './routes/agenti'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SpedizioniKeyRouteImport } from './routes/spedizioni.$key'
 
 const SpedizioniRoute = SpedizioniRouteImport.update({
   id: '/spedizioni',
@@ -124,6 +125,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SpedizioniKeyRoute = SpedizioniKeyRouteImport.update({
+  id: '/$key',
+  path: '/$key',
+  getParentRoute: () => SpedizioniRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -144,7 +150,8 @@ export interface FileRoutesByFullPath {
   '/radar': typeof RadarRoute
   '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
-  '/spedizioni': typeof SpedizioniRoute
+  '/spedizioni': typeof SpedizioniRouteWithChildren
+  '/spedizioni/$key': typeof SpedizioniKeyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -165,7 +172,8 @@ export interface FileRoutesByTo {
   '/radar': typeof RadarRoute
   '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
-  '/spedizioni': typeof SpedizioniRoute
+  '/spedizioni': typeof SpedizioniRouteWithChildren
+  '/spedizioni/$key': typeof SpedizioniKeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -187,7 +195,8 @@ export interface FileRoutesById {
   '/radar': typeof RadarRoute
   '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
-  '/spedizioni': typeof SpedizioniRoute
+  '/spedizioni': typeof SpedizioniRouteWithChildren
+  '/spedizioni/$key': typeof SpedizioniKeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/ricette'
     | '/ricordi'
     | '/spedizioni'
+    | '/spedizioni/$key'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/ricette'
     | '/ricordi'
     | '/spedizioni'
+    | '/spedizioni/$key'
   id:
     | '__root__'
     | '/'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/ricette'
     | '/ricordi'
     | '/spedizioni'
+    | '/spedizioni/$key'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -274,7 +286,7 @@ export interface RootRouteChildren {
   RadarRoute: typeof RadarRoute
   RicetteRoute: typeof RicetteRoute
   RicordiRoute: typeof RicordiRoute
-  SpedizioniRoute: typeof SpedizioniRoute
+  SpedizioniRoute: typeof SpedizioniRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -412,8 +424,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/spedizioni/$key': {
+      id: '/spedizioni/$key'
+      path: '/$key'
+      fullPath: '/spedizioni/$key'
+      preLoaderRoute: typeof SpedizioniKeyRouteImport
+      parentRoute: typeof SpedizioniRoute
+    }
   }
 }
+
+interface SpedizioniRouteChildren {
+  SpedizioniKeyRoute: typeof SpedizioniKeyRoute
+}
+
+const SpedizioniRouteChildren: SpedizioniRouteChildren = {
+  SpedizioniKeyRoute: SpedizioniKeyRoute,
+}
+
+const SpedizioniRouteWithChildren = SpedizioniRoute._addFileChildren(
+  SpedizioniRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -434,7 +465,7 @@ const rootRouteChildren: RootRouteChildren = {
   RadarRoute: RadarRoute,
   RicetteRoute: RicetteRoute,
   RicordiRoute: RicordiRoute,
-  SpedizioniRoute: SpedizioniRoute,
+  SpedizioniRoute: SpedizioniRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
