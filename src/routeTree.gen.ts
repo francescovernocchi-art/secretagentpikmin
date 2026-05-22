@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SpedizioniRouteImport } from './routes/spedizioni'
 import { Route as RicordiRouteImport } from './routes/ricordi'
 import { Route as RicetteRouteImport } from './routes/ricette'
 import { Route as RadarRouteImport } from './routes/radar'
@@ -27,7 +28,13 @@ import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as ArchivioRouteImport } from './routes/archivio'
 import { Route as AgentiRouteImport } from './routes/agenti'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SpedizioniKeyRouteImport } from './routes/spedizioni.$key'
 
+const SpedizioniRoute = SpedizioniRouteImport.update({
+  id: '/spedizioni',
+  path: '/spedizioni',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RicordiRoute = RicordiRouteImport.update({
   id: '/ricordi',
   path: '/ricordi',
@@ -118,6 +125,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SpedizioniKeyRoute = SpedizioniKeyRouteImport.update({
+  id: '/$key',
+  path: '/$key',
+  getParentRoute: () => SpedizioniRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -138,6 +150,8 @@ export interface FileRoutesByFullPath {
   '/radar': typeof RadarRoute
   '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
+  '/spedizioni': typeof SpedizioniRouteWithChildren
+  '/spedizioni/$key': typeof SpedizioniKeyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -158,6 +172,8 @@ export interface FileRoutesByTo {
   '/radar': typeof RadarRoute
   '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
+  '/spedizioni': typeof SpedizioniRouteWithChildren
+  '/spedizioni/$key': typeof SpedizioniKeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -179,6 +195,8 @@ export interface FileRoutesById {
   '/radar': typeof RadarRoute
   '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
+  '/spedizioni': typeof SpedizioniRouteWithChildren
+  '/spedizioni/$key': typeof SpedizioniKeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -201,6 +219,8 @@ export interface FileRouteTypes {
     | '/radar'
     | '/ricette'
     | '/ricordi'
+    | '/spedizioni'
+    | '/spedizioni/$key'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -221,6 +241,8 @@ export interface FileRouteTypes {
     | '/radar'
     | '/ricette'
     | '/ricordi'
+    | '/spedizioni'
+    | '/spedizioni/$key'
   id:
     | '__root__'
     | '/'
@@ -241,6 +263,8 @@ export interface FileRouteTypes {
     | '/radar'
     | '/ricette'
     | '/ricordi'
+    | '/spedizioni'
+    | '/spedizioni/$key'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -262,10 +286,18 @@ export interface RootRouteChildren {
   RadarRoute: typeof RadarRoute
   RicetteRoute: typeof RicetteRoute
   RicordiRoute: typeof RicordiRoute
+  SpedizioniRoute: typeof SpedizioniRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/spedizioni': {
+      id: '/spedizioni'
+      path: '/spedizioni'
+      fullPath: '/spedizioni'
+      preLoaderRoute: typeof SpedizioniRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ricordi': {
       id: '/ricordi'
       path: '/ricordi'
@@ -392,8 +424,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/spedizioni/$key': {
+      id: '/spedizioni/$key'
+      path: '/$key'
+      fullPath: '/spedizioni/$key'
+      preLoaderRoute: typeof SpedizioniKeyRouteImport
+      parentRoute: typeof SpedizioniRoute
+    }
   }
 }
+
+interface SpedizioniRouteChildren {
+  SpedizioniKeyRoute: typeof SpedizioniKeyRoute
+}
+
+const SpedizioniRouteChildren: SpedizioniRouteChildren = {
+  SpedizioniKeyRoute: SpedizioniKeyRoute,
+}
+
+const SpedizioniRouteWithChildren = SpedizioniRoute._addFileChildren(
+  SpedizioniRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -414,17 +465,8 @@ const rootRouteChildren: RootRouteChildren = {
   RadarRoute: RadarRoute,
   RicetteRoute: RicetteRoute,
   RicordiRoute: RicordiRoute,
+  SpedizioniRoute: SpedizioniRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
