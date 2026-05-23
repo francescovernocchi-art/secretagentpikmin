@@ -30,6 +30,12 @@ import {
   BaseGift,
 } from "@/lib/base";
 import { Sparkles, Hammer, Gift, ArrowUpRight, Users } from "lucide-react";
+import { FactionSelector } from "@/components/village/FactionSelector";
+import { VillageStatusBar } from "@/components/village/VillageStatusBar";
+import { VillageAtmosphere } from "@/components/village/VillageAtmosphere";
+import { PikminLife } from "@/components/village/PikminLife";
+import { computeVillageStatus } from "@/lib/village/bonuses";
+import type { FactionKey } from "@/lib/village/factions";
 
 
 export const Route = createFileRoute("/villaggio")({
