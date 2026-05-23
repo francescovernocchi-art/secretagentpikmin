@@ -145,6 +145,19 @@ function VillaggioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent, base?.faction, base?.lat, base?.lng, walls.length, buildings.length]);
 
+  // Eventi notturni: solo durante la notte, ~ogni 5 minuti
+  useEffect(() => {
+    if (!base || phase !== "notte") return;
+    const totalDefense = computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating + wallDefenseBonus(walls);
+    const run = () => maybeTriggerNightEvent({ agent, isNight: true, totalDefense }).then((ev) => {
+      if (ev) reload();
+    });
+    run();
+    const id = setInterval(run, 60_000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent, phase, buildings.length, walls.length]);
+
   // auto-complete dei timer scaduti + festa al completamento
   useEffect(() => {
     const prev = prevBuildingsRef.current;
