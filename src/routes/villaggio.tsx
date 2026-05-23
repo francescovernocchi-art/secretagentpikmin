@@ -179,14 +179,22 @@ function VillaggioPage() {
     >
       <CelebrationOverlay show={!!festa} label={festa ?? ""} onDone={() => setFesta(null)} />
 
+      {/* STATO COLONIA */}
+      <VillageStatusBar status={status} faction={base.faction as FactionKey} />
+
       {/* SCENA */}
       <motion.div
-        key={base.theme + phase}
+        key={base.theme + phase + base.faction}
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative"
       >
         <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} />
+        <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
+          <VillageAtmosphere faction={base.faction as FactionKey} />
+          <PikminLife count={Math.min(12, 4 + buildings.length)} />
+        </div>
       </motion.div>
 
       {/* GIFTS */}
