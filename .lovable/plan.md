@@ -1,93 +1,125 @@
-## Trasformazione Villaggio — Sistema Colonia Vivente
+## Mappa Geolocalizzata + Campo Base + Villaggio sulla Mappa
 
-Progetto enorme. Propongo un'implementazione **a fasi incrementali**, partendo dalle fondamenta (fazioni + buildings evolutivi + difese) per poi aggiungere strati vivi (AI Pikmin, eventi, coop). Ogni fase è autonoma e shippabile senza rompere gameplay esistente.
+Refactor incrementale che corregge la logica geo-distanze, introduce il Campo Base scelto sulla mappa, mostra il villaggio in quel punto e filtra correttamente avvisi di difesa e azioni sui mostri.
 
----
+### 1. Database (migration unica, RLS preservata)
 
-### Strategia generale
+Estendo `bases` (no breaking, tutto nullable con default):
+- `base_name text` (default 'Campo Base')
+- `action_radius integer default 300`
+- `threat_radius integer default 300`
+- `village_level integer default 1` *(se non già coperto da `level`, altrimenti riuso `level`)*
 
-- **Zero breaking changes**: mappa, missioni, inventario, realtime restano intatti.
-- **Estendo `bases` + `base_buildings`** (già esistenti) invece di creare tabelle parallele.
-- **Tutto in italiano** lato UI, codice in inglese.
-- **RLS rispettata**: ogni nuova tabella usa `is_family_member()` / `current_agent_key()`.
+Nuova tabella `map_objects` (pezzi navicella / risorse / capsule rivelabili da spionaggio):
+- `id uuid`, `agent text` (proprietario/famiglia), `object_type text`, `lat/lng double precision`,
+- `visible boolean default true`, `discovered boolean default false`,
+- `metadata jsonb default '{}'`, `created_at`.
+- RLS: `is_family_member()` per SELECT, `agent = current_agent_key()` per INSERT/UPDATE/DELETE — niente `USING (true)`.
 
----
+Nuova tabella `scouting_missions`:
+- `id`, `agent`, `target_spawn_id uuid null`, `target_lat/lng`, `pikmin_count int`,
+- `status text` (`active|completed|failed`), `started_at`, `end_at`, `result jsonb`.
+- RLS: stessa logica per-famiglia + own-write.
 
-### FASE A — Fondamenta (Sprint 1, questa iterazione)
+Nessuna modifica a `map_enemy_spawns` (lat/lng/danger già presenti tramite join con `enemies`).
 
-**A1. Database**
-- `ALTER bases` → aggiunge `faction` (eco|tech|battle|mystic), `energy_current`, `energy_max`, `defense_rating`.
-- Nuova `village_walls` (segmenti muro: from_x, from_y, to_x, to_y, level, material).
-- Nuova `village_events` (invasioni, blackout, tempeste — payload jsonb).
-- Estende `building_catalog`: aggiunge categorie `defense`, `energy`, `production`, `research` + `faction_required` opzionale.
-- Seed nuovi buildings (12 tipi) + costi/bonus per livello.
+### 2. Libreria geo condivisa
 
-**A2. Selezione Fazione**
-- Schermata "Scegli la tua colonia" al primo accesso al villaggio (se `faction IS NULL`).
-- 4 cards animate con palette/iconografia dedicata, bonus chiari.
-- Persistenza in `bases.faction`.
+- `src/lib/geo/distance.ts` → `calculateDistanceMeters(lat1,lng1,lat2,lng2)` (Haversine) + helper `metersBetween(a,b)`.
+- `src/lib/map/radiusRules.ts` → costanti `PLAYER_ATTACK_RADIUS=200`, `BASE_ACTION_RADIUS=300`, `BASE_THREAT_RADIUS=300`, `SCOUTING_MIN_DISTANCE=200` + helpers `canAttackEnemy`, `canThreatenBase`, `canScout`.
+- `src/lib/village/threats.ts` → riusa `calculateDistanceMeters`, usa `BASE_THREAT_RADIUS` da `bases.threat_radius` (fallback 300). Sostituisce l'attuale costante 500m e impedisce eventi se nessun mostro è davvero nel raggio.
 
-**A3. Vista Villaggio rivisitata**
-- Sostituisce dashboard attuale con **canvas isometrico/top-down** SVG+CSS animato.
-- Sfondo che cambia in base a fazione (eco=foresta, tech=neon, battle=bunker, mystic=cristalli).
-- Buildings posizionati su griglia, sprite evolutivi per livello (1-2-3-4-5 = stadi visuali diversi via CSS/emoji+effetti).
-- Ciclo giorno/notte (luce ambientale CSS che cambia ogni X ore reali).
-- Particelle ambient (foglie/scintille/fumo a seconda fazione).
+### 3. Onboarding Campo Base
 
-**A4. Buildings evolutivi**
-- Sistema upgrade già esistente esteso con visual stages.
-- Bonus reali applicati: greenhouse → +pikmin/h, reactor → +energy_max, defense tower → +defense_rating.
-- Hook lato client che calcola bonus aggregati dalla base.
+Nuovo componente `src/components/map/BaseSetupOverlay.tsx`:
+- Se l'utente non ha `bases` con `lat/lng`, mostra overlay sulla mappa "Scegli il tuo Campo Base".
+- Tap/click sulla mappa → cattura coords → prompt nome → INSERT in `bases` (`agent = current_agent_key()`).
+- Dopo creazione, centra mappa sul campo.
 
----
+### 4. Villaggio visibile sulla mappa
 
-### FASE B — Difese & minacce (Sprint 2)
+`src/components/map/VillageMapMarker.tsx`:
+- Marker villaggio con emoji/stile per fazione + badge livello.
+- Pulsante "Apri villaggio" → `/villaggio`.
 
-- Editor muri (drag su griglia, segmenti connessi).
-- Torri difensive con range visuale.
-- Quando `map_enemy_spawns` è entro X metri dalla base → evento "minaccia". Defense rating vs danger level decide outcome automatico ogni N minuti.
-- Notifiche italiane in `mission_notifications`.
+`src/components/map/BaseRadiusLayer.tsx`: cerchio `action_radius` + cerchio `threat_radius` (colorato diverso, tratteggiato).
 
----
+`src/components/map/PlayerRadiusLayer.tsx`: cerchio 200m attorno alla posizione giocatore (toggle via filtri).
 
-### FASE C — AI Pikmin vivente (Sprint 3)
+Edifici/mura/torri della base: leggo `base_buildings` + `village_walls` e li disegno come piccoli marker emoji posizionati ATTORNO al campo base (offset deterministico da `position_x/y`, scalati su ~100m). Niente coordinate reali: visualizzazione progressiva mano a mano che si costruisce.
 
-- Layer di sprite Pikmin animati che camminano sulla griglia villaggio (puro client, no DB).
-- Comportamenti randomici: trasporta, dorme, festeggia, ripara (state machine leggera con framer-motion).
-- Reazioni a eventi (corre via durante invasione).
+### 5. Logica mostri (200m attacco / spionaggio oltre)
 
----
+`src/components/map/MonsterActionPanel.tsx`:
+- Calcola distanza giocatore↔mostro.
+- Se `≤ 200m` → pulsante **Attacca** (riusa flusso esistente `EnemyLayer`/combattimento).
+- Se `> 200m` → mostra "Fuori raggio · 412m" + pulsante **Invia Pikmin in spionaggio**.
 
-### FASE D — Eventi dinamici + Coop (Sprint 4)
+`EnemyLayer.tsx`: aggiorno il popup/marker per nascondere "Attacca" quando fuori 200m e sostituirlo con CTA spionaggio (callback verso `MonsterActionPanel`).
 
-- Cron-like trigger (pg_cron o check on-load) che genera eventi notturni.
-- Visite ad altri villaggi: route `/villaggio/:agent`, lettura read-only + donazioni via `base_gifts`.
+### 6. Spionaggio
 
----
+`src/components/map/ScoutingMissionPanel.tsx`:
+- Form: Pikmin da inviare (min/recommended/max), durata calcolata (es. 30s per 100m, cap 5min), rischio.
+- Crea riga in `scouting_missions` (status active, end_at).
+- Spende Pikmin via `spendPikmin`.
+- Polling/realtime: al completamento genera `result` jsonb con drop possibili:
+  - rivela `monster_type`, `danger_level`, debolezze (da `enemies.weaknesses`/`recommended_pikmin`),
+  - 25% probabilità di scoprire un `map_objects` ship_part nelle vicinanze del target (INSERT con `discovered=true`),
+  - testo italiano: *"I Pikmin hanno trovato tracce sospette vicino al mostro…"*.
+- Restituisce Pikmin sopravvissuti (rischio = perdita parziale).
 
-### Cosa implemento ORA (FASE A completa)
+### 7. Difesa villaggio (fix avvisi falsi)
 
-1. Migration: estensione `bases`, nuove `village_walls` + `village_events`, seed catalog allargato.
-2. `src/components/village/FactionSelector.tsx` — onboarding fazione.
-3. `src/components/village/VillageCanvas.tsx` — vista vivente con sfondo dinamico, griglia, buildings sprite evolutivi, day/night, particelle.
-4. `src/components/village/BuildingSprite.tsx` — singolo edificio con 5 stadi visuali per fazione.
-5. `src/lib/village/factions.ts` — config fazioni (bonus, palette, sprite).
-6. `src/lib/village/bonuses.ts` — calcolo bonus aggregati.
-7. `src/routes/base.tsx` — refactor per usare nuovi componenti (mantiene logica e API esistenti).
-8. Tutti i testi in italiano naturale.
+`src/lib/village/threats.ts` aggiornato:
+- Usa `bases.threat_radius` reale.
+- Crea evento `threat`/`threat_repelled` SOLO se almeno un mostro è `≤ threat_radius` dal Campo Base.
+- Disabilita generazione "raid notturno" casuale in `src/lib/village/night.ts` quando nessun nemico reale è nel raggio (sostituisce evento con altri non-raid).
 
-### Dettagli tecnici chiave
+### 8. Filtri mappa
 
-- Nessuna modifica a `agents`, `agent_positions`, `missions`, `inventory`, `pikmin_squad`.
-- Nuove tabelle con RLS identica al pattern esistente.
-- Visual: Tailwind + framer-motion (già nel progetto), zero nuove dipendenze pesanti.
-- Sprite: combinazione emoji grandi + SVG layer + filter CSS per stadi evolutivi (es. level 5 = glow + scale + corona particelle).
+`src/components/map/MapFilters.tsx`:
+- Pannello flottante (bottone con icona Filter) con switch (Switch UI esistente):
+  - Mostri, Campo Base, Villaggio, Raggio giocatore, Raggio Campo Base, Oggetti, Pezzi di navicella, Risorse, Missioni, Drop, Alleati, Zone pericolose.
+- Stato persistito in `localStorage('map.filters')`.
+- `mappa.tsx` legge i filtri e mostra/nasconde i relativi layer (drop marker, agentMarkers, EnemyLayer, BaseRadiusLayer, PlayerRadiusLayer, VillageMapMarker).
 
-### Fuori scope per questa iterazione
+### 9. Pezzi navicella / oggetti
 
-- Coop visite (Fase D)
-- AI Pikmin animata (Fase C — accenno solo statico)
-- Editor muri drag (Fase B)
-- pg_cron eventi automatici (Fase B)
+- I `map_objects` con `object_type='ship_part'` appaiono sulla mappa solo se `discovered=true`.
+- Spionaggio può flippare `discovered=true` o crearne di nuovi vicino al target.
 
-Confermi che parto con la **FASE A** come descritta? Oppure preferisci che inizi da un'altra fase (es. direttamente AI Pikmin viventi o difese)?
+### 10. Refactor `mappa.tsx`
+
+Modifiche chirurgiche (no rewrite completo):
+- Sostituire `distMeters` locale con import da `geo/distance`.
+- Aggiungere stato `base`, filtri, layer nuovi.
+- Onboarding overlay quando `base` mancante.
+- Tap handler in modalità "place base" se l'utente sta scegliendo.
+
+### File creati / modificati
+
+Nuovi:
+- `src/lib/geo/distance.ts`
+- `src/lib/map/radiusRules.ts`
+- `src/components/map/MapFilters.tsx`
+- `src/components/map/BaseRadiusLayer.tsx`
+- `src/components/map/PlayerRadiusLayer.tsx`
+- `src/components/map/VillageMapMarker.tsx`
+- `src/components/map/MonsterActionPanel.tsx`
+- `src/components/map/ScoutingMissionPanel.tsx`
+- `src/components/map/BaseSetupOverlay.tsx`
+- 1 migration SQL (estende `bases`, crea `map_objects` + `scouting_missions` con RLS)
+
+Modificati:
+- `src/lib/village/threats.ts` (radius da DB, usa helper geo)
+- `src/lib/village/night.ts` (no raid se nessun mostro reale)
+- `src/components/EnemyLayer.tsx` (hide attacco oltre 200m, CTA spionaggio)
+- `src/routes/mappa.tsx` (layer, filtri, onboarding, base marker)
+- `src/lib/base.ts` (tipi: action_radius, threat_radius, base_name)
+
+### Cosa NON tocco
+
+Auth/RLS pattern esistente, missioni, inventario, realtime channels, navigazione, layout villaggio (`/villaggio` page resta intatta, viene solo "specchiata" sulla mappa).
+
+Procedo con la migration + tutti i file?

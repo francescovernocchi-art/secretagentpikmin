@@ -187,7 +187,9 @@ export type Database = {
       }
       bases: {
         Row: {
+          action_radius: number
           agent: string
+          base_name: string
           created_at: string
           defense_rating: number
           energy_current: number
@@ -199,11 +201,14 @@ export type Database = {
           lng: number | null
           name: string
           theme: string
+          threat_radius: number
           updated_at: string
           xp: number
         }
         Insert: {
+          action_radius?: number
           agent: string
+          base_name?: string
           created_at?: string
           defense_rating?: number
           energy_current?: number
@@ -215,11 +220,14 @@ export type Database = {
           lng?: number | null
           name?: string
           theme?: string
+          threat_radius?: number
           updated_at?: string
           xp?: number
         }
         Update: {
+          action_radius?: number
           agent?: string
+          base_name?: string
           created_at?: string
           defense_rating?: number
           energy_current?: number
@@ -231,6 +239,7 @@ export type Database = {
           lng?: number | null
           name?: string
           theme?: string
+          threat_radius?: number
           updated_at?: string
           xp?: number
         }
@@ -781,6 +790,42 @@ export type Database = {
           },
         ]
       }
+      map_objects: {
+        Row: {
+          agent: string
+          created_at: string
+          discovered: boolean
+          id: string
+          lat: number
+          lng: number
+          metadata: Json
+          object_type: string
+          visible: boolean
+        }
+        Insert: {
+          agent: string
+          created_at?: string
+          discovered?: boolean
+          id?: string
+          lat: number
+          lng: number
+          metadata?: Json
+          object_type: string
+          visible?: boolean
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          discovered?: boolean
+          id?: string
+          lat?: number
+          lng?: number
+          metadata?: Json
+          object_type?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
       memories: {
         Row: {
           content: string | null
@@ -1186,6 +1231,48 @@ export type Database = {
           icon?: string | null
           id?: string
           title?: string
+        }
+        Relationships: []
+      }
+      scouting_missions: {
+        Row: {
+          agent: string
+          created_at: string
+          end_at: string
+          id: string
+          pikmin_count: number
+          result: Json
+          started_at: string
+          status: string
+          target_lat: number
+          target_lng: number
+          target_spawn_id: string | null
+        }
+        Insert: {
+          agent: string
+          created_at?: string
+          end_at: string
+          id?: string
+          pikmin_count?: number
+          result?: Json
+          started_at?: string
+          status?: string
+          target_lat: number
+          target_lng: number
+          target_spawn_id?: string | null
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          end_at?: string
+          id?: string
+          pikmin_count?: number
+          result?: Json
+          started_at?: string
+          status?: string
+          target_lat?: number
+          target_lng?: number
+          target_spawn_id?: string | null
         }
         Relationships: []
       }
