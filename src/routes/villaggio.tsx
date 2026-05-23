@@ -61,7 +61,6 @@ function VillaggioPage() {
   const session = typeof window !== "undefined" ? getSession() : null;
   const agent = session?.role ?? "lorenzo";
   const partner = PARTNER_OF[agent];
-  
 
   const [base, setBase] = useState<BaseRow | null>(null);
   const [buildings, setBuildings] = useState<BaseBuilding[]>([]);
@@ -78,6 +77,8 @@ function VillaggioPage() {
   const [selected, setSelected] = useState<BaseBuilding | null>(null);
   const [festa, setFesta] = useState<string | null>(null);
   const [phase, setPhase] = useState<DayPhase>(() => getDayPhase());
+  const [pikminCount, setPikminCount] = useState(0);
+  const [nearbyThreats, setNearbyThreats] = useState<import("@/components/village/ThreatAlertPanel").NearbyThreat[]>([]);
   const prevBuildingsRef = useRef<BaseBuilding[]>([]);
 
   // refresh day phase every minute
