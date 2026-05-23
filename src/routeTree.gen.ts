@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VillaggioRouteImport } from './routes/villaggio'
 import { Route as SpedizioniRouteImport } from './routes/spedizioni'
 import { Route as RicordiRouteImport } from './routes/ricordi'
 import { Route as RicetteRouteImport } from './routes/ricette'
@@ -28,8 +29,14 @@ import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as ArchivioRouteImport } from './routes/archivio'
 import { Route as AgentiRouteImport } from './routes/agenti'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VillaggioAgentRouteImport } from './routes/villaggio.$agent'
 import { Route as SpedizioniKeyRouteImport } from './routes/spedizioni.$key'
 
+const VillaggioRoute = VillaggioRouteImport.update({
+  id: '/villaggio',
+  path: '/villaggio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SpedizioniRoute = SpedizioniRouteImport.update({
   id: '/spedizioni',
   path: '/spedizioni',
@@ -125,6 +132,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VillaggioAgentRoute = VillaggioAgentRouteImport.update({
+  id: '/$agent',
+  path: '/$agent',
+  getParentRoute: () => VillaggioRoute,
+} as any)
 const SpedizioniKeyRoute = SpedizioniKeyRouteImport.update({
   id: '/$key',
   path: '/$key',
@@ -151,7 +163,9 @@ export interface FileRoutesByFullPath {
   '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
   '/spedizioni': typeof SpedizioniRouteWithChildren
+  '/villaggio': typeof VillaggioRouteWithChildren
   '/spedizioni/$key': typeof SpedizioniKeyRoute
+  '/villaggio/$agent': typeof VillaggioAgentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -173,7 +187,9 @@ export interface FileRoutesByTo {
   '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
   '/spedizioni': typeof SpedizioniRouteWithChildren
+  '/villaggio': typeof VillaggioRouteWithChildren
   '/spedizioni/$key': typeof SpedizioniKeyRoute
+  '/villaggio/$agent': typeof VillaggioAgentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -196,7 +212,9 @@ export interface FileRoutesById {
   '/ricette': typeof RicetteRoute
   '/ricordi': typeof RicordiRoute
   '/spedizioni': typeof SpedizioniRouteWithChildren
+  '/villaggio': typeof VillaggioRouteWithChildren
   '/spedizioni/$key': typeof SpedizioniKeyRoute
+  '/villaggio/$agent': typeof VillaggioAgentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -220,7 +238,9 @@ export interface FileRouteTypes {
     | '/ricette'
     | '/ricordi'
     | '/spedizioni'
+    | '/villaggio'
     | '/spedizioni/$key'
+    | '/villaggio/$agent'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -242,7 +262,9 @@ export interface FileRouteTypes {
     | '/ricette'
     | '/ricordi'
     | '/spedizioni'
+    | '/villaggio'
     | '/spedizioni/$key'
+    | '/villaggio/$agent'
   id:
     | '__root__'
     | '/'
@@ -264,7 +286,9 @@ export interface FileRouteTypes {
     | '/ricette'
     | '/ricordi'
     | '/spedizioni'
+    | '/villaggio'
     | '/spedizioni/$key'
+    | '/villaggio/$agent'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -287,10 +311,18 @@ export interface RootRouteChildren {
   RicetteRoute: typeof RicetteRoute
   RicordiRoute: typeof RicordiRoute
   SpedizioniRoute: typeof SpedizioniRouteWithChildren
+  VillaggioRoute: typeof VillaggioRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/villaggio': {
+      id: '/villaggio'
+      path: '/villaggio'
+      fullPath: '/villaggio'
+      preLoaderRoute: typeof VillaggioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/spedizioni': {
       id: '/spedizioni'
       path: '/spedizioni'
@@ -424,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/villaggio/$agent': {
+      id: '/villaggio/$agent'
+      path: '/$agent'
+      fullPath: '/villaggio/$agent'
+      preLoaderRoute: typeof VillaggioAgentRouteImport
+      parentRoute: typeof VillaggioRoute
+    }
     '/spedizioni/$key': {
       id: '/spedizioni/$key'
       path: '/$key'
@@ -446,6 +485,18 @@ const SpedizioniRouteWithChildren = SpedizioniRoute._addFileChildren(
   SpedizioniRouteChildren,
 )
 
+interface VillaggioRouteChildren {
+  VillaggioAgentRoute: typeof VillaggioAgentRoute
+}
+
+const VillaggioRouteChildren: VillaggioRouteChildren = {
+  VillaggioAgentRoute: VillaggioAgentRoute,
+}
+
+const VillaggioRouteWithChildren = VillaggioRoute._addFileChildren(
+  VillaggioRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentiRoute: AgentiRoute,
@@ -466,7 +517,18 @@ const rootRouteChildren: RootRouteChildren = {
   RicetteRoute: RicetteRoute,
   RicordiRoute: RicordiRoute,
   SpedizioniRoute: SpedizioniRouteWithChildren,
+  VillaggioRoute: VillaggioRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
