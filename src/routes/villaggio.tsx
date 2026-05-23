@@ -96,7 +96,7 @@ function VillaggioPage() {
     return () => clearInterval(id);
   }, []);
 
-  const [pikminBreakdown, setPikminBreakdown] = useState<Partial<Record<PikminColor, number>>>({});
+  const [pikminBreakdown, setPikminBreakdown] = useState<Partial<Record<PikminType, number>>>({});
 
   const reload = async () => {
     const [b, bld, cat, c, g, w, ev, pc, sq] = await Promise.all([
@@ -118,16 +118,15 @@ function VillaggioPage() {
     setWalls(w);
     setEvents(ev);
     setPikminCount(pc);
-    // map breakdown keys (es. red/blue/yellow/purple/white o italiano) → PikminColor italiani
     const raw = (sq.data?.breakdown ?? {}) as Record<string, number>;
-    const map: Partial<Record<PikminColor, number>> = {};
-    const norm = (k: string): PikminColor | null => {
+    const map: Partial<Record<PikminType, number>> = {};
+    const norm = (k: string): PikminType | null => {
       const v = k.toLowerCase();
-      if (["red", "rosso"].includes(v)) return "rosso";
-      if (["blue", "blu"].includes(v)) return "blu";
-      if (["yellow", "giallo"].includes(v)) return "giallo";
-      if (["purple", "viola", "purpule"].includes(v)) return "viola";
-      if (["white", "bianco"].includes(v)) return "bianco";
+      if (["red", "rosso"].includes(v)) return "red";
+      if (["blue", "blu"].includes(v)) return "blue";
+      if (["yellow", "giallo"].includes(v)) return "yellow";
+      if (["purple", "viola"].includes(v)) return "purple";
+      if (["white", "bianco"].includes(v)) return "white";
       return null;
     };
     for (const [k, n] of Object.entries(raw)) {
