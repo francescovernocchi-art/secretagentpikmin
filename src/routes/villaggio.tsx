@@ -104,8 +104,20 @@ function VillaggioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent]);
 
-  // auto-complete dei timer scaduti
+  // auto-complete dei timer scaduti + festa al completamento
   useEffect(() => {
+    const prev = prevBuildingsRef.current;
+    // detect completions: was non-idle, now idle with higher level
+    for (const b of buildings) {
+      const old = prev.find((p) => p.id === b.id);
+      if (old && old.status !== "idle" && b.status === "idle" && b.level > old.level) {
+        const cat = catalog.find((c) => c.key === b.type);
+        setFesta(`${cat?.name ?? b.type} · Lv ${b.level}`);
+        break;
+      }
+    }
+    prevBuildingsRef.current = buildings;
+
     const due = buildings.filter((b) => b.status !== "idle" && b.build_end_at && new Date(b.build_end_at).getTime() <= Date.now());
     if (due.length) {
       (async () => {
@@ -114,7 +126,8 @@ function VillaggioPage() {
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick, buildings.length]);
+  }, [tick, buildings]);
+
 
   const theme = THEMES[base?.theme ?? "foresta"] ?? THEMES.foresta;
   const totalLevel = useMemo(() => buildings.reduce((a, b) => a + b.level, 0), [buildings]);
