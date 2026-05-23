@@ -20,15 +20,17 @@ let LOADING: Promise<Map<string, SpeciesLite>> | null = null;
 async function loadSpecies(): Promise<Map<string, SpeciesLite>> {
   if (CACHE) return CACHE;
   if (LOADING) return LOADING;
-  LOADING = supabase
-    .from("pikmin_species")
-    .select("key,name,color,image_url,abilities")
-    .then(({ data }) => {
-      CACHE = new Map((data ?? []).map((r: any) => [r.key, r as SpeciesLite]));
-      return CACHE;
-    });
+  LOADING = (async () => {
+    const { data } = await supabase
+      .from("pikmin_species")
+      .select("key,name,color,image_url,abilities");
+    const map = new Map<string, SpeciesLite>((data ?? []).map((r: any) => [r.key, r as SpeciesLite]));
+    CACHE = map;
+    return map;
+  })();
   return LOADING;
 }
+
 
 export function invalidatePikminCache() {
   CACHE = null;
