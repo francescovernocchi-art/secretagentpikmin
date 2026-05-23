@@ -1,12 +1,12 @@
-import { memo } from "react";
-import sheet from "@/assets/pikmin-sheet.png";
+import { memo, useMemo } from "react";
+import sheet from "@/assets/pikmin-sprites.png";
 import {
   ANIMATIONS,
   FRAME_W,
   FRAME_H,
-  SPRITE_COLS,
-  SPRITE_ROWS,
+  STRIDE_X,
   PIKMIN_ROW,
+  frameOffset,
   type PikminType,
   type PikminAnimation,
 } from "@/data/pikminSprites";
@@ -15,19 +15,14 @@ import "@/styles/pikminAnimations.css";
 export interface AnimatedPikminProps {
   type: PikminType;
   animation: PikminAnimation;
-  /** Larghezza in px del pikmin renderizzato. Altezza calcolata. */
+  /** Larghezza in px renderizzata (default 48). Lo sprite nativo è 128×128. */
   size?: number;
-  /** Posizione assoluta (px) opzionale: imposta left/top. */
   x?: number;
   y?: number;
   scale?: number;
-  /** Inverte orizzontalmente (per direzione di marcia). */
   flip?: boolean;
-  /** Aggiunge glow notturno. */
   night?: boolean;
-  /** Click sul pikmin (per tooltip). */
   onClick?: () => void;
-  /** Effetti extra. */
   showDust?: boolean;
   showBubbles?: boolean;
   showParticles?: boolean;
@@ -35,7 +30,7 @@ export interface AnimatedPikminProps {
   showZ?: boolean;
 }
 
-/** Singolo Pikmin animato basato sullo sprite sheet. */
+/** Singolo Pikmin animato — coordinate FISSE da sprite sheet. */
 function AnimatedPikminBase({
   type,
   animation,
@@ -54,34 +49,40 @@ function AnimatedPikminBase({
 }: AnimatedPikminProps) {
   const def = ANIMATIONS[animation];
   const row = PIKMIN_ROW[type];
+  const first = useMemo(() => frameOffset(type, animation, 0), [type, animation]);
 
-  // Dimensioni effettive preservando ratio
+  // Render alla dimensione richiesta: scaliamo lo sprite usando background-size.
+  // Rapporto scala = size / FRAME_W. Tutti i valori px nello sheet vanno moltiplicati.
+  const k = size / FRAME_W;
   const w = size;
-  const h = Math.round((FRAME_H / FRAME_W) * size);
+  const h = FRAME_H * k;
+  const bgSizeX = "auto"; // mantieni dimensione naturale dello sheet... no, dobbiamo scalare
+  // Usiamo background-size proporzionale: assumiamo "natural * k" via background-size none → useremo invece scaling tramite background-size con valori px scalati.
+  // Per evitare di conoscere la dimensione naturale del sheet, usiamo background-size: auto e scaliamo l'elemento con transform.
 
-  // Scala il background per coprire l'intero sheet → posizione in % del frame
-  // bgSize = (cols*100)% (rows*100)%
-  // bgPos x/y = col/(cols-1) * 100%  ,  row/(rows-1) * 100%
-  const col = def.startCol;
-  const bgX = SPRITE_COLS > 1 ? (col / (SPRITE_COLS - 1)) * 100 : 0;
-  const bgY = SPRITE_ROWS > 1 ? (row / (SPRITE_ROWS - 1)) * 100 : 0;
+  // Strategia: rendi il box a FRAME_W×FRAME_H nativi, poi `transform: scale(k * scale)`.
+  const nativeW = FRAME_W;
+  const nativeH = FRAME_H;
 
   const positioned = x !== undefined || y !== undefined;
-
   const wrapperStyle: React.CSSProperties = positioned
     ? { position: "absolute", left: x, top: y, width: w, height: h }
     : { position: "relative", width: w, height: h };
 
+  // Animazione multi-frame: spostiamo background-position-x via CSS var con steps()
+  const totalShift = def.frames * STRIDE_X; // px da percorrere
+  const animName = def.frames > 1 ? `pikminFrames_${animation}` : undefined;
+
   return (
     <div
-      style={{ ...wrapperStyle, transform: `scale(${scale})`, transformOrigin: "bottom center" }}
+      style={{ ...wrapperStyle }}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       className={onClick ? "cursor-pointer" : undefined}
     >
       {showShadow && <span className="pikmin-shadow" />}
 
-      {/* Wrapper per l'animazione di pose; il flip è sul figlio per non azzerare la bob */}
+      {/* Wrapper pose (bob/rotate) */}
       <div
         className={`pikmin-anim-${animation}`}
         style={{
@@ -89,22 +90,47 @@ function AnimatedPikminBase({
           height: h,
           position: "absolute",
           inset: 0,
-          // Esposta come var CSS per override (es. globalSpeed)
           ["--pikmin-anim-dur" as any]: `${def.durationMs}ms`,
         }}
       >
+        {/* Inner sprite a dimensioni native, scalato */}
         <div
-          className={`pikmin-sprite ${night ? "pikmin-night-glow" : ""}`}
           style={{
-            width: w,
-            height: h,
-            backgroundImage: `url(${sheet})`,
-            backgroundSize: `${SPRITE_COLS * 100}% ${SPRITE_ROWS * 100}%`,
-            backgroundPosition: `${bgX}% ${bgY}%`,
-            transform: flip ? "scaleX(-1)" : undefined,
+            width: nativeW,
+            height: nativeH,
+            transform: `scale(${k * scale})${flip ? " scaleX(-1)" : ""}`,
+            transformOrigin: "top left",
           }}
-        />
+        >
+          <div
+            className={`pikmin-sprite ${night ? "pikmin-night-glow" : ""}`}
+            style={{
+              width: nativeW,
+              height: nativeH,
+              backgroundImage: `url(${sheet})`,
+              backgroundRepeat: "no-repeat",
+              backgroundSize: bgSizeX,
+              backgroundPosition: `${first.x}px ${first.y}px`,
+              ["--pikmin-frame-x" as any]: `${first.x}px`,
+              ["--pikmin-frame-y" as any]: `${first.y}px`,
+              ["--pikmin-frame-shift" as any]: `-${totalShift}px`,
+              animation: animName
+                ? `${animName} ${def.durationMs}ms steps(${def.frames}) infinite`
+                : undefined,
+            }}
+          />
+        </div>
       </div>
+
+      {/* Keyframes generati dinamicamente per ogni animazione multi-frame */}
+      {animName && (
+        <style>{`
+          @keyframes ${animName} {
+            from { background-position: ${first.x}px ${first.y}px; }
+            to   { background-position: ${first.x - totalShift}px ${first.y}px; }
+          }
+        `}</style>
+      )}
 
       {showDust && (
         <>

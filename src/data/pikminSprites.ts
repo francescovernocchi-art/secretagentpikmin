@@ -1,19 +1,38 @@
 /**
- * Configurazione sprite sheet Pikmin.
+ * Configurazione MANUALE sprite sheet Pikmin.
  *
- * Sheet uniforme: 7 colonne × 5 righe.
- * Colonne (azioni): 0 idle, 1 walk, 2 run, 3 carry, 4 work, 5 sleep, 6 celebrate.
- * Righe (colori):  0 rosso, 1 blu, 2 giallo, 3 viola, 4 bianco.
+ * Sheet sorgente: src/assets/pikmin-sprites.png
+ * Contiene intestazioni decorative — usiamo offset fissi, NESSUN auto-detect.
  *
- * Frame size: 128 × 190 (sheet 896 × 950).
+ * Grid:
+ *   frameWidth  = 128
+ *   frameHeight = 128
+ *   startOffsetX = 100
+ *   startOffsetY = 60
+ *   gapX = 8
+ *   gapY = 8
  *
- * Uso privato/familiare — non destinato a pubblicazione commerciale.
+ * Righe (colore): 0 rosso, 1 blu, 2 giallo, 3 viola, 4 bianco.
+ * Colonne (azioni):
+ *   0-2  idle
+ *   3-6  walk
+ *   7-9  run
+ *   10-11 carry
+ *   12-13 work
+ *   14    sleep
+ *   15    celebrate
+ *
+ * Uso privato/familiare.
  */
 
-export const SPRITE_COLS = 7;
-export const SPRITE_ROWS = 5;
 export const FRAME_W = 128;
-export const FRAME_H = 190;
+export const FRAME_H = 128;
+export const START_X = 100;
+export const START_Y = 60;
+export const GAP_X = 8;
+export const GAP_Y = 8;
+export const STRIDE_X = FRAME_W + GAP_X; // 136
+export const STRIDE_Y = FRAME_H + GAP_Y; // 136
 
 export type PikminType = "red" | "blue" | "yellow" | "purple" | "white";
 export type PikminAnimation =
@@ -26,24 +45,23 @@ export type PikminAnimation =
   | "celebrate";
 
 interface AnimDef {
-  /** Colonna iniziale nella sheet. */
+  /** Colonna iniziale (0-based). */
   startCol: number;
-  /** Numero di frame (>=1). Il sheet attuale ha 1 frame rappresentativo per azione. */
+  /** Numero di frame. */
   frames: number;
   /** Durata totale del loop in ms. */
   durationMs: number;
-  /** Loop indefinito. */
   loop: boolean;
 }
 
 export const ANIMATIONS: Record<PikminAnimation, AnimDef> = {
-  idle:      { startCol: 0, frames: 1, durationMs: 1200, loop: true },
-  walk:      { startCol: 1, frames: 1, durationMs: 600,  loop: true },
-  run:       { startCol: 2, frames: 1, durationMs: 380,  loop: true },
-  carry:     { startCol: 3, frames: 1, durationMs: 700,  loop: true },
-  work:      { startCol: 4, frames: 1, durationMs: 500,  loop: true },
-  sleep:     { startCol: 5, frames: 1, durationMs: 2400, loop: true },
-  celebrate: { startCol: 6, frames: 1, durationMs: 500,  loop: true },
+  idle:      { startCol: 0,  frames: 3, durationMs: 900,  loop: true },
+  walk:      { startCol: 3,  frames: 4, durationMs: 600,  loop: true },
+  run:       { startCol: 7,  frames: 3, durationMs: 360,  loop: true },
+  carry:     { startCol: 10, frames: 2, durationMs: 600,  loop: true },
+  work:      { startCol: 12, frames: 2, durationMs: 480,  loop: true },
+  sleep:     { startCol: 14, frames: 1, durationMs: 2400, loop: true },
+  celebrate: { startCol: 15, frames: 1, durationMs: 500,  loop: true },
 };
 
 export const PIKMIN_ROW: Record<PikminType, number> = {
@@ -76,15 +94,17 @@ export const ANIMATION_LABEL: Record<PikminAnimation, string> = {
   celebrate: "Festeggia",
 };
 
-/** Restituisce le coordinate (x, y) in px del frame nella sheet. */
+/** Coordinate (px) del primo frame di un'azione nello sheet sorgente. */
 export function frameOffset(type: PikminType, anim: PikminAnimation, frameIdx = 0): { x: number; y: number } {
   const row = PIKMIN_ROW[type];
   const def = ANIMATIONS[anim];
   const col = def.startCol + Math.max(0, Math.min(def.frames - 1, frameIdx));
-  return { x: -col * FRAME_W, y: -row * FRAME_H };
+  return {
+    x: -(START_X + col * STRIDE_X),
+    y: -(START_Y + row * STRIDE_Y),
+  };
 }
 
-/** Suggerimenti missione per tipo. */
 export const MISSION_HINTS: Record<PikminType, string[]> = {
   red:    ["Difesa perimetro", "Cacciatore frutti", "Pattuglia"],
   blue:   ["Esplora pozze", "Trasporto risorse", "Pulizia base"],
