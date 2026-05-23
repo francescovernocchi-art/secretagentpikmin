@@ -111,8 +111,8 @@ export async function signUpWithPassword(args: {
 
 export async function createInviteCode(note?: string): Promise<string> {
   const { data, error } = await supabase.rpc("create_invite_code", {
-    _note: note ?? null,
-    _expires_at: null,
+    _note: note ?? undefined,
+    _expires_at: undefined,
   });
   if (error) throw error;
   return data as string;
