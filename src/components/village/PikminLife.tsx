@@ -178,9 +178,20 @@ export function PikminLife({
                 className="absolute left-1/2 -translate-x-1/2 bottom-3 w-[1.5px] h-2"
                 style={{ background: p.hue }}
               />
-              {/* foglia / segnale */}
+              <div
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full"
+                style={{
+                  background: `radial-gradient(circle at 35% 30%, #fff8, ${p.hue} 60%, #0006)`,
+                  boxShadow: auraShadow,
+                }}
+              />
+              <div
+                className="absolute left-1/2 -translate-x-1/2 bottom-3 w-[1.5px] h-2"
+                style={{ background: p.hue }}
+              />
+              {/* accessorio / segnale */}
               <div className="absolute left-1/2 -translate-x-1/2 -top-0.5 text-[8px] leading-none">
-                {p.role === "guard" ? "🛡" : p.role === "scout" ? "🔭" : p.carry ?? "🌱"}
+                {p.role === "guard" ? "🛡" : p.role === "scout" ? "🔭" : (accessoryEmoji || p.carry || "🌱")}
               </div>
             </motion.div>
           </motion.div>
