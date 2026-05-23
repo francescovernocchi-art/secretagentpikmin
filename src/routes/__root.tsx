@@ -130,7 +130,6 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
-  const qc = useQueryClient();
   const isApp = pathname !== "/";
 
   useEffect(() => {
@@ -142,11 +141,12 @@ function RootComponent() {
         clearSession();
         if (window.location.pathname !== "/") router.navigate({ to: "/" });
       }
-      qc.invalidateQueries();
+      queryClient.invalidateQueries();
       router.invalidate();
     });
     return () => subscription.unsubscribe();
-  }, [router, qc]);
+  }, [router, queryClient]);
+
 
   useEffect(() => {
     if (isApp && typeof window !== "undefined" && !getSession()) {
