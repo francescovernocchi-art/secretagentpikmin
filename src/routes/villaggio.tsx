@@ -206,6 +206,7 @@ function VillaggioPage() {
   const baseStatus = computeVillageStatus(base.faction as FactionKey, buildings, catalog);
   const wallBonus = wallDefenseBonus(walls);
   const status = { ...baseStatus, defenseRating: baseStatus.defenseRating + wallBonus };
+  const cosmetics: VillageCosmetics = getCosmetics(base.layout);
 
   return (
     <PageShell
