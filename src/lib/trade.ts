@@ -103,8 +103,8 @@ export async function createOffer(params: {
     .insert({
       from_agent: params.from,
       to_agent: params.to,
-      offer: params.offer as unknown as Record<string, unknown>,
-      request: params.request as unknown as Record<string, unknown>,
+      offer: params.offer as any,
+      request: params.request as any,
       message: params.message ?? null,
     })
     .select("*")
