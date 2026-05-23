@@ -11,6 +11,7 @@ import { collectShipPart } from "@/lib/ship";
 import { spendPikmin, pikminCostFor, RARITY_LABEL, RARITY_COLOR, getPikminCount } from "@/lib/pikmin";
 import { PikminCounter } from "@/components/PikminCounter";
 import { EnemyLayer } from "@/components/EnemyLayer";
+import { escapeHtml } from "@/lib/escape";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -358,14 +359,17 @@ function MappaPage() {
           existing.marker.setLatLng([a.lat, a.lng]);
           existing.accuracy?.setLatLng([a.lat, a.lng]).setRadius(a.accuracy ?? 0);
         } else {
+          const safeEmoji = escapeHtml(a.emoji);
+          const safeName = escapeHtml(a.agent_name);
+          const safeRole = escapeHtml(a.role);
           const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px)">
-            <div style="background:${color};color:#0a0a0a;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid #0a0a0a;box-shadow:0 0 6px ${color}">${a.emoji} ${a.agent_name}</div>
+            <div style="background:${color};color:#0a0a0a;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid #0a0a0a;box-shadow:0 0 6px ${color}">${safeEmoji} ${safeName}</div>
             <div style="width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #0a0a0a;box-shadow:0 0 12px ${color}"></div>
           </div>`;
           const icon = L.divIcon({ className: "", html, iconSize: [90, 36], iconAnchor: [45, 28] });
           const marker = L.marker([a.lat, a.lng], { icon, zIndexOffset: 800 }).addTo(map);
           const updated = new Date(a.updated_at).toLocaleTimeString();
-          marker.bindPopup(`<div style="min-width:140px"><b>${a.emoji} ${a.agent_name}</b><br/><span style="opacity:.7">${a.role}</span><br/><span style="opacity:.7">aggiornato ${updated}</span>${a.accuracy ? `<br/><span style="opacity:.7">±${Math.round(a.accuracy)}m</span>` : ""}</div>`);
+          marker.bindPopup(`<div style="min-width:140px"><b>${safeEmoji} ${safeName}</b><br/><span style="opacity:.7">${safeRole}</span><br/><span style="opacity:.7">aggiornato ${updated}</span>${a.accuracy ? `<br/><span style="opacity:.7">±${Math.round(a.accuracy)}m</span>` : ""}</div>`);
           let accuracy: any = null;
           if (a.accuracy && a.accuracy > 0) {
             accuracy = L.circle([a.lat, a.lng], {
@@ -426,15 +430,18 @@ function MappaPage() {
         if (existing) {
           existing.setLatLng([d.lat, d.lng]);
         } else {
+          const safeDEmoji = escapeHtml(d.emoji);
+          const safeDName = escapeHtml(d.name);
+          const safeDNote = escapeHtml(d.note ?? "");
           const icon = L.divIcon({
             className: "",
-            html: `<div style="font-size:28px;line-height:1;filter:drop-shadow(0 0 8px ${collected ? "#666" : "oklch(0.86 0.24 145)"}); ${collected ? "opacity:0.4;" : ""}">${d.emoji}</div>`,
+            html: `<div style="font-size:28px;line-height:1;filter:drop-shadow(0 0 8px ${collected ? "#666" : "oklch(0.86 0.24 145)"}); ${collected ? "opacity:0.4;" : ""}">${safeDEmoji}</div>`,
             iconSize: [32, 32],
             iconAnchor: [16, 16],
           });
           const marker = L.marker([d.lat, d.lng], { icon }).addTo(map);
           marker.bindPopup(
-            `<div style="min-width:160px"><b>${d.emoji} ${d.name}</b><br/><span style="opacity:.7">+${d.xp} XP · ${d.radius_m}m</span>${d.note ? `<br/><i>"${d.note}"</i>` : ""}${collected ? `<br/><span style="color:#888">Raccolto</span>` : ""}</div>`,
+            `<div style="min-width:160px"><b>${safeDEmoji} ${safeDName}</b><br/><span style="opacity:.7">+${d.xp} XP · ${d.radius_m}m</span>${d.note ? `<br/><i>"${safeDNote}"</i>` : ""}${collected ? `<br/><span style="color:#888">Raccolto</span>` : ""}</div>`,
           );
           dropMarkersRef.current.set(d.id, marker);
 

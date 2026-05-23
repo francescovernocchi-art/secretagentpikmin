@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { addCoins } from "@/lib/coins";
 import { WikiImage } from "@/components/WikiImage";
+import { escapeHtml } from "@/lib/escape";
 import {
   Dialog,
   DialogContent,
@@ -440,11 +441,14 @@ export function EnemyLayer({ mapRef, ready, me }: Props) {
             if (ico) (ico as HTMLElement).style.filter = `drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}`;
           }
         } else {
+          const safeEmoji = escapeHtml(enemy.emoji);
+          const safeImg = escapeHtml(enemy.image_url ?? "");
+          const safeBadge = escapeHtml(badgeText);
           const iconHtml = enemy.image_url
-            ? `<img src="${enemy.image_url}" alt="" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}" onerror="this.outerHTML='<div style=&quot;font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})&quot;>${enemy.emoji}</div>'" />`
-            : `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}">${enemy.emoji}</div>`;
+            ? `<img src="${safeImg}" alt="" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}" onerror="this.outerHTML='<div style=&quot;font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})&quot;>'+this.getAttribute('data-fallback')+'</div>'" data-fallback="${safeEmoji}" />`
+            : `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 0 8px ${color})${sleeping ? " grayscale(0.4)" : ""}">${safeEmoji}</div>`;
           const html = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translateY(-6px);opacity:${opacityVal}">
-            <div data-enemy-badge style="background:#0a0a0a;color:${color};font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid ${color};box-shadow:0 0 8px ${color}">${badgeText}</div>
+            <div data-enemy-badge style="background:#0a0a0a;color:${color};font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;border:1px solid ${color};box-shadow:0 0 8px ${color}">${safeBadge}</div>
             <div data-enemy-ico>${iconHtml}</div>
           </div>`;
           const icon = L.divIcon({ className: "", html, iconSize: [120, 56], iconAnchor: [60, 32] });
