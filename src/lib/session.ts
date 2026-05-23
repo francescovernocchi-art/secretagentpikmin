@@ -26,8 +26,12 @@ export function setSession(s: Session) {
   localStorage.setItem(KEY, JSON.stringify(s));
 }
 
-export function clearSession() {
+export function clearStoredSession() {
   localStorage.removeItem(KEY);
+}
+
+export function clearSession() {
+  clearStoredSession();
   void supabase.auth.signOut();
 }
 
@@ -52,7 +56,7 @@ async function hydrateProfile(userId: string): Promise<Session | null> {
 export async function refreshSession(): Promise<Session | null> {
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
-    clearSession();
+    clearStoredSession();
     return null;
   }
   return hydrateProfile(data.user.id);
