@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Shield, CheckCircle2 } from "lucide-react";
 import { VillageEvent, resolveEvent } from "@/lib/village/threats";
@@ -7,7 +8,7 @@ interface Props {
   onResolved: () => void;
 }
 
-const ICON: Record<string, JSX.Element> = {
+const ICON: Record<string, ReactNode> = {
   threat: <AlertTriangle className="h-4 w-4" />,
   threat_repelled: <Shield className="h-4 w-4" />,
 };
