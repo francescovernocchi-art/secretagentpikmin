@@ -116,12 +116,30 @@ function VillaggioPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "base_buildings", filter: `agent=eq.${agent}` }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "bases", filter: `agent=eq.${agent}` }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "base_gifts", filter: `to_agent=eq.${agent}` }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "village_walls", filter: `agent=eq.${agent}` }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "village_events", filter: `agent=eq.${agent}` }, reload)
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent]);
+
+  // Scansione minacce: al load + ogni 60s
+  useEffect(() => {
+    if (!base?.faction || base.lat == null || base.lng == null) return;
+    const totalDefense = computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating + wallDefenseBonus(walls);
+    scanThreats({ agent, baseLat: base.lat, baseLng: base.lng, totalDefense, force: true }).then(({ created, auto }) => {
+      if (created || auto) reload();
+    });
+    const id = setInterval(() => {
+      scanThreats({ agent, baseLat: base.lat, baseLng: base.lng, totalDefense }).then(({ created, auto }) => {
+        if (created || auto) reload();
+      });
+    }, 60_000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent, base?.faction, base?.lat, base?.lng, walls.length, buildings.length]);
 
   // auto-complete dei timer scaduti + festa al completamento
   useEffect(() => {
