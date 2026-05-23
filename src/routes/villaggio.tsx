@@ -302,7 +302,7 @@ function VillaggioPage() {
           onSelectBuilding={setSelected}
           tick={tick}
         />
-        <VillagePikminAnimations
+        <VillagePikminLayer
           buildings={buildings}
           pikminCount={pikminCount}
           breakdown={pikminBreakdown}
