@@ -186,7 +186,9 @@ function VillaggioPage() {
     return <FactionSelector agent={agent} onChosen={reload} />;
   }
 
-  const status = computeVillageStatus(base.faction as FactionKey, buildings, catalog);
+  const baseStatus = computeVillageStatus(base.faction as FactionKey, buildings, catalog);
+  const wallBonus = wallDefenseBonus(walls);
+  const status = { ...baseStatus, defenseRating: baseStatus.defenseRating + wallBonus };
 
   return (
     <PageShell
@@ -213,6 +215,9 @@ function VillaggioPage() {
       {/* STATO COLONIA */}
       <VillageStatusBar status={status} faction={base.faction as FactionKey} />
 
+      {/* MINACCE ATTIVE */}
+      <ThreatBanner events={events} onResolved={reload} />
+
       {/* SCENA */}
       <motion.div
         key={base.theme + phase + base.faction}
@@ -223,9 +228,18 @@ function VillaggioPage() {
       >
         <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} />
         <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
+          <DefenseRangeLayer buildings={buildings} />
+          <WallLayer walls={walls} />
           <VillageAtmosphere faction={base.faction as FactionKey} />
           <PikminLife count={Math.min(12, 4 + buildings.length)} />
         </div>
+        {/* CTA editor muri */}
+        <button
+          onClick={() => { hapticTap(); setWallEditorOpen(true); }}
+          className="absolute top-2 right-2 panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
+        >
+          <ShieldPlus className="h-3 w-3 text-primary" /> Mura ({walls.length}) · +{wallBonus}
+        </button>
       </motion.div>
 
       {/* GIFTS */}
