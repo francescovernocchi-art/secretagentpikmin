@@ -252,6 +252,7 @@ function VillaggioPage() {
             onConfirm={async (pos) => {
               try {
                 await startBuilding(agent, picker, pos);
+                sfx.build();
                 setPicker(null);
                 reload();
               } catch (e: any) {
@@ -728,6 +729,7 @@ function BuildingDetail({
               onClick={async () => {
                 try {
                   await startUpgrade(agent, building, catalog);
+                  sfx.upgrade();
                   onRefresh();
                   onClose();
                 } catch (e: any) {
