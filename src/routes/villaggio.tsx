@@ -502,24 +502,32 @@ function BaseScene({
   catalog,
   onSelect,
   phase,
+  cosmetics,
 }: {
   theme: { sky: string; ground: string; accent: string; label: string };
   buildings: BaseBuilding[];
   catalog: BuildingCatalog[];
   onSelect: (b: BaseBuilding) => void;
   phase: DayPhase;
+  cosmetics?: VillageCosmetics;
 }) {
   const cat = (k: string) => catalog.find((c) => c.key === k);
   const overlay = phaseOverlay(phase);
   const isNight = phase === "notte";
   const isDusk = phase === "tramonto" || phase === "alba";
+  const skyTop = cosmetics?.skyTop ?? theme.sky;
+  const skyBottom = cosmetics?.skyBottom ?? theme.ground;
+  const ground = cosmetics?.groundColor ?? theme.ground;
+  const accent = cosmetics?.accentColor ?? theme.accent;
+  const pattern = cosmetics?.pattern ?? "erba";
   return (
     <div className="panel-strong relative overflow-hidden p-0" style={{ aspectRatio: "16 / 11" }}>
       {/* Cielo bioma */}
       <div
         className="absolute inset-0"
-        style={{ background: `linear-gradient(180deg, ${theme.sky} 0%, ${theme.sky} 55%, ${theme.ground} 100%)` }}
+        style={{ background: `linear-gradient(180deg, ${skyTop} 0%, ${skyTop} 55%, ${skyBottom} 100%)` }}
       />
+
       {/* Day/night overlay */}
       <div className="absolute inset-0 pointer-events-none transition-opacity duration-1000" style={{ background: overlay.background }} />
 
