@@ -29,6 +29,8 @@ import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as ArchivioRouteImport } from './routes/archivio'
 import { Route as AgentiRouteImport } from './routes/agenti'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VillaggioScambiRouteImport } from './routes/villaggio.scambi'
+import { Route as VillaggioEdificiRouteImport } from './routes/villaggio.edifici'
 import { Route as VillaggioAgentRouteImport } from './routes/villaggio.$agent'
 import { Route as SpedizioniKeyRouteImport } from './routes/spedizioni.$key'
 
@@ -132,6 +134,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VillaggioScambiRoute = VillaggioScambiRouteImport.update({
+  id: '/scambi',
+  path: '/scambi',
+  getParentRoute: () => VillaggioRoute,
+} as any)
+const VillaggioEdificiRoute = VillaggioEdificiRouteImport.update({
+  id: '/edifici',
+  path: '/edifici',
+  getParentRoute: () => VillaggioRoute,
+} as any)
 const VillaggioAgentRoute = VillaggioAgentRouteImport.update({
   id: '/$agent',
   path: '/$agent',
@@ -166,6 +178,8 @@ export interface FileRoutesByFullPath {
   '/villaggio': typeof VillaggioRouteWithChildren
   '/spedizioni/$key': typeof SpedizioniKeyRoute
   '/villaggio/$agent': typeof VillaggioAgentRoute
+  '/villaggio/edifici': typeof VillaggioEdificiRoute
+  '/villaggio/scambi': typeof VillaggioScambiRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -190,6 +204,8 @@ export interface FileRoutesByTo {
   '/villaggio': typeof VillaggioRouteWithChildren
   '/spedizioni/$key': typeof SpedizioniKeyRoute
   '/villaggio/$agent': typeof VillaggioAgentRoute
+  '/villaggio/edifici': typeof VillaggioEdificiRoute
+  '/villaggio/scambi': typeof VillaggioScambiRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -215,6 +231,8 @@ export interface FileRoutesById {
   '/villaggio': typeof VillaggioRouteWithChildren
   '/spedizioni/$key': typeof SpedizioniKeyRoute
   '/villaggio/$agent': typeof VillaggioAgentRoute
+  '/villaggio/edifici': typeof VillaggioEdificiRoute
+  '/villaggio/scambi': typeof VillaggioScambiRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -241,6 +259,8 @@ export interface FileRouteTypes {
     | '/villaggio'
     | '/spedizioni/$key'
     | '/villaggio/$agent'
+    | '/villaggio/edifici'
+    | '/villaggio/scambi'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -265,6 +285,8 @@ export interface FileRouteTypes {
     | '/villaggio'
     | '/spedizioni/$key'
     | '/villaggio/$agent'
+    | '/villaggio/edifici'
+    | '/villaggio/scambi'
   id:
     | '__root__'
     | '/'
@@ -289,6 +311,8 @@ export interface FileRouteTypes {
     | '/villaggio'
     | '/spedizioni/$key'
     | '/villaggio/$agent'
+    | '/villaggio/edifici'
+    | '/villaggio/scambi'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -456,6 +480,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/villaggio/scambi': {
+      id: '/villaggio/scambi'
+      path: '/scambi'
+      fullPath: '/villaggio/scambi'
+      preLoaderRoute: typeof VillaggioScambiRouteImport
+      parentRoute: typeof VillaggioRoute
+    }
+    '/villaggio/edifici': {
+      id: '/villaggio/edifici'
+      path: '/edifici'
+      fullPath: '/villaggio/edifici'
+      preLoaderRoute: typeof VillaggioEdificiRouteImport
+      parentRoute: typeof VillaggioRoute
+    }
     '/villaggio/$agent': {
       id: '/villaggio/$agent'
       path: '/$agent'
@@ -487,10 +525,14 @@ const SpedizioniRouteWithChildren = SpedizioniRoute._addFileChildren(
 
 interface VillaggioRouteChildren {
   VillaggioAgentRoute: typeof VillaggioAgentRoute
+  VillaggioEdificiRoute: typeof VillaggioEdificiRoute
+  VillaggioScambiRoute: typeof VillaggioScambiRoute
 }
 
 const VillaggioRouteChildren: VillaggioRouteChildren = {
   VillaggioAgentRoute: VillaggioAgentRoute,
+  VillaggioEdificiRoute: VillaggioEdificiRoute,
+  VillaggioScambiRoute: VillaggioScambiRoute,
 }
 
 const VillaggioRouteWithChildren = VillaggioRoute._addFileChildren(
