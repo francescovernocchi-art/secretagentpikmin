@@ -1,11 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageShell } from "@/components/PageShell";
+import { CelebrationOverlay } from "@/components/CelebrationOverlay";
 import { getSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticTap } from "@/lib/haptic";
 import { getCoins } from "@/lib/coins";
+import { sfx } from "@/lib/sfx";
+import { getDayPhase, phaseOverlay, PHASE_LABEL, PHASE_EMOJI, type DayPhase } from "@/lib/daycycle";
 import {
   BaseRow,
   BaseBuilding,
@@ -26,7 +29,8 @@ import {
   claimGift,
   BaseGift,
 } from "@/lib/base";
-import { Home, Sparkles, Hammer, Gift, ArrowUpRight, ChevronRight, Users } from "lucide-react";
+import { Sparkles, Hammer, Gift, ArrowUpRight, Users } from "lucide-react";
+
 
 export const Route = createFileRoute("/villaggio")({
   component: VillaggioPage,
