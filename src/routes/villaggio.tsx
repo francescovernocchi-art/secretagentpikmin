@@ -231,50 +231,36 @@ function VillaggioPage() {
     >
       <CelebrationOverlay show={!!festa} label={festa ?? ""} onDone={() => setFesta(null)} />
 
-      {/* STATO COLONIA */}
-      <VillageStatusBar status={status} faction={base.faction as FactionKey} />
+      {/* HUD AGENTE */}
+      <VillageHud session={session} base={base} status={status} coins={coins} pikminCount={pikminCount} />
 
-      {/* MINACCE ATTIVE */}
-      <ThreatBanner events={events} onResolved={reload} />
+      {/* STATS CAMPO BASE */}
+      <VillageStatsPanel base={base} status={status} faction={base.faction as FactionKey} />
 
-      {/* SCENA */}
-      <motion.div
-        key={base.theme + phase + base.faction}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative"
-      >
-        <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} cosmetics={cosmetics} />
-        <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
-          <DefenseRangeLayer buildings={buildings} />
-          <WallLayer walls={walls} />
-          <VillageAtmosphere faction={base.faction as FactionKey} />
-          <PikminLife
-            count={Math.min(14, 5 + buildings.length)}
-            faction={base.faction as FactionKey}
-            buildings={buildings.map((b) => ({ position_x: b.position_x, position_y: b.position_y, type: b.type }))}
-            threat={events.some((e) => !e.resolved_at && e.kind === "threat")}
-            phase={phase}
-            skin={{ body: cosmetics.pikminBody, accessory: cosmetics.pikminAccessory, aura: cosmetics.pikminAura, accent: cosmetics.accentColor }}
-          />
-        </div>
-        {/* CTA editor muri + estetica */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
-          <button
-            onClick={() => { hapticTap(); setWallEditorOpen(true); }}
-            className="panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
-          >
-            <ShieldPlus className="h-3 w-3 text-primary" /> Mura ({walls.length}) · +{wallBonus}
-          </button>
-          <button
-            onClick={() => { hapticTap(); setCustomizerOpen(true); }}
-            className="panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
-          >
-            <Palette className="h-3 w-3 text-primary" /> Estetica
-          </button>
-        </div>
-      </motion.div>
+      {/* MINACCE: solo se reali entro raggio */}
+      <ThreatAlertPanel threats={nearbyThreats} />
+
+      {/* SCENA VILLAGGIO */}
+      <VillageCanvas
+        faction={base.faction as FactionKey}
+        phase={phase}
+        buildings={buildings}
+        walls={walls}
+        cosmetics={cosmetics}
+        threat={nearbyThreats.length > 0}
+        onSelectBuilding={setSelected}
+        tick={tick}
+      />
+
+      {/* AZIONI RAPIDE */}
+      <VillageActions
+        onBuild={() => {
+          const next = catalog.find((c) => !buildings.some((b) => b.type === c.key));
+          if (next) setPicker(next);
+        }}
+        onWalls={() => setWallEditorOpen(true)}
+        onCustomize={() => setCustomizerOpen(true)}
+      />
 
 
       {/* GIFTS */}
