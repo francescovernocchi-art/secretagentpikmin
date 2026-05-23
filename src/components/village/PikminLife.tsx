@@ -168,17 +168,6 @@ export function PikminLife({
               transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
             >
               <div
-                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full shadow-[0_0_6px_rgba(0,0,0,.4)]"
-                style={{
-                  background: `radial-gradient(circle at 35% 30%, #fff8, ${p.hue} 60%, #0006)`,
-                }}
-              />
-              {/* stelo */}
-              <div
-                className="absolute left-1/2 -translate-x-1/2 bottom-3 w-[1.5px] h-2"
-                style={{ background: p.hue }}
-              />
-              <div
                 className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full"
                 style={{
                   background: `radial-gradient(circle at 35% 30%, #fff8, ${p.hue} 60%, #0006)`,
