@@ -29,13 +29,19 @@ import {
   claimGift,
   BaseGift,
 } from "@/lib/base";
-import { Sparkles, Hammer, Gift, ArrowUpRight, Users } from "lucide-react";
+import { Sparkles, Hammer, Gift, ArrowUpRight, Users, ShieldPlus } from "lucide-react";
 import { FactionSelector } from "@/components/village/FactionSelector";
 import { VillageStatusBar } from "@/components/village/VillageStatusBar";
 import { VillageAtmosphere } from "@/components/village/VillageAtmosphere";
 import { PikminLife } from "@/components/village/PikminLife";
+import { WallLayer } from "@/components/village/WallLayer";
+import { WallEditor } from "@/components/village/WallEditor";
+import { DefenseRangeLayer } from "@/components/village/DefenseRangeLayer";
+import { ThreatBanner } from "@/components/village/ThreatBanner";
 import { computeVillageStatus } from "@/lib/village/bonuses";
 import type { FactionKey } from "@/lib/village/factions";
+import { listWalls, wallDefenseBonus, type WallSegment } from "@/lib/village/walls";
+import { listOpenEvents, scanThreats, type VillageEvent } from "@/lib/village/threats";
 
 
 export const Route = createFileRoute("/villaggio")({
@@ -59,6 +65,9 @@ function VillaggioPage() {
   const [catalog, setCatalog] = useState<BuildingCatalog[]>([]);
   const [coins, setCoins] = useState(0);
   const [gifts, setGifts] = useState<BaseGift[]>([]);
+  const [walls, setWalls] = useState<WallSegment[]>([]);
+  const [events, setEvents] = useState<VillageEvent[]>([]);
+  const [wallEditorOpen, setWallEditorOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [picker, setPicker] = useState<BuildingCatalog | null>(null);
@@ -81,18 +90,22 @@ function VillaggioPage() {
   }, []);
 
   const reload = async () => {
-    const [b, bld, cat, c, g] = await Promise.all([
+    const [b, bld, cat, c, g, w, ev] = await Promise.all([
       getBase(agent),
       listBuildings(agent),
       fetchCatalog(),
       getCoins(agent),
       listGifts(agent),
+      listWalls(agent),
+      listOpenEvents(agent),
     ]);
     setBase(b);
     setBuildings(bld);
     setCatalog(cat);
     setCoins(c);
     setGifts(g);
+    setWalls(w);
+    setEvents(ev);
     setLoading(false);
   };
 
@@ -103,12 +116,30 @@ function VillaggioPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "base_buildings", filter: `agent=eq.${agent}` }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "bases", filter: `agent=eq.${agent}` }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "base_gifts", filter: `to_agent=eq.${agent}` }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "village_walls", filter: `agent=eq.${agent}` }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "village_events", filter: `agent=eq.${agent}` }, reload)
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent]);
+
+  // Scansione minacce: al load + ogni 60s
+  useEffect(() => {
+    if (!base?.faction || base.lat == null || base.lng == null) return;
+    const totalDefense = computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating + wallDefenseBonus(walls);
+    scanThreats({ agent, baseLat: base.lat, baseLng: base.lng, totalDefense, force: true }).then(({ created, auto }) => {
+      if (created || auto) reload();
+    });
+    const id = setInterval(() => {
+      scanThreats({ agent, baseLat: base.lat, baseLng: base.lng, totalDefense }).then(({ created, auto }) => {
+        if (created || auto) reload();
+      });
+    }, 60_000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent, base?.faction, base?.lat, base?.lng, walls.length, buildings.length]);
 
   // auto-complete dei timer scaduti + festa al completamento
   useEffect(() => {
@@ -155,7 +186,9 @@ function VillaggioPage() {
     return <FactionSelector agent={agent} onChosen={reload} />;
   }
 
-  const status = computeVillageStatus(base.faction as FactionKey, buildings, catalog);
+  const baseStatus = computeVillageStatus(base.faction as FactionKey, buildings, catalog);
+  const wallBonus = wallDefenseBonus(walls);
+  const status = { ...baseStatus, defenseRating: baseStatus.defenseRating + wallBonus };
 
   return (
     <PageShell
@@ -182,6 +215,9 @@ function VillaggioPage() {
       {/* STATO COLONIA */}
       <VillageStatusBar status={status} faction={base.faction as FactionKey} />
 
+      {/* MINACCE ATTIVE */}
+      <ThreatBanner events={events} onResolved={reload} />
+
       {/* SCENA */}
       <motion.div
         key={base.theme + phase + base.faction}
@@ -192,9 +228,18 @@ function VillaggioPage() {
       >
         <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} />
         <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
+          <DefenseRangeLayer buildings={buildings} />
+          <WallLayer walls={walls} />
           <VillageAtmosphere faction={base.faction as FactionKey} />
           <PikminLife count={Math.min(12, 4 + buildings.length)} />
         </div>
+        {/* CTA editor muri */}
+        <button
+          onClick={() => { hapticTap(); setWallEditorOpen(true); }}
+          className="absolute top-2 right-2 panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
+        >
+          <ShieldPlus className="h-3 w-3 text-primary" /> Mura ({walls.length}) · +{wallBonus}
+        </button>
       </motion.div>
 
       {/* GIFTS */}
@@ -306,6 +351,19 @@ function VillaggioPage() {
                 alert(e.message);
               }
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* MODAL EDITOR MURA */}
+      <AnimatePresence>
+        {wallEditorOpen && (
+          <WallEditor
+            agent={agent}
+            walls={walls}
+            coins={coins}
+            onClose={() => setWallEditorOpen(false)}
+            onChange={reload}
           />
         )}
       </AnimatePresence>
