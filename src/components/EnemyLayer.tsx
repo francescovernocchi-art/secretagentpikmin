@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { addCoins } from "@/lib/coins";
 import { WikiImage } from "@/components/WikiImage";
+import { escapeHtml } from "@/lib/escape";
 import {
   Dialog,
   DialogContent,
