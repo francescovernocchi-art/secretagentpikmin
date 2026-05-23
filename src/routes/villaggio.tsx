@@ -150,6 +150,13 @@ function VillaggioPage() {
     return <Onboarding agent={agent} onCreated={reload} />;
   }
 
+  // Onboarding fazione: base esiste ma faction non scelta
+  if (!base.faction) {
+    return <FactionSelector agent={agent} onChosen={reload} />;
+  }
+
+  const status = computeVillageStatus(base.faction as FactionKey, buildings, catalog);
+
   return (
     <PageShell
       title={base.name}
