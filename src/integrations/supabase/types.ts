@@ -701,6 +701,39 @@ export type Database = {
           },
         ]
       }
+      invite_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          note: string | null
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          note?: string | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          note?: string | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       map_enemy_spawns: {
         Row: {
           active: boolean
@@ -1357,6 +1390,14 @@ export type Database = {
           p_reason: string
         }
         Returns: number
+      }
+      consume_invite_code: {
+        Args: { _code: string; _user_id: string }
+        Returns: boolean
+      }
+      create_invite_code: {
+        Args: { _expires_at?: string; _note?: string }
+        Returns: string
       }
       current_agent_key: {
         Args: never
