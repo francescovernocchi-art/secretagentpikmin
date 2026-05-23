@@ -355,6 +355,19 @@ function VillaggioPage() {
         )}
       </AnimatePresence>
 
+      {/* MODAL EDITOR MURA */}
+      <AnimatePresence>
+        {wallEditorOpen && (
+          <WallEditor
+            agent={agent}
+            walls={walls}
+            coins={coins}
+            onClose={() => setWallEditorOpen(false)}
+            onChange={reload}
+          />
+        )}
+      </AnimatePresence>
+
       {/* MODAL DETTAGLIO STRUTTURA */}
       <AnimatePresence>
         {selected && (
