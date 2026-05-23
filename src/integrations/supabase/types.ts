@@ -92,6 +92,138 @@ export type Database = {
         }
         Relationships: []
       }
+      base_buildings: {
+        Row: {
+          agent: string
+          build_end_at: string | null
+          created_at: string
+          id: string
+          level: number
+          position_x: number
+          position_y: number
+          started_at: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          agent: string
+          build_end_at?: string | null
+          created_at?: string
+          id?: string
+          level?: number
+          position_x?: number
+          position_y?: number
+          started_at?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          agent?: string
+          build_end_at?: string | null
+          created_at?: string
+          id?: string
+          level?: number
+          position_x?: number
+          position_y?: number
+          started_at?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      base_events: {
+        Row: {
+          agent: string
+          created_at: string
+          id: string
+          payload: Json
+          type: string
+        }
+        Insert: {
+          agent: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          type: string
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          type?: string
+        }
+        Relationships: []
+      }
+      base_gifts: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          from_agent: string
+          id: string
+          message: string | null
+          payload: Json
+          to_agent: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          from_agent: string
+          id?: string
+          message?: string | null
+          payload?: Json
+          to_agent: string
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          from_agent?: string
+          id?: string
+          message?: string | null
+          payload?: Json
+          to_agent?: string
+        }
+        Relationships: []
+      }
+      bases: {
+        Row: {
+          agent: string
+          created_at: string
+          lat: number | null
+          level: number
+          lng: number | null
+          name: string
+          theme: string
+          updated_at: string
+          xp: number
+        }
+        Insert: {
+          agent: string
+          created_at?: string
+          lat?: number | null
+          level?: number
+          lng?: number | null
+          name?: string
+          theme?: string
+          updated_at?: string
+          xp?: number
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          lat?: number | null
+          level?: number
+          lng?: number | null
+          name?: string
+          theme?: string
+          updated_at?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       battle_logs: {
         Row: {
           agent: string
@@ -138,6 +270,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      building_catalog: {
+        Row: {
+          base_cost_coins: number
+          base_cost_ingredients: Json
+          base_duration_minutes: number
+          bonus_per_level: Json
+          category: string
+          description: string | null
+          emoji: string
+          key: string
+          max_level: number
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          base_cost_coins?: number
+          base_cost_ingredients?: Json
+          base_duration_minutes?: number
+          bonus_per_level?: Json
+          category?: string
+          description?: string | null
+          emoji?: string
+          key: string
+          max_level?: number
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          base_cost_coins?: number
+          base_cost_ingredients?: Json
+          base_duration_minutes?: number
+          bonus_per_level?: Json
+          category?: string
+          description?: string | null
+          emoji?: string
+          key?: string
+          max_level?: number
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       coin_transactions: {
         Row: {
