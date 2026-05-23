@@ -66,12 +66,14 @@ function LoginPage() {
       } else {
         if (!name.trim()) throw new Error("Inserisci il nome agente");
         if (password.length < 8) throw new Error("Password troppo corta (min 8)");
+        if (!inviteCode.trim()) throw new Error("Inserisci il codice invito");
         const s = await signUpWithPassword({
           email: email.trim(),
           password,
           name: name.trim(),
           role,
           emoji,
+          inviteCode,
         });
         if (s) {
           toast.success(`Benvenuto ${emoji} ${name}`);
