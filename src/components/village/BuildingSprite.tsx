@@ -57,10 +57,8 @@ export function BuildingSprite({ building, onTap, progress }: Props) {
       <motion.span
         className="relative leading-none select-none"
         style={{
-          fontSize: `${v.size * 1.1}vw`,
-          // soft glow that grows with level
+          fontSize: `min(56px, ${v.size * 1.4}vw)`,
           filter: level >= 3 ? `drop-shadow(0 0 ${level * 2}px ${v.glow})` : undefined,
-          maxFontSize: 56,
         }}
         animate={isBuilding ? { rotate: [-2, 2, -2] } : { y: [0, -1.5, 0] }}
         transition={{ duration: isBuilding ? 0.6 : 3 + (building.position_x % 3), repeat: Infinity, ease: "easeInOut" }}
