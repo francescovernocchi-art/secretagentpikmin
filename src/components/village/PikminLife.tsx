@@ -66,7 +66,8 @@ export function PikminLife({
 
 
   const agents = useMemo<PikminAgent[]>(() => {
-    const palette = FACTION_COLORS[faction ?? "eco"] ?? FACTION_COLORS.eco;
+    const fpalette = FACTION_COLORS[faction ?? "eco"] ?? FACTION_COLORS.eco;
+    const palette = skin?.body ? [skin.body, skin.body, skin.body] : fpalette;
     const sleep = phase === "notte";
     return Array.from({ length: count }).map((_, i) => {
       // ruolo
