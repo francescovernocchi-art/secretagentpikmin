@@ -31,20 +31,20 @@ import {
 } from "@/lib/base";
 import { Sparkles, Hammer, Gift, ArrowUpRight, Users, ShieldPlus, Palette } from "lucide-react";
 import { FactionSelector } from "@/components/village/FactionSelector";
-import { VillageStatusBar } from "@/components/village/VillageStatusBar";
-import { VillageAtmosphere } from "@/components/village/VillageAtmosphere";
-import { PikminLife } from "@/components/village/PikminLife";
-import { WallLayer } from "@/components/village/WallLayer";
 import { WallEditor } from "@/components/village/WallEditor";
-import { DefenseRangeLayer } from "@/components/village/DefenseRangeLayer";
-import { ThreatBanner } from "@/components/village/ThreatBanner";
 import { VillageCustomizer } from "@/components/village/VillageCustomizer";
+import { VillageCanvas } from "@/components/village/VillageCanvas";
+import { VillageHud } from "@/components/village/VillageHud";
+import { VillageStatsPanel } from "@/components/village/VillageStatsPanel";
+import { VillageActions } from "@/components/village/VillageActions";
+import { ThreatAlertPanel, computeNearbyThreats, type NearbyThreat } from "@/components/village/ThreatAlertPanel";
 import { computeVillageStatus } from "@/lib/village/bonuses";
 import type { FactionKey } from "@/lib/village/factions";
 import { listWalls, wallDefenseBonus, type WallSegment } from "@/lib/village/walls";
 import { listOpenEvents, scanThreats, type VillageEvent } from "@/lib/village/threats";
-import { getCosmetics, patternBackground, type VillageCosmetics } from "@/lib/village/cosmetics";
+import { getCosmetics, type VillageCosmetics } from "@/lib/village/cosmetics";
 import { maybeTriggerNightEvent } from "@/lib/village/night";
+import { getPikminCount } from "@/lib/pikmin";
 
 
 export const Route = createFileRoute("/villaggio")({
