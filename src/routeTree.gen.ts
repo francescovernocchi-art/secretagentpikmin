@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as Char91indexChar93RouteImport } from './routes/[index]'
 import { Route as VillaggioRouteImport } from './routes/villaggio'
 import { Route as SpedizioniRouteImport } from './routes/spedizioni'
 import { Route as RicordiRouteImport } from './routes/ricordi'
@@ -34,6 +35,11 @@ import { Route as VillaggioEdificiRouteImport } from './routes/villaggio.edifici
 import { Route as VillaggioAgentRouteImport } from './routes/villaggio.$agent'
 import { Route as SpedizioniKeyRouteImport } from './routes/spedizioni.$key'
 
+const Char91indexChar93Route = Char91indexChar93RouteImport.update({
+  id: '/index',
+  path: '/index',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VillaggioRoute = VillaggioRouteImport.update({
   id: '/villaggio',
   path: '/villaggio',
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/atelier': typeof AtelierRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
+  '/index': typeof Char91indexChar93Route
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/atelier': typeof AtelierRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
+  '/index': typeof Char91indexChar93Route
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/atelier': typeof AtelierRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
+  '/index': typeof Char91indexChar93Route
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
     | '/atelier'
     | '/base'
     | '/chat'
+    | '/index'
     | '/inventario'
     | '/lab'
     | '/mappa'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/atelier'
     | '/base'
     | '/chat'
+    | '/index'
     | '/inventario'
     | '/lab'
     | '/mappa'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
     | '/atelier'
     | '/base'
     | '/chat'
+    | '/index'
     | '/inventario'
     | '/lab'
     | '/mappa'
@@ -322,6 +334,7 @@ export interface RootRouteChildren {
   AtelierRoute: typeof AtelierRoute
   BaseRoute: typeof BaseRoute
   ChatRoute: typeof ChatRoute
+  Char91indexChar93Route: typeof Char91indexChar93Route
   InventarioRoute: typeof InventarioRoute
   LabRoute: typeof LabRoute
   MappaRoute: typeof MappaRoute
@@ -340,6 +353,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/index': {
+      id: '/index'
+      path: '/index'
+      fullPath: '/index'
+      preLoaderRoute: typeof Char91indexChar93RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/villaggio': {
       id: '/villaggio'
       path: '/villaggio'
@@ -546,6 +566,7 @@ const rootRouteChildren: RootRouteChildren = {
   AtelierRoute: AtelierRoute,
   BaseRoute: BaseRoute,
   ChatRoute: ChatRoute,
+  Char91indexChar93Route: Char91indexChar93Route,
   InventarioRoute: InventarioRoute,
   LabRoute: LabRoute,
   MappaRoute: MappaRoute,
@@ -564,3 +585,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
