@@ -57,6 +57,16 @@ function VillaggioPage() {
   const [tick, setTick] = useState(0);
   const [picker, setPicker] = useState<BuildingCatalog | null>(null);
   const [selected, setSelected] = useState<BaseBuilding | null>(null);
+  const [festa, setFesta] = useState<string | null>(null);
+  const [phase, setPhase] = useState<DayPhase>(() => getDayPhase());
+  const prevBuildingsRef = useRef<BaseBuilding[]>([]);
+
+  // refresh day phase every minute
+  useEffect(() => {
+    const i = setInterval(() => setPhase(getDayPhase()), 60_000);
+    return () => clearInterval(i);
+  }, []);
+
 
   // realtime tick per i timer
   useEffect(() => {
