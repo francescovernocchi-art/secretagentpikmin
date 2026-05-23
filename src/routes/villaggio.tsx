@@ -195,6 +195,7 @@ function VillaggioPage() {
               <button
                 onClick={async () => {
                   hapticTap();
+                  sfx.gift();
                   await claimGift(agent, g);
                   reload();
                 }}
