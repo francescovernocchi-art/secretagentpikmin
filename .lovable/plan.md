@@ -1,139 +1,93 @@
+## Trasformazione Villaggio — Sistema Colonia Vivente
 
-# Spedizioni Cooperative + Base Evolutiva
-
-Aggiungiamo due grosse modalità al gioco, sviluppate **per fasi** così da avere subito qualcosa di giocabile e rifinire la grafica/atmosfera Pikmin-Nintendo nelle iterazioni successive.
-
-I Pikmin inviati useranno il conteggio esistente (`pikmin_squad`): vengono "occupati" durante la spedizione e tornano (con eventuali perdite) al rientro. Durate **medie**: 15 min – 2 ore in tempo reale.
+Progetto enorme. Propongo un'implementazione **a fasi incrementali**, partendo dalle fondamenta (fazioni + buildings evolutivi + difese) per poi aggiungere strati vivi (AI Pikmin, eventi, coop). Ogni fase è autonoma e shippabile senza rompere gameplay esistente.
 
 ---
 
-## FASE 1 — Spedizioni (singole + coop)
+### Strategia generale
 
-### Nuova sezione `/spedizioni`
-- Hub con tre tab: **Disponibili**, **In corso**, **Storico**.
-- Card missione con: bioma, durata stimata, difficoltà (Facile → Leggendaria), rischio, rarità ricompense, Pikmin min/consigliati/max, partner se coop.
-- Stile Pikmin-like: card grandi, colori naturali, icone bioma, badge difficoltà colorati.
-
-### Flusso lancio spedizione
-1. Tocco card → schermata **Preparazione squadra**.
-2. Slider Pikmin totale + breakdown per tipo (rosso/blu/giallo/roccia/foglia…).
-3. UI mostra in tempo reale:
-   - barra **Potenza spedizione**
-   - **% successo stimata**
-   - **rischio** (basso/medio/alto)
-   - **bonus compatibilità bioma** (es. blu+lago)
-   - effetto numero Pikmin vs consigliato (lento/stabile/veloce)
-4. Conferma → Pikmin sottratti, missione creata, timer parte.
-
-### Missioni coop
-- Toggle "Coop" alla creazione → notifica al partner (badge campanella in BottomNav + record in `mission_notifications`).
-- Il partner apre la missione, vede squadra dell'altro, aggiunge la propria, può confermare.
-- Quando entrambi confermano → la spedizione parte con **bonus cooperazione** (+15% successo, +rarità ricompense).
-- UI mostra due colonne (Papà / Lorenzo) con conteggi, tipi, contributo alla potenza totale.
-
-### Risoluzione spedizione
-- Timer reale (Supabase `end_at`). Quando scade, primo client che apre la sezione esegue la risoluzione (server function) → idempotente.
-- Eventi casuali registrati lungo il percorso: tempesta, mostro, tesoro raro, segnale misterioso, danni, creatura amichevole. Mostrati come **diario spedizione** scorrevole al rientro.
-- Output: ricompense (ingredienti, ship_parts, coins, XP) + eventuali Pikmin persi → applicati con `adjust_pikmin` e `inventory`.
-
-### Biomi (seed iniziale)
-Foresta, Lago, Zona Urbana, Area Industriale, Caverna, Rovine, Serra Tropicale. Ogni bioma definisce: Pikmin consigliati, pool ricompense, pool nemici, palette colori UI.
+- **Zero breaking changes**: mappa, missioni, inventario, realtime restano intatti.
+- **Estendo `bases` + `base_buildings`** (già esistenti) invece di creare tabelle parallele.
+- **Tutto in italiano** lato UI, codice in inglese.
+- **RLS rispettata**: ogni nuova tabella usa `is_family_member()` / `current_agent_key()`.
 
 ---
 
-## FASE 2 — Base Evolutiva
+### FASE A — Fondamenta (Sprint 1, questa iterazione)
 
-### Nuova sezione `/base`
-- Onboarding: l'utente sceglie la **posizione della propria base** sulla mappa (drop pin nel raggio del proprio comune). Salvato in `bases`.
-- Vista principale: **panorama 2D illustrato** della base, con parallax leggero, edifici cliccabili, Pikmin animati che camminano/lavorano/riposano.
-- HUD in alto: livello base, risorse chiave, notifiche costruzioni.
+**A1. Database**
+- `ALTER bases` → aggiunge `faction` (eco|tech|battle|mystic), `energy_current`, `energy_max`, `defense_rating`.
+- Nuova `village_walls` (segmenti muro: from_x, from_y, to_x, to_y, level, material).
+- Nuova `village_events` (invasioni, blackout, tempeste — payload jsonb).
+- Estende `building_catalog`: aggiunge categorie `defense`, `energy`, `production`, `research` + `faction_required` opzionale.
+- Seed nuovi buildings (12 tipi) + costi/bonus per livello.
 
-### Strutture costruibili (con livelli 1→5)
-Serra, Laboratorio, Torre Radar, Magazzino, Incubatore, Centro Cura, Officina, Archivio Creature, Torre Comunicazioni, Giardino Pikmin, Cucina, Zona Relax.
+**A2. Selezione Fazione**
+- Schermata "Scegli la tua colonia" al primo accesso al villaggio (se `faction IS NULL`).
+- 4 cards animate con palette/iconografia dedicata, bonus chiari.
+- Persistenza in `bases.faction`.
 
-Ogni struttura ha:
-- costo risorse (ingredienti dall'inventario + coins)
-- timer costruzione reale
-- bonus passivi (es. Radar → +range mappa; Magazzino → +cap inventario; Incubatore → produzione Pikmin lenta; Torre Comunicazioni → notifiche coop più ricche).
+**A3. Vista Villaggio rivisitata**
+- Sostituisce dashboard attuale con **canvas isometrico/top-down** SVG+CSS animato.
+- Sfondo che cambia in base a fazione (eco=foresta, tech=neon, battle=bunker, mystic=cristalli).
+- Buildings posizionati su griglia, sprite evolutivi per livello (1-2-3-4-5 = stadi visuali diversi via CSS/emoji+effetti).
+- Ciclo giorno/notte (luce ambientale CSS che cambia ogni X ore reali).
+- Particelle ambient (foglie/scintille/fumo a seconda fazione).
 
-### Visita base partner
-- Pulsante "Visita base di Papà/Lorenzo" → vista in sola lettura + azioni: inviare materiali, dare un boost a una costruzione in corso, lasciare un messaggio Pikmin.
-
-### Evoluzione visiva
-- Sprite/illustrazioni per ogni edificio in 3 stadi (base, evoluto, maestro).
-- Numero di Pikmin animati cresce col livello base. Vegetazione e dettagli aggiuntivi sbloccati a milestone.
-
----
-
-## FASE 3 — Polish, atmosfera, animazioni
-
-- Loop ambientale: foglie che cadono, vento, riflessi acqua, luci morbide (CSS + framer-motion + qualche SVG animato).
-- Transizioni Nintendo-like tra schermate (zoom morbido + fade).
-- Suoni opzionali (mute di default).
-- Animazioni Pikmin: trasporto pezzi durante costruzioni, festa al completamento, sonno notturno (collegato al day/night già esistente).
-- Notifiche in-app curate: costruzione completata, partner si è unito, ricompense, creatura rara, squadra insufficiente, bonus coop attivato, nuova struttura disponibile.
+**A4. Buildings evolutivi**
+- Sistema upgrade già esistente esteso con visual stages.
+- Bonus reali applicati: greenhouse → +pikmin/h, reactor → +energy_max, defense tower → +defense_rating.
+- Hook lato client che calcola bonus aggregati dalla base.
 
 ---
 
-## Dettagli tecnici
+### FASE B — Difese & minacce (Sprint 2)
 
-### Nuove tabelle Supabase
-```text
-expeditions
-  id, created_by, partner, status (preparing|active|completed|failed),
-  biome, difficulty, mission_template_key,
-  started_at, end_at, resolved_at,
-  power, success_chance, risk,
-  rewards_json, events_json, summary
-
-expedition_squads
-  id, expedition_id, agent, pikmin_total, breakdown jsonb, joined_at
-
-mission_templates       (seed)
-  key, title, description, biome, difficulty,
-  duration_minutes, pikmin_min/recommended/max,
-  recommended_types text[], rewards_pool jsonb, events_pool jsonb
-
-bases
-  agent (PK), lat, lng, level, name, created_at
-
-base_buildings
-  id, agent, type, level, status (idle|building|upgrading),
-  build_end_at, position_x, position_y
-
-base_events            (log per animazioni & notifiche)
-  id, agent, type, payload, created_at
-
-mission_notifications
-  id, agent, kind, payload, read_at
-```
-Tutte con RLS aperta in stile "family open" come il resto del progetto.
-
-### Server functions (TanStack `createServerFn`)
-- `createExpedition`, `joinExpedition`, `confirmExpedition`
-- `resolveExpedition` (idempotente, calcola eventi + ricompense)
-- `placeBase`, `startBuilding`, `completeBuilding`, `boostBuilding`
-- `sendMaterialsToPartner`, `getPartnerBase`
-
-### Frontend
-- Route: `src/routes/spedizioni.tsx`, `src/routes/spedizioni.$id.tsx`, `src/routes/base.tsx`, `src/routes/base.$agent.tsx`.
-- Componenti modulari in `src/components/expeditions/*` e `src/components/base/*`.
-- Hook `useExpeditionTimer`, `useBaseScene`.
-- BottomNav: due nuove voci **Spedizioni** (icona razzo/foglia) e **Base** (icona casetta).
-- Stile: nuovi token CSS in `src/styles.css` per palette bioma + ombre morbide Nintendo-like. Animazioni via framer-motion (già nel progetto) + SVG.
-
-### Notifiche
-Realtime Supabase su `mission_notifications` + `expeditions` per aggiornamento istantaneo lato partner.
-
-### Persistenza
-Timer in DB (`end_at`), cache locale leggera in `localStorage` per UI immediata. Risoluzione avviene anche a gioco chiuso (al primo accesso successivo).
+- Editor muri (drag su griglia, segmenti connessi).
+- Torri difensive con range visuale.
+- Quando `map_enemy_spawns` è entro X metri dalla base → evento "minaccia". Defense rating vs danger level decide outcome automatico ogni N minuti.
+- Notifiche italiane in `mission_notifications`.
 
 ---
 
-## Piano di consegna
+### FASE C — AI Pikmin vivente (Sprint 3)
 
-1. **Fase 1** (questa release): tabelle + seed biomi/templates, `/spedizioni` completa singola + coop, notifiche partner, risoluzione con eventi e ricompense, UI curata ma essenziale.
-2. **Fase 2** (richiesta successiva): `/base`, posizionamento, costruzioni, visita base partner.
-3. **Fase 3** (richiesta successiva): polish grafico, animazioni Pikmin, suoni, transizioni Nintendo-like.
+- Layer di sprite Pikmin animati che camminano sulla griglia villaggio (puro client, no DB).
+- Comportamenti randomici: trasporta, dorme, festeggia, ripara (state machine leggera con framer-motion).
+- Reazioni a eventi (corre via durante invasione).
 
-Approva il piano e parto subito con la **Fase 1**.
+---
+
+### FASE D — Eventi dinamici + Coop (Sprint 4)
+
+- Cron-like trigger (pg_cron o check on-load) che genera eventi notturni.
+- Visite ad altri villaggi: route `/villaggio/:agent`, lettura read-only + donazioni via `base_gifts`.
+
+---
+
+### Cosa implemento ORA (FASE A completa)
+
+1. Migration: estensione `bases`, nuove `village_walls` + `village_events`, seed catalog allargato.
+2. `src/components/village/FactionSelector.tsx` — onboarding fazione.
+3. `src/components/village/VillageCanvas.tsx` — vista vivente con sfondo dinamico, griglia, buildings sprite evolutivi, day/night, particelle.
+4. `src/components/village/BuildingSprite.tsx` — singolo edificio con 5 stadi visuali per fazione.
+5. `src/lib/village/factions.ts` — config fazioni (bonus, palette, sprite).
+6. `src/lib/village/bonuses.ts` — calcolo bonus aggregati.
+7. `src/routes/base.tsx` — refactor per usare nuovi componenti (mantiene logica e API esistenti).
+8. Tutti i testi in italiano naturale.
+
+### Dettagli tecnici chiave
+
+- Nessuna modifica a `agents`, `agent_positions`, `missions`, `inventory`, `pikmin_squad`.
+- Nuove tabelle con RLS identica al pattern esistente.
+- Visual: Tailwind + framer-motion (già nel progetto), zero nuove dipendenze pesanti.
+- Sprite: combinazione emoji grandi + SVG layer + filter CSS per stadi evolutivi (es. level 5 = glow + scale + corona particelle).
+
+### Fuori scope per questa iterazione
+
+- Coop visite (Fase D)
+- AI Pikmin animata (Fase C — accenno solo statico)
+- Editor muri drag (Fase B)
+- pg_cron eventi automatici (Fase B)
+
+Confermi che parto con la **FASE A** come descritta? Oppure preferisci che inizi da un'altra fase (es. direttamente AI Pikmin viventi o difese)?
