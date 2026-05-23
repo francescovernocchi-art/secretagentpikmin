@@ -80,6 +80,7 @@ function ProfiloPage() {
             <Users className="h-4 w-4" /> Gestisci agenti operativi
           </Link>
           <FamilyPanel />
+          <AdminGodPanel />
         </>
       )}
 
