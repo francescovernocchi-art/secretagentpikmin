@@ -130,21 +130,48 @@ function VillaggioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent]);
 
-  // Scansione minacce: al load + ogni 60s
+  // Scansione minacce: al load + ogni 60s, e calcolo "nearbyThreats" reali da spawn attivi
   useEffect(() => {
     if (!base?.faction || base.lat == null || base.lng == null) return;
+    const baseLat = base.lat;
+    const baseLng = base.lng;
     const totalDefense = computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating + wallDefenseBonus(walls);
-    scanThreats({ agent, baseLat: base.lat, baseLng: base.lng, totalDefense, force: true }).then(({ created, auto }) => {
+
+    const refreshNearby = async () => {
+      // Carica solo spawn attivi e non sconfitti
+      const { data: spawns } = await supabase
+        .from("map_enemy_spawns")
+        .select("id, enemy_id, lat, lng, active, defeated_at")
+        .eq("active", true)
+        .is("defeated_at", null);
+      if (!spawns || spawns.length === 0) {
+        setNearbyThreats([]);
+        return;
+      }
+      const ids = Array.from(new Set(spawns.map((s) => s.enemy_id)));
+      const { data: enemies } = await supabase.from("enemies").select("id,name,emoji,danger_level").in("id", ids);
+      const emap = new Map((enemies ?? []).map((e: any) => [e.id, e]));
+      setNearbyThreats(
+        computeNearbyThreats({ lat: baseLat, lng: baseLng }, spawns.map((s: any) => ({
+          id: s.id, lat: s.lat, lng: s.lng, enemy: emap.get(s.enemy_id) ?? null,
+        }))),
+      );
+    };
+
+    refreshNearby();
+    scanThreats({ agent, baseLat, baseLng, totalDefense, force: true }).then(({ created, auto }) => {
       if (created || auto) reload();
     });
     const id = setInterval(() => {
-      scanThreats({ agent, baseLat: base.lat, baseLng: base.lng, totalDefense }).then(({ created, auto }) => {
+      refreshNearby();
+      scanThreats({ agent, baseLat, baseLng, totalDefense }).then(({ created, auto }) => {
         if (created || auto) reload();
       });
     }, 60_000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent, base?.faction, base?.lat, base?.lng, walls.length, buildings.length]);
+
 
   // Eventi notturni: solo durante la notte, ~ogni 5 minuti
   useEffect(() => {
