@@ -591,7 +591,12 @@ function BaseScene({
       ))}
 
       {/* Terreno */}
-      <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: `linear-gradient(180deg, transparent, ${theme.ground})` }} />
+      <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: `linear-gradient(180deg, transparent, ${ground})` }} />
+      {/* Pattern terreno */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-1/3 opacity-60 pointer-events-none"
+        style={{ background: patternBackground(pattern, accent) }}
+      />
 
       {/* Edifici */}
       {buildings.map((b) => {
