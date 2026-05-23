@@ -147,7 +147,7 @@ function VillaggioPage() {
   return (
     <PageShell
       title={base.name}
-      subtitle={`Livello ${base.level} · ${theme.label} · ${totalLevel} stelle struttura`}
+      subtitle={`Lv ${base.level} · ${theme.label} · ${PHASE_EMOJI[phase]} ${PHASE_LABEL[phase]} · ${totalLevel}⭐`}
       action={
         <div className="flex items-center gap-2">
           <span className="panel px-2 py-1 text-[11px] flex items-center gap-1">
@@ -164,8 +164,17 @@ function VillaggioPage() {
         </div>
       }
     >
+      <CelebrationOverlay show={!!festa} label={festa ?? ""} onDone={() => setFesta(null)} />
+
       {/* SCENA */}
-      <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} />
+      <motion.div
+        key={base.theme + phase}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
+        <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} />
+      </motion.div>
 
       {/* GIFTS */}
       {gifts.length > 0 && (
