@@ -2,13 +2,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type Role = "papa" | "lorenzo";
 
-const KEY = "pikmin.session.v1";
+const KEY = "pikmin.session.v2";
 
 export interface Session {
   role: Role;
   name: string;
   emoji?: string;
-  agentId?: string;
+  agentId?: string; // = auth user id
   loggedAt: number;
 }
 
@@ -28,22 +28,66 @@ export function setSession(s: Session) {
 
 export function clearSession() {
   localStorage.removeItem(KEY);
+  void supabase.auth.signOut();
 }
 
-export async function loginWithPin(pin: string): Promise<Session | null> {
+async function hydrateProfile(userId: string): Promise<Session | null> {
   const { data, error } = await supabase
-    .from("agents")
-    .select("id, name, role, emoji")
-    .eq("pin", pin)
+    .from("profiles")
+    .select("agent_key, name, emoji")
+    .eq("user_id", userId)
     .maybeSingle();
   if (error || !data) return null;
   const session: Session = {
-    role: data.role as Role,
+    role: data.agent_key as Role,
     name: data.name,
     emoji: data.emoji ?? undefined,
-    agentId: data.id,
+    agentId: userId,
     loggedAt: Date.now(),
   };
   setSession(session);
   return session;
+}
+
+export async function refreshSession(): Promise<Session | null> {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) {
+    clearSession();
+    return null;
+  }
+  return hydrateProfile(data.user.id);
+}
+
+export async function signInWithPassword(email: string, password: string): Promise<Session | null> {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error || !data.user) throw error ?? new Error("Login fallito");
+  return hydrateProfile(data.user.id);
+}
+
+export async function signUpWithPassword(args: {
+  email: string;
+  password: string;
+  name: string;
+  role: Role;
+  emoji: string;
+}): Promise<Session | null> {
+  const { data, error } = await supabase.auth.signUp({
+    email: args.email,
+    password: args.password,
+    options: {
+      emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+      data: {
+        name: args.name,
+        agent_key: args.role,
+        emoji: args.emoji,
+      },
+    },
+  });
+  if (error) throw error;
+  if (!data.user) throw new Error("Signup non confermato");
+  // if auto-confirm is on, session is set; otherwise user must confirm via email
+  if (data.session) {
+    return hydrateProfile(data.user.id);
+  }
+  return null;
 }

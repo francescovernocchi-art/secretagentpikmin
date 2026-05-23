@@ -71,7 +71,6 @@ export type Database = {
           emoji: string
           id: string
           name: string
-          pin: string
           role: string
         }
         Insert: {
@@ -79,7 +78,6 @@ export type Database = {
           emoji?: string
           id?: string
           name: string
-          pin: string
           role?: string
         }
         Update: {
@@ -87,7 +85,6 @@ export type Database = {
           emoji?: string
           id?: string
           name?: string
-          pin?: string
           role?: string
         }
         Relationships: []
@@ -1003,6 +1000,36 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          agent_key: Database["public"]["Enums"]["app_role"]
+          created_at: string
+          emoji: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_key: Database["public"]["Enums"]["app_role"]
+          created_at?: string
+          emoji?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_key?: Database["public"]["Enums"]["app_role"]
+          created_at?: string
+          emoji?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       recipe_unlocks: {
         Row: {
           agent: string
@@ -1235,9 +1262,14 @@ export type Database = {
         }
         Returns: number
       }
+      current_agent_key: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      is_family_member: { Args: never; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "papa" | "lorenzo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1364,6 +1396,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["papa", "lorenzo"],
+    },
   },
 } as const

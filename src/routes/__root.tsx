@@ -9,10 +9,12 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { BottomNav } from "@/components/BottomNav";
 import { BuzzButton } from "@/components/BuzzButton";
 import { TacticalBackground } from "@/components/TacticalBackground";
-import { getSession } from "@/lib/session";
+import { getSession, refreshSession, clearSession } from "@/lib/session";
+import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
 
@@ -128,7 +130,23 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
+  const qc = useQueryClient();
   const isApp = pathname !== "/";
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (session) {
+        void refreshSession();
+      } else {
+        clearSession();
+        if (window.location.pathname !== "/") router.navigate({ to: "/" });
+      }
+      qc.invalidateQueries();
+      router.invalidate();
+    });
+    return () => subscription.unsubscribe();
+  }, [router, qc]);
 
   useEffect(() => {
     if (isApp && typeof window !== "undefined" && !getSession()) {

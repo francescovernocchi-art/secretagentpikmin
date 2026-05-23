@@ -1,32 +1,48 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { loginWithPin, getSession } from "@/lib/session";
+import { toast } from "sonner";
+import { Mail, Lock, UserPlus, LogIn, Loader2 } from "lucide-react";
+import {
+  getSession,
+  refreshSession,
+  signInWithPassword,
+  signUpWithPassword,
+  type Role,
+} from "@/lib/session";
 import { IntroSequence } from "@/components/IntroSequence";
-import { Lock, Delete } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: LoginPage,
 });
 
+const EMOJI_CHOICES = ["🕶️", "🧑", "👨", "👩", "🥷", "🛰️", "🐺", "🦊", "🤖", "🧑‍🚀"];
+
 function LoginPage() {
   const navigate = useNavigate();
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
   const [intro, setIntro] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<Role>("lorenzo");
+  const [emoji, setEmoji] = useState(EMOJI_CHOICES[0]);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    // Mostra l'intro solo lato client; evita mismatch SSR e blocchi infiniti.
-    try {
+    (async () => {
+      const s = await refreshSession().catch(() => null);
+      if (s) {
+        navigate({ to: "/base" });
+        return;
+      }
       if (getSession()) {
         navigate({ to: "/base" });
         return;
       }
-    } catch (e) {
-      console.warn("[boot] session check failed", e);
-    }
-    const seen = typeof window !== "undefined" && sessionStorage.getItem("pikmin.intro.seen");
-    if (!seen) setIntro(true);
+      const seen = typeof window !== "undefined" && sessionStorage.getItem("pikmin.intro.seen");
+      if (!seen) setIntro(true);
+    })();
   }, [navigate]);
 
   const finishIntro = () => {
@@ -36,95 +52,164 @@ function LoginPage() {
     setIntro(false);
   };
 
-  const press = (k: string) => {
-    setError(false);
-    if (k === "del") return setPin((p) => p.slice(0, -1));
-    if (pin.length >= 4) return;
-    const next = pin + k;
-    setPin(next);
-    if (next.length === 4) {
-      setTimeout(async () => {
-        const s = await loginWithPin(next);
-        if (s) navigate({ to: "/base" });
-        else {
-          setError(true);
-          setPin("");
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (mode === "signin") {
+        const s = await signInWithPassword(email.trim(), password);
+        if (!s) throw new Error("Profilo non trovato");
+        toast.success(`Bentornato ${s.emoji ?? ""} ${s.name}`);
+        navigate({ to: "/base" });
+      } else {
+        if (!name.trim()) throw new Error("Inserisci il nome agente");
+        if (password.length < 8) throw new Error("Password troppo corta (min 8)");
+        const s = await signUpWithPassword({
+          email: email.trim(),
+          password,
+          name: name.trim(),
+          role,
+          emoji,
+        });
+        if (s) {
+          toast.success(`Benvenuto ${emoji} ${name}`);
+          navigate({ to: "/base" });
+        } else {
+          toast.info("Account creato. Controlla la mail per confermare e poi accedi.");
+          setMode("signin");
         }
-      }, 220);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Accesso negato: " + msg);
+    } finally {
+      setBusy(false);
     }
   };
 
-  if (intro) {
-    return <IntroSequence onEnter={finishIntro} />;
-  }
+  if (intro) return <IntroSequence onEnter={finishIntro} />;
 
   return (
-    <div className="min-h-screen grid-bg flex flex-col items-center justify-center gap-8 px-6 py-10">
+    <div className="min-h-screen grid-bg flex flex-col items-center justify-center gap-6 px-6 py-10">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="flex flex-col items-center gap-3"
       >
-        <div className="relative">
-          <img src="/icon-512.png" alt="" width={96} height={96} className="rounded-2xl glow-ring" />
-        </div>
+        <img src="/icon-512.png" alt="" width={88} height={88} className="rounded-2xl glow-ring" />
         <p className="text-[11px] uppercase tracking-[0.45em] text-primary/80">// Accesso riservato</p>
         <h1 className="font-display text-3xl text-glow">007-PIKMIN</h1>
-        <p className="text-sm text-muted-foreground">Inserisci il PIN agente</p>
+        <p className="text-sm text-muted-foreground">
+          {mode === "signin" ? "Identificati, agente" : "Registra un nuovo agente"}
+        </p>
       </motion.div>
 
-      <div className="flex gap-3">
-        {[0, 1, 2, 3].map((i) => (
-          <motion.div
-            key={i}
-            animate={error ? { x: [-6, 6, -4, 4, 0] } : {}}
-            transition={{ duration: 0.35 }}
-            className={`h-12 w-10 rounded-xl border ${
-              pin.length > i
-                ? "border-primary bg-primary/20 glow-soft"
-                : "border-primary/30 bg-card/50"
-            } flex items-center justify-center`}
-          >
-            <span className="text-primary text-glow font-display text-2xl">
-              {pin.length > i ? "•" : ""}
-            </span>
-          </motion.div>
-        ))}
+      <div className="flex gap-2 panel p-1 rounded-full">
+        <button
+          onClick={() => setMode("signin")}
+          className={`px-4 py-1.5 text-xs uppercase tracking-widest rounded-full ${mode === "signin" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+        >
+          Accedi
+        </button>
+        <button
+          onClick={() => setMode("signup")}
+          className={`px-4 py-1.5 text-xs uppercase tracking-widest rounded-full ${mode === "signup" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+        >
+          Registra
+        </button>
       </div>
 
-      <AnimatePresence>
-        {error && (
-          <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="text-destructive text-sm flex items-center gap-2"
-          >
-            <Lock className="h-4 w-4" /> Accesso negato
-          </motion.p>
-        )}
-      </AnimatePresence>
-
-      <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
-        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"].map((k, i) =>
-          k === "" ? (
-            <div key={i} />
-          ) : (
-            <button
-              key={i}
-              onClick={() => press(k)}
-              className="h-16 rounded-2xl panel font-display text-2xl text-foreground active:scale-95 active:bg-primary/10 transition-transform flex items-center justify-center"
+      <form onSubmit={submit} className="w-full max-w-sm flex flex-col gap-3">
+        <AnimatePresence>
+          {mode === "signup" && (
+            <motion.div
+              key="signup-extras"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="flex flex-col gap-3"
             >
-              {k === "del" ? <Delete className="h-5 w-5 text-primary" /> : k}
-            </button>
-          ),
-        )}
-      </div>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nome agente"
+                className="panel px-4 py-3 bg-card/50 rounded-xl text-foreground placeholder:text-muted-foreground/60"
+              />
+              <div className="flex gap-2">
+                {(["papa", "lorenzo"] as Role[]).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRole(r)}
+                    className={`flex-1 panel py-2 text-xs uppercase tracking-widest ${role === r ? "border-primary text-primary" : "text-muted-foreground"}`}
+                  >
+                    {r === "papa" ? "Comandante" : "Operativo"}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-1.5 justify-center">
+                {EMOJI_CHOICES.map((e) => (
+                  <button
+                    type="button"
+                    key={e}
+                    onClick={() => setEmoji(e)}
+                    className={`h-10 w-10 rounded-xl panel text-xl ${emoji === e ? "border-primary glow-soft" : ""}`}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <label className="panel flex items-center gap-2 px-4 py-3 bg-card/50 rounded-xl">
+          <Mail className="h-4 w-4 text-primary" />
+          <input
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@famiglia"
+            required
+            className="bg-transparent flex-1 outline-none text-foreground placeholder:text-muted-foreground/60"
+          />
+        </label>
+
+        <label className="panel flex items-center gap-2 px-4 py-3 bg-card/50 rounded-xl">
+          <Lock className="h-4 w-4 text-primary" />
+          <input
+            type="password"
+            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            required
+            minLength={8}
+            className="bg-transparent flex-1 outline-none text-foreground placeholder:text-muted-foreground/60"
+          />
+        </label>
+
+        <button
+          type="submit"
+          disabled={busy}
+          className="btn-neon mt-2 py-3 text-xs flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : mode === "signin" ? (
+            <LogIn className="h-4 w-4" />
+          ) : (
+            <UserPlus className="h-4 w-4" />
+          )}
+          {mode === "signin" ? "Entra nella base" : "Crea agente"}
+        </button>
+      </form>
 
       <p className="text-xs text-muted-foreground/70 text-center max-w-xs">
-        PIN demo · Comandante <span className="text-primary">0077</span> · Lorenzo{" "}
-        <span className="text-primary">1234</span>
+        Famiglia Pikmin · accesso protetto da email e password
       </p>
     </div>
   );
