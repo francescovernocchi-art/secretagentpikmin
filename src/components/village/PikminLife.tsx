@@ -51,6 +51,19 @@ export function PikminLife({
   phase = "giorno",
   skin,
 }: Props) {
+  type PikminAgent = {
+    id: number;
+    hue: string;
+    role: "worker" | "guard" | "scout" | "sleeper";
+    homeX: number;
+    homeY: number;
+    targetX: number;
+    targetY: number;
+    duration: number;
+    delay: number;
+    carry?: string;
+  };
+
 
   const agents = useMemo<PikminAgent[]>(() => {
     const palette = FACTION_COLORS[faction ?? "eco"] ?? FACTION_COLORS.eco;
