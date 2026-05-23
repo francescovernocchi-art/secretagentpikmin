@@ -157,8 +157,9 @@ async function resolveScout(
     `Tipo: ${enemy.name}`,
     `Livello pericolo: ${enemy.danger_level}/5`,
   ];
-  if (enemy.weaknesses && (enemy.weaknesses as any).length) {
-    reveals.push(`Debolezze: ${(enemy.weaknesses as any).join(", ")}`);
+  const weak = (enemy as any).weaknesses as string[] | undefined;
+  if (weak && weak.length) {
+    reveals.push(`Debolezze: ${weak.join(", ")}`);
   }
   if (enemy.recommended_pikmin?.length) {
     reveals.push(`Pikmin consigliati: ${enemy.recommended_pikmin.join(", ")}`);
