@@ -74,6 +74,7 @@ function VillaggioPage() {
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [picker, setPicker] = useState<BuildingCatalog | null>(null);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
   const [selected, setSelected] = useState<BaseBuilding | null>(null);
   const [festa, setFesta] = useState<string | null>(null);
   const [phase, setPhase] = useState<DayPhase>(() => getDayPhase());
