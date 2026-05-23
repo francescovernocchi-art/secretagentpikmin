@@ -167,8 +167,10 @@ function RootComponent() {
           <div className="relative z-10">
             <Outlet />
             <BuzzButton />
+            <GlobalAudioPlayer />
             <BottomNav />
           </div>
+
         </div>
       ) : (
         <Outlet />
