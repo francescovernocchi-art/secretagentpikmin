@@ -30,6 +30,12 @@ import {
   BaseGift,
 } from "@/lib/base";
 import { Sparkles, Hammer, Gift, ArrowUpRight, Users } from "lucide-react";
+import { FactionSelector } from "@/components/village/FactionSelector";
+import { VillageStatusBar } from "@/components/village/VillageStatusBar";
+import { VillageAtmosphere } from "@/components/village/VillageAtmosphere";
+import { PikminLife } from "@/components/village/PikminLife";
+import { computeVillageStatus } from "@/lib/village/bonuses";
+import type { FactionKey } from "@/lib/village/factions";
 
 
 export const Route = createFileRoute("/villaggio")({
@@ -144,6 +150,13 @@ function VillaggioPage() {
     return <Onboarding agent={agent} onCreated={reload} />;
   }
 
+  // Onboarding fazione: base esiste ma faction non scelta
+  if (!base.faction) {
+    return <FactionSelector agent={agent} onChosen={reload} />;
+  }
+
+  const status = computeVillageStatus(base.faction as FactionKey, buildings, catalog);
+
   return (
     <PageShell
       title={base.name}
@@ -166,14 +179,22 @@ function VillaggioPage() {
     >
       <CelebrationOverlay show={!!festa} label={festa ?? ""} onDone={() => setFesta(null)} />
 
+      {/* STATO COLONIA */}
+      <VillageStatusBar status={status} faction={base.faction as FactionKey} />
+
       {/* SCENA */}
       <motion.div
-        key={base.theme + phase}
+        key={base.theme + phase + base.faction}
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative"
       >
         <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} />
+        <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
+          <VillageAtmosphere faction={base.faction as FactionKey} />
+          <PikminLife count={Math.min(12, 4 + buildings.length)} />
+        </div>
       </motion.div>
 
       {/* GIFTS */}

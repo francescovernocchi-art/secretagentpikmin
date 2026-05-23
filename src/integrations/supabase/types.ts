@@ -189,7 +189,12 @@ export type Database = {
         Row: {
           agent: string
           created_at: string
+          defense_rating: number
+          energy_current: number
+          energy_max: number
+          faction: string | null
           lat: number | null
+          layout: Json
           level: number
           lng: number | null
           name: string
@@ -200,7 +205,12 @@ export type Database = {
         Insert: {
           agent: string
           created_at?: string
+          defense_rating?: number
+          energy_current?: number
+          energy_max?: number
+          faction?: string | null
           lat?: number | null
+          layout?: Json
           level?: number
           lng?: number | null
           name?: string
@@ -211,7 +221,12 @@ export type Database = {
         Update: {
           agent?: string
           created_at?: string
+          defense_rating?: number
+          energy_current?: number
+          energy_max?: number
+          faction?: string | null
           lat?: number | null
+          layout?: Json
           level?: number
           lng?: number | null
           name?: string
@@ -277,10 +292,12 @@ export type Database = {
           category: string
           description: string | null
           emoji: string
+          faction_required: string | null
           key: string
           max_level: number
           name: string
           sort_order: number
+          visual_stages: Json
         }
         Insert: {
           base_cost_coins?: number
@@ -290,10 +307,12 @@ export type Database = {
           category?: string
           description?: string | null
           emoji?: string
+          faction_required?: string | null
           key: string
           max_level?: number
           name: string
           sort_order?: number
+          visual_stages?: Json
         }
         Update: {
           base_cost_coins?: number
@@ -303,10 +322,12 @@ export type Database = {
           category?: string
           description?: string | null
           emoji?: string
+          faction_required?: string | null
           key?: string
           max_level?: number
           name?: string
           sort_order?: number
+          visual_stages?: Json
         }
         Relationships: []
       }
@@ -1245,6 +1266,81 @@ export type Database = {
           resolved_at?: string | null
           status?: string
           to_agent?: string
+        }
+        Relationships: []
+      }
+      village_events: {
+        Row: {
+          agent: string
+          created_at: string
+          description: string | null
+          id: string
+          kind: string
+          payload: Json
+          resolved_at: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          agent: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind: string
+          payload?: Json
+          resolved_at?: string | null
+          severity?: string
+          title: string
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          resolved_at?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      village_walls: {
+        Row: {
+          agent: string
+          created_at: string
+          from_x: number
+          from_y: number
+          id: string
+          level: number
+          material: string
+          to_x: number
+          to_y: number
+          updated_at: string
+        }
+        Insert: {
+          agent: string
+          created_at?: string
+          from_x: number
+          from_y: number
+          id?: string
+          level?: number
+          material?: string
+          to_x: number
+          to_y: number
+          updated_at?: string
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          from_x?: number
+          from_y?: number
+          id?: string
+          level?: number
+          material?: string
+          to_x?: number
+          to_y?: number
+          updated_at?: string
         }
         Relationships: []
       }
