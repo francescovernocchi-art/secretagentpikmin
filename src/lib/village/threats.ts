@@ -1,9 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { EnemyRow } from "@/lib/enemies";
+import { calculateDistanceMeters } from "@/lib/geo/distance";
+import { BASE_THREAT_RADIUS_DEFAULT } from "@/lib/map/radiusRules";
 
-const THREAT_RADIUS_M = 500; // raggio di rilevamento attorno al villaggio
 const LAST_CHECK_KEY = "village.threat.lastCheck";
-const COOLDOWN_MS = 60_000; // 1 minuto tra check automatici
+const COOLDOWN_MS = 60_000;
 
 export interface NearbyThreat {
   spawnId: string;
