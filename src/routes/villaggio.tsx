@@ -46,7 +46,7 @@ function VillaggioPage() {
   const session = typeof window !== "undefined" ? getSession() : null;
   const agent = session?.role ?? "lorenzo";
   const partner = PARTNER_OF[agent];
-  const navigate = useNavigate();
+  void useNavigate;
 
   const [base, setBase] = useState<BaseRow | null>(null);
   const [buildings, setBuildings] = useState<BaseBuilding[]>([]);
