@@ -14,6 +14,11 @@ export interface BaseRow {
   lat: number | null;
   lng: number | null;
   xp: number;
+  faction: string | null;
+  energy_current: number;
+  energy_max: number;
+  defense_rating: number;
+  layout: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
