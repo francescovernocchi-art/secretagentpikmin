@@ -13,7 +13,7 @@ import { useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { BuzzButton } from "@/components/BuzzButton";
 import { TacticalBackground } from "@/components/TacticalBackground";
-import { getSession, refreshSession, clearSession } from "@/lib/session";
+import { getSession, refreshSession, clearStoredSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
@@ -130,7 +130,8 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
-  const isApp = pathname !== "/";
+  const isLoginRoute = pathname === "/" || pathname === "/index";
+  const isApp = !isLoginRoute;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -138,8 +139,10 @@ function RootComponent() {
       if (session) {
         void refreshSession();
       } else {
-        clearSession();
-        if (window.location.pathname !== "/") router.navigate({ to: "/" });
+        clearStoredSession();
+        if (window.location.pathname !== "/" && window.location.pathname !== "/index") {
+          router.navigate({ to: "/" });
+        }
       }
       queryClient.invalidateQueries();
       router.invalidate();
