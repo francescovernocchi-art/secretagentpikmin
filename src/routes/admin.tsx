@@ -7,6 +7,7 @@ import { CardsEditor } from "@/components/admin/CardsEditor";
 import { AudioEditor } from "@/components/admin/AudioEditor";
 import { MissionsEditor } from "@/components/admin/MissionsEditor";
 import { RewardsEditor } from "@/components/admin/RewardsEditor";
+import { BuildingsEditor } from "@/components/admin/BuildingsEditor";
 import { Crown } from "lucide-react";
 
 function AdminPage() {
@@ -26,6 +27,7 @@ function AdminPage() {
       </header>
       <AdminTabs tabs={[
         { key: "pikmin", label: "Pikmin", icon: "🌱", render: () => <PikminEditor /> },
+        { key: "strutture", label: "Strutture", icon: "🏛️", render: () => <BuildingsEditor /> },
         { key: "carte", label: "Carte", icon: "🃏", render: () => <CardsEditor /> },
         { key: "missioni", label: "Missioni", icon: "🎯", render: () => <MissionsEditor /> },
         { key: "premi", label: "Premi", icon: "🏆", render: () => <RewardsEditor /> },
