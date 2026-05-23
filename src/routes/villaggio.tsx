@@ -235,7 +235,7 @@ function VillaggioPage() {
             count={Math.min(14, 5 + buildings.length)}
             faction={base.faction as FactionKey}
             buildings={buildings.map((b) => ({ position_x: b.position_x, position_y: b.position_y, type: b.type }))}
-            threat={events.some((e) => !e.resolved_at && e.kind === "threat_active")}
+            threat={events.some((e) => !e.resolved_at && e.kind === "threat")}
             phase={phase}
           />
         </div>
