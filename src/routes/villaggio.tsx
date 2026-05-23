@@ -31,20 +31,20 @@ import {
 } from "@/lib/base";
 import { Sparkles, Hammer, Gift, ArrowUpRight, Users, ShieldPlus, Palette } from "lucide-react";
 import { FactionSelector } from "@/components/village/FactionSelector";
-import { VillageStatusBar } from "@/components/village/VillageStatusBar";
-import { VillageAtmosphere } from "@/components/village/VillageAtmosphere";
-import { PikminLife } from "@/components/village/PikminLife";
-import { WallLayer } from "@/components/village/WallLayer";
 import { WallEditor } from "@/components/village/WallEditor";
-import { DefenseRangeLayer } from "@/components/village/DefenseRangeLayer";
-import { ThreatBanner } from "@/components/village/ThreatBanner";
 import { VillageCustomizer } from "@/components/village/VillageCustomizer";
+import { VillageCanvas } from "@/components/village/VillageCanvas";
+import { VillageHud } from "@/components/village/VillageHud";
+import { VillageStatsPanel } from "@/components/village/VillageStatsPanel";
+import { VillageActions } from "@/components/village/VillageActions";
+import { ThreatAlertPanel, computeNearbyThreats, type NearbyThreat } from "@/components/village/ThreatAlertPanel";
 import { computeVillageStatus } from "@/lib/village/bonuses";
 import type { FactionKey } from "@/lib/village/factions";
 import { listWalls, wallDefenseBonus, type WallSegment } from "@/lib/village/walls";
 import { listOpenEvents, scanThreats, type VillageEvent } from "@/lib/village/threats";
-import { getCosmetics, patternBackground, type VillageCosmetics } from "@/lib/village/cosmetics";
+import { getCosmetics, type VillageCosmetics } from "@/lib/village/cosmetics";
 import { maybeTriggerNightEvent } from "@/lib/village/night";
+import { getPikminCount } from "@/lib/pikmin";
 
 
 export const Route = createFileRoute("/villaggio")({
@@ -61,7 +61,6 @@ function VillaggioPage() {
   const session = typeof window !== "undefined" ? getSession() : null;
   const agent = session?.role ?? "lorenzo";
   const partner = PARTNER_OF[agent];
-  
 
   const [base, setBase] = useState<BaseRow | null>(null);
   const [buildings, setBuildings] = useState<BaseBuilding[]>([]);
@@ -78,6 +77,8 @@ function VillaggioPage() {
   const [selected, setSelected] = useState<BaseBuilding | null>(null);
   const [festa, setFesta] = useState<string | null>(null);
   const [phase, setPhase] = useState<DayPhase>(() => getDayPhase());
+  const [pikminCount, setPikminCount] = useState(0);
+  const [nearbyThreats, setNearbyThreats] = useState<import("@/components/village/ThreatAlertPanel").NearbyThreat[]>([]);
   const prevBuildingsRef = useRef<BaseBuilding[]>([]);
 
   // refresh day phase every minute
@@ -230,50 +231,36 @@ function VillaggioPage() {
     >
       <CelebrationOverlay show={!!festa} label={festa ?? ""} onDone={() => setFesta(null)} />
 
-      {/* STATO COLONIA */}
-      <VillageStatusBar status={status} faction={base.faction as FactionKey} />
+      {/* HUD AGENTE */}
+      <VillageHud session={session} base={base} status={status} coins={coins} pikminCount={pikminCount} />
 
-      {/* MINACCE ATTIVE */}
-      <ThreatBanner events={events} onResolved={reload} />
+      {/* STATS CAMPO BASE */}
+      <VillageStatsPanel base={base} status={status} faction={base.faction as FactionKey} />
 
-      {/* SCENA */}
-      <motion.div
-        key={base.theme + phase + base.faction}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative"
-      >
-        <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} cosmetics={cosmetics} />
-        <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
-          <DefenseRangeLayer buildings={buildings} />
-          <WallLayer walls={walls} />
-          <VillageAtmosphere faction={base.faction as FactionKey} />
-          <PikminLife
-            count={Math.min(14, 5 + buildings.length)}
-            faction={base.faction as FactionKey}
-            buildings={buildings.map((b) => ({ position_x: b.position_x, position_y: b.position_y, type: b.type }))}
-            threat={events.some((e) => !e.resolved_at && e.kind === "threat")}
-            phase={phase}
-            skin={{ body: cosmetics.pikminBody, accessory: cosmetics.pikminAccessory, aura: cosmetics.pikminAura, accent: cosmetics.accentColor }}
-          />
-        </div>
-        {/* CTA editor muri + estetica */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
-          <button
-            onClick={() => { hapticTap(); setWallEditorOpen(true); }}
-            className="panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
-          >
-            <ShieldPlus className="h-3 w-3 text-primary" /> Mura ({walls.length}) · +{wallBonus}
-          </button>
-          <button
-            onClick={() => { hapticTap(); setCustomizerOpen(true); }}
-            className="panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
-          >
-            <Palette className="h-3 w-3 text-primary" /> Estetica
-          </button>
-        </div>
-      </motion.div>
+      {/* MINACCE: solo se reali entro raggio */}
+      <ThreatAlertPanel threats={nearbyThreats} />
+
+      {/* SCENA VILLAGGIO */}
+      <VillageCanvas
+        faction={base.faction as FactionKey}
+        phase={phase}
+        buildings={buildings}
+        walls={walls}
+        cosmetics={cosmetics}
+        threat={nearbyThreats.length > 0}
+        onSelectBuilding={setSelected}
+        tick={tick}
+      />
+
+      {/* AZIONI RAPIDE */}
+      <VillageActions
+        onBuild={() => {
+          const next = catalog.find((c) => !buildings.some((b) => b.type === c.key));
+          if (next) setPicker(next);
+        }}
+        onWalls={() => setWallEditorOpen(true)}
+        onCustomize={() => setCustomizerOpen(true)}
+      />
 
 
       {/* GIFTS */}
@@ -507,252 +494,8 @@ function Onboarding({ agent, onCreated }: { agent: string; onCreated: () => void
   );
 }
 
-// ===== SCENA =====
-function BaseScene({
-  theme,
-  buildings,
-  catalog,
-  onSelect,
-  phase,
-  cosmetics,
-}: {
-  theme: { sky: string; ground: string; accent: string; label: string };
-  buildings: BaseBuilding[];
-  catalog: BuildingCatalog[];
-  onSelect: (b: BaseBuilding) => void;
-  phase: DayPhase;
-  cosmetics?: VillageCosmetics;
-}) {
-  const cat = (k: string) => catalog.find((c) => c.key === k);
-  const overlay = phaseOverlay(phase);
-  const isNight = phase === "notte";
-  const isDusk = phase === "tramonto" || phase === "alba";
-  const skyTop = cosmetics?.skyTop ?? theme.sky;
-  const skyBottom = cosmetics?.skyBottom ?? theme.ground;
-  const ground = cosmetics?.groundColor ?? theme.ground;
-  const accent = cosmetics?.accentColor ?? theme.accent;
-  const pattern = cosmetics?.pattern ?? "erba";
-  return (
-    <div className="panel-strong relative overflow-hidden p-0" style={{ aspectRatio: "16 / 11" }}>
-      {/* Cielo bioma */}
-      <div
-        className="absolute inset-0"
-        style={{ background: `linear-gradient(180deg, ${skyTop} 0%, ${skyTop} 55%, ${skyBottom} 100%)` }}
-      />
 
-      {/* Day/night overlay */}
-      <div className="absolute inset-0 pointer-events-none transition-opacity duration-1000" style={{ background: overlay.background }} />
 
-      {/* Sole / Luna */}
-      {!isNight ? (
-        <motion.div
-          className="absolute h-12 w-12 rounded-full"
-          style={{
-            background: isDusk
-              ? "radial-gradient(circle, #ffe9b8, #fb923c 70%, transparent)"
-              : "radial-gradient(circle, #fff8c5, #ffd86b 70%, transparent)",
-            top: 16,
-            right: 18,
-            filter: isDusk ? "drop-shadow(0 0 12px #fb923c88)" : "drop-shadow(0 0 8px #ffd86b88)",
-          }}
-          animate={{ scale: [1, 1.06, 1] }}
-          transition={{ duration: 4, repeat: Infinity }}
-        />
-      ) : (
-        <>
-          <motion.div
-            className="absolute h-10 w-10 rounded-full"
-            style={{
-              background: "radial-gradient(circle, #f8fafc, #cbd5e1 65%, transparent)",
-              top: 18,
-              right: 22,
-              filter: "drop-shadow(0 0 14px #cbd5e188)",
-            }}
-            animate={{ opacity: [0.85, 1, 0.85] }}
-            transition={{ duration: 5, repeat: Infinity }}
-          />
-          {/* stelle */}
-          {Array.from({ length: 14 }).map((_, i) => {
-            const top = 6 + Math.random() * 30;
-            const left = Math.random() * 100;
-            const dur = 1.6 + Math.random() * 2;
-            return (
-              <motion.span
-                key={`s${i}`}
-                className="absolute text-[8px]"
-                style={{ top: `${top}%`, left: `${left}%`, color: "#fff" }}
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: dur, repeat: Infinity, delay: i * 0.13 }}
-              >
-                ✦
-              </motion.span>
-            );
-          })}
-        </>
-      )}
-
-      {/* Nuvole (più trasparenti di notte) */}
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute h-4 w-12 rounded-full"
-          style={{ top: 24 + i * 18, left: -50, background: isNight ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.75)" }}
-          animate={{ x: [0, 380] }}
-          transition={{ duration: 22 + i * 6, repeat: Infinity, ease: "linear", delay: i * 4 }}
-        />
-      ))}
-
-      {/* Terreno */}
-      <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: `linear-gradient(180deg, transparent, ${ground})` }} />
-      {/* Pattern terreno */}
-      <div
-        className="absolute inset-x-0 bottom-0 h-1/3 opacity-60 pointer-events-none"
-        style={{ background: patternBackground(pattern, accent) }}
-      />
-
-      {/* Edifici */}
-      {buildings.map((b) => {
-        const c = cat(b.type);
-        if (!c) return null;
-        const stage = buildingStage(b.level);
-        const scale = stage === "maestro" ? 1.25 : stage === "evoluto" ? 1.1 : 1;
-        const isBuilding = b.status !== "idle";
-        return (
-          <motion.button
-            key={b.id}
-            onClick={() => {
-              hapticTap();
-              sfx.tap();
-              onSelect(b);
-            }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute flex flex-col items-center"
-            style={{
-              left: `${b.position_x}%`,
-              bottom: `${b.position_y}%`,
-              transform: `translate(-50%, 50%) scale(${scale})`,
-            }}
-          >
-            {/* Aura maestro */}
-            {stage === "maestro" && (
-              <motion.span
-                aria-hidden
-                className="absolute inset-0 -z-0 rounded-full"
-                style={{ background: "radial-gradient(circle, #fde68a55, transparent 70%)" }}
-                animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.6, 0.2, 0.6] }}
-                transition={{ duration: 2.4, repeat: Infinity }}
-              />
-            )}
-            <motion.span
-              className="text-3xl drop-shadow-lg relative"
-              animate={isBuilding ? { y: [0, -3, 0], rotate: [-2, 2, -2] } : { y: 0 }}
-              transition={isBuilding ? { duration: 1.2, repeat: Infinity } : undefined}
-            >
-              {c.emoji}
-              {isBuilding && (
-                <motion.span
-                  className="absolute -top-3 -right-2 text-sm"
-                  animate={{ rotate: [-12, 12, -12] }}
-                  transition={{ duration: 0.6, repeat: Infinity }}
-                >
-                  🔨
-                </motion.span>
-              )}
-            </motion.span>
-            {/* Pikmin che trasportano pezzi durante la costruzione */}
-            {isBuilding &&
-              [0, 1].map((k) => (
-                <motion.span
-                  key={k}
-                  className="absolute text-[11px]"
-                  style={{ bottom: -6, left: "50%" }}
-                  initial={{ x: -18 + k * 36, y: 0, opacity: 0 }}
-                  animate={{ x: [-22, 22, -22], y: [0, -2, 0], opacity: [0, 1, 0] }}
-                  transition={{ duration: 2.4 + k * 0.4, repeat: Infinity, delay: k * 0.6 }}
-                >
-                  🌱📦
-                </motion.span>
-              ))}
-            {isBuilding ? (
-              <span className="mt-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-night/80 text-primary border border-primary/40">
-                🔨 {formatRemaining(b.build_end_at)}
-              </span>
-            ) : (
-              <span className="mt-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-night/70 text-foreground/80 border border-primary/20">
-                Lv {b.level}
-              </span>
-            )}
-          </motion.button>
-        );
-      })}
-
-      {/* Pikmin abitanti: camminano di giorno, dormono di notte */}
-      {Array.from({ length: Math.min(5, 1 + buildings.length) }).map((_, i) => {
-        const baseLeft = 10 + i * 14;
-        if (isNight) {
-          return (
-            <div
-              key={i}
-              className="absolute"
-              style={{ bottom: 4 + (i % 2) * 6, left: `${baseLeft}%` }}
-            >
-              <span className="text-base opacity-80">🌱</span>
-              <motion.span
-                className="absolute -top-3 left-3 text-[10px] text-white/80"
-                animate={{ opacity: [0.2, 1, 0.2], y: [0, -2, 0] }}
-                transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.4 }}
-              >
-                💤
-              </motion.span>
-            </div>
-          );
-        }
-        return (
-          <motion.span
-            key={i}
-            className="absolute text-base"
-            style={{ bottom: 6 + (i % 2) * 8 }}
-            initial={{ left: `${baseLeft}%` }}
-            animate={{ left: [`${baseLeft}%`, `${85 - i * 8}%`, `${baseLeft}%`] }}
-            transition={{ duration: 14 + i * 3, repeat: Infinity, ease: "linear" }}
-          >
-            🌱
-          </motion.span>
-        );
-      })}
-
-      {/* Lucciole notturne */}
-      {isNight &&
-        Array.from({ length: 6 }).map((_, i) => (
-          <motion.span
-            key={`f${i}`}
-            className="absolute h-1.5 w-1.5 rounded-full"
-            style={{ background: "#fde68a", boxShadow: "0 0 8px #fde68a" }}
-            initial={{ left: `${10 + i * 14}%`, bottom: `${20 + (i % 3) * 18}%` }}
-            animate={{
-              left: [`${10 + i * 14}%`, `${30 + i * 10}%`, `${10 + i * 14}%`],
-              bottom: [`${20 + (i % 3) * 18}%`, `${35 + (i % 3) * 10}%`, `${20 + (i % 3) * 18}%`],
-              opacity: [0.4, 1, 0.4],
-            }}
-            transition={{ duration: 4 + i * 0.6, repeat: Infinity, ease: "easeInOut" }}
-          />
-        ))}
-
-      {buildings.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="panel px-3 py-2 text-xs text-center">Nessuna struttura. Scegli dal catalogo!</p>
-        </div>
-      )}
-
-      {/* Badge fase */}
-      <div className="absolute top-2 left-2 panel px-2 py-1 text-[10px] flex items-center gap-1">
-        <span>{PHASE_EMOJI[phase]}</span>
-        <span>{PHASE_LABEL[phase]}</span>
-      </div>
-    </div>
-  );
-}
 
 
 // ===== MODAL: build new =====

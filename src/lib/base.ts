@@ -19,6 +19,9 @@ export interface BaseRow {
   energy_max: number;
   defense_rating: number;
   layout: Record<string, unknown>;
+  base_name?: string | null;
+  action_radius?: number | null;
+  threat_radius?: number | null;
   created_at: string;
   updated_at: string;
 }
