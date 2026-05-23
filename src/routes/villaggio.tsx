@@ -29,7 +29,7 @@ import {
   claimGift,
   BaseGift,
 } from "@/lib/base";
-import { Sparkles, Hammer, Gift, ArrowUpRight, Users, ShieldPlus } from "lucide-react";
+import { Sparkles, Hammer, Gift, ArrowUpRight, Users, ShieldPlus, Palette } from "lucide-react";
 import { FactionSelector } from "@/components/village/FactionSelector";
 import { VillageStatusBar } from "@/components/village/VillageStatusBar";
 import { VillageAtmosphere } from "@/components/village/VillageAtmosphere";
@@ -38,10 +38,13 @@ import { WallLayer } from "@/components/village/WallLayer";
 import { WallEditor } from "@/components/village/WallEditor";
 import { DefenseRangeLayer } from "@/components/village/DefenseRangeLayer";
 import { ThreatBanner } from "@/components/village/ThreatBanner";
+import { VillageCustomizer } from "@/components/village/VillageCustomizer";
 import { computeVillageStatus } from "@/lib/village/bonuses";
 import type { FactionKey } from "@/lib/village/factions";
 import { listWalls, wallDefenseBonus, type WallSegment } from "@/lib/village/walls";
 import { listOpenEvents, scanThreats, type VillageEvent } from "@/lib/village/threats";
+import { getCosmetics, patternBackground, type VillageCosmetics } from "@/lib/village/cosmetics";
+import { maybeTriggerNightEvent } from "@/lib/village/night";
 
 
 export const Route = createFileRoute("/villaggio")({
