@@ -74,7 +74,11 @@ export async function signUpWithPassword(args: {
   name: string;
   role: Role;
   emoji: string;
+  inviteCode: string;
 }): Promise<Session | null> {
+  const code = args.inviteCode.trim().toUpperCase();
+  if (!code) throw new Error("Codice invito obbligatorio");
+
   const { data, error } = await supabase.auth.signUp({
     email: args.email,
     password: args.password,
@@ -89,9 +93,27 @@ export async function signUpWithPassword(args: {
   });
   if (error) throw error;
   if (!data.user) throw new Error("Signup non confermato");
-  // if auto-confirm is on, session is set; otherwise user must confirm via email
+
+  const { data: ok, error: consumeErr } = await supabase.rpc("consume_invite_code", {
+    _code: code,
+    _user_id: data.user.id,
+  });
+  if (consumeErr || !ok) {
+    await supabase.auth.signOut().catch(() => {});
+    throw new Error("Codice invito non valido o già usato");
+  }
+
   if (data.session) {
     return hydrateProfile(data.user.id);
   }
   return null;
+}
+
+export async function createInviteCode(note?: string): Promise<string> {
+  const { data, error } = await supabase.rpc("create_invite_code", {
+    _note: note ?? undefined,
+    _expires_at: undefined,
+  });
+  if (error) throw error;
+  return data as string;
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession, clearSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
+import { InvitePanel } from "@/components/InvitePanel";
 import { LogOut, Shield, Users } from "lucide-react";
 
 export const Route = createFileRoute("/profilo")({
@@ -70,13 +71,17 @@ function ProfiloPage() {
       </div>
 
       {session?.role === "papa" && (
-        <Link
-          to="/agenti"
-          className="panel w-full p-4 flex items-center justify-center gap-2 text-primary"
-        >
-          <Users className="h-4 w-4" /> Gestisci agenti operativi
-        </Link>
+        <>
+          <Link
+            to="/agenti"
+            className="panel w-full p-4 flex items-center justify-center gap-2 text-primary"
+          >
+            <Users className="h-4 w-4" /> Gestisci agenti operativi
+          </Link>
+          <InvitePanel />
+        </>
       )}
+
 
       <button
         onClick={() => {

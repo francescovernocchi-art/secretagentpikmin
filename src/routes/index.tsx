@@ -27,6 +27,7 @@ function LoginPage() {
   const [name, setName] = useState("");
   const [role, setRole] = useState<Role>("lorenzo");
   const [emoji, setEmoji] = useState(EMOJI_CHOICES[0]);
+  const [inviteCode, setInviteCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -65,12 +66,14 @@ function LoginPage() {
       } else {
         if (!name.trim()) throw new Error("Inserisci il nome agente");
         if (password.length < 8) throw new Error("Password troppo corta (min 8)");
+        if (!inviteCode.trim()) throw new Error("Inserisci il codice invito");
         const s = await signUpWithPassword({
           email: email.trim(),
           password,
           name: name.trim(),
           role,
           emoji,
+          inviteCode,
         });
         if (s) {
           toast.success(`Benvenuto ${emoji} ${name}`);
@@ -161,6 +164,12 @@ function LoginPage() {
                   </button>
                 ))}
               </div>
+              <input
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                placeholder="Codice invito"
+                className="panel px-4 py-3 bg-card/50 rounded-xl text-foreground placeholder:text-muted-foreground/60 tracking-widest uppercase"
+              />
             </motion.div>
           )}
         </AnimatePresence>
