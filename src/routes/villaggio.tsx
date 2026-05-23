@@ -45,6 +45,7 @@ import { listOpenEvents, scanThreats, type VillageEvent } from "@/lib/village/th
 import { getCosmetics, type VillageCosmetics } from "@/lib/village/cosmetics";
 import { maybeTriggerNightEvent } from "@/lib/village/night";
 import { getPikminCount } from "@/lib/pikmin";
+import { VillagePikminAnimations, type PikminColor } from "@/components/village/VillagePikminAnimations";
 
 
 export const Route = createFileRoute("/villaggio")({
@@ -94,8 +95,10 @@ function VillaggioPage() {
     return () => clearInterval(id);
   }, []);
 
+  const [pikminBreakdown, setPikminBreakdown] = useState<Partial<Record<PikminColor, number>>>({});
+
   const reload = async () => {
-    const [b, bld, cat, c, g, w, ev] = await Promise.all([
+    const [b, bld, cat, c, g, w, ev, pc, sq] = await Promise.all([
       getBase(agent),
       listBuildings(agent),
       fetchCatalog(),
@@ -103,6 +106,8 @@ function VillaggioPage() {
       listGifts(agent),
       listWalls(agent),
       listOpenEvents(agent),
+      getPikminCount().catch(() => 0),
+      supabase.from("pikmin_squad").select("breakdown").eq("id", "team").maybeSingle(),
     ]);
     setBase(b);
     setBuildings(bld);
@@ -111,6 +116,24 @@ function VillaggioPage() {
     setGifts(g);
     setWalls(w);
     setEvents(ev);
+    setPikminCount(pc);
+    // map breakdown keys (es. red/blue/yellow/purple/white o italiano) → PikminColor italiani
+    const raw = (sq.data?.breakdown ?? {}) as Record<string, number>;
+    const map: Partial<Record<PikminColor, number>> = {};
+    const norm = (k: string): PikminColor | null => {
+      const v = k.toLowerCase();
+      if (["red", "rosso"].includes(v)) return "rosso";
+      if (["blue", "blu"].includes(v)) return "blu";
+      if (["yellow", "giallo"].includes(v)) return "giallo";
+      if (["purple", "viola", "purpule"].includes(v)) return "viola";
+      if (["white", "bianco"].includes(v)) return "bianco";
+      return null;
+    };
+    for (const [k, n] of Object.entries(raw)) {
+      const c2 = norm(k);
+      if (c2) map[c2] = (map[c2] ?? 0) + (Number(n) || 0);
+    }
+    setPikminBreakdown(map);
     setLoading(false);
   };
 
@@ -267,17 +290,25 @@ function VillaggioPage() {
       {/* MINACCE: solo se reali entro raggio */}
       <ThreatAlertPanel threats={nearbyThreats} />
 
-      {/* SCENA VILLAGGIO */}
-      <VillageCanvas
-        faction={base.faction as FactionKey}
-        phase={phase}
-        buildings={buildings}
-        walls={walls}
-        cosmetics={cosmetics}
-        threat={nearbyThreats.length > 0}
-        onSelectBuilding={setSelected}
-        tick={tick}
-      />
+      {/* SCENA VILLAGGIO + PIKMIN ANIMATI */}
+      <div className="relative">
+        <VillageCanvas
+          faction={base.faction as FactionKey}
+          phase={phase}
+          buildings={buildings}
+          walls={walls}
+          cosmetics={cosmetics}
+          threat={nearbyThreats.length > 0}
+          onSelectBuilding={setSelected}
+          tick={tick}
+        />
+        <VillagePikminAnimations
+          buildings={buildings}
+          pikminCount={pikminCount}
+          breakdown={pikminBreakdown}
+          threat={nearbyThreats.length > 0}
+        />
+      </div>
 
       {/* AZIONI RAPIDE */}
       <VillageActions
