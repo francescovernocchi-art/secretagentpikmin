@@ -1182,6 +1182,45 @@ export type Database = {
           },
         ]
       }
+      trade_offers: {
+        Row: {
+          created_at: string
+          expires_at: string
+          from_agent: string
+          id: string
+          message: string | null
+          offer: Json
+          request: Json
+          resolved_at: string | null
+          status: string
+          to_agent: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          from_agent: string
+          id?: string
+          message?: string | null
+          offer?: Json
+          request?: Json
+          resolved_at?: string | null
+          status?: string
+          to_agent: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          from_agent?: string
+          id?: string
+          message?: string | null
+          offer?: Json
+          request?: Json
+          resolved_at?: string | null
+          status?: string
+          to_agent?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
