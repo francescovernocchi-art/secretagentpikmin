@@ -69,7 +69,7 @@ export function ScoutingMissionPanel({
       pikmin_count: count,
       status: "completed",
       end_at: endAt.toISOString(),
-      result,
+      result: result as any,
     });
     setBusy(false);
     if (error) {
