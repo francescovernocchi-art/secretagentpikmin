@@ -29,7 +29,7 @@ import {
   claimGift,
   BaseGift,
 } from "@/lib/base";
-import { Sparkles, Hammer, Gift, ArrowUpRight, Users, ShieldPlus } from "lucide-react";
+import { Sparkles, Hammer, Gift, ArrowUpRight, Users, ShieldPlus, Palette } from "lucide-react";
 import { FactionSelector } from "@/components/village/FactionSelector";
 import { VillageStatusBar } from "@/components/village/VillageStatusBar";
 import { VillageAtmosphere } from "@/components/village/VillageAtmosphere";
@@ -38,10 +38,13 @@ import { WallLayer } from "@/components/village/WallLayer";
 import { WallEditor } from "@/components/village/WallEditor";
 import { DefenseRangeLayer } from "@/components/village/DefenseRangeLayer";
 import { ThreatBanner } from "@/components/village/ThreatBanner";
+import { VillageCustomizer } from "@/components/village/VillageCustomizer";
 import { computeVillageStatus } from "@/lib/village/bonuses";
 import type { FactionKey } from "@/lib/village/factions";
 import { listWalls, wallDefenseBonus, type WallSegment } from "@/lib/village/walls";
 import { listOpenEvents, scanThreats, type VillageEvent } from "@/lib/village/threats";
+import { getCosmetics, patternBackground, type VillageCosmetics } from "@/lib/village/cosmetics";
+import { maybeTriggerNightEvent } from "@/lib/village/night";
 
 
 export const Route = createFileRoute("/villaggio")({
@@ -71,6 +74,7 @@ function VillaggioPage() {
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [picker, setPicker] = useState<BuildingCatalog | null>(null);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
   const [selected, setSelected] = useState<BaseBuilding | null>(null);
   const [festa, setFesta] = useState<string | null>(null);
   const [phase, setPhase] = useState<DayPhase>(() => getDayPhase());
@@ -141,6 +145,19 @@ function VillaggioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent, base?.faction, base?.lat, base?.lng, walls.length, buildings.length]);
 
+  // Eventi notturni: solo durante la notte, ~ogni 5 minuti
+  useEffect(() => {
+    if (!base || phase !== "notte") return;
+    const totalDefense = computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating + wallDefenseBonus(walls);
+    const run = () => maybeTriggerNightEvent({ agent, isNight: true, totalDefense }).then((ev) => {
+      if (ev) reload();
+    });
+    run();
+    const id = setInterval(run, 60_000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent, phase, buildings.length, walls.length]);
+
   // auto-complete dei timer scaduti + festa al completamento
   useEffect(() => {
     const prev = prevBuildingsRef.current;
@@ -189,6 +206,7 @@ function VillaggioPage() {
   const baseStatus = computeVillageStatus(base.faction as FactionKey, buildings, catalog);
   const wallBonus = wallDefenseBonus(walls);
   const status = { ...baseStatus, defenseRating: baseStatus.defenseRating + wallBonus };
+  const cosmetics: VillageCosmetics = getCosmetics(base.layout);
 
   return (
     <PageShell
@@ -226,7 +244,7 @@ function VillaggioPage() {
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="relative"
       >
-        <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} />
+        <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} cosmetics={cosmetics} />
         <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
           <DefenseRangeLayer buildings={buildings} />
           <WallLayer walls={walls} />
@@ -237,16 +255,26 @@ function VillaggioPage() {
             buildings={buildings.map((b) => ({ position_x: b.position_x, position_y: b.position_y, type: b.type }))}
             threat={events.some((e) => !e.resolved_at && e.kind === "threat")}
             phase={phase}
+            skin={{ body: cosmetics.pikminBody, accessory: cosmetics.pikminAccessory, aura: cosmetics.pikminAura, accent: cosmetics.accentColor }}
           />
         </div>
-        {/* CTA editor muri */}
-        <button
-          onClick={() => { hapticTap(); setWallEditorOpen(true); }}
-          className="absolute top-2 right-2 panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
-        >
-          <ShieldPlus className="h-3 w-3 text-primary" /> Mura ({walls.length}) · +{wallBonus}
-        </button>
+        {/* CTA editor muri + estetica */}
+        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+          <button
+            onClick={() => { hapticTap(); setWallEditorOpen(true); }}
+            className="panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
+          >
+            <ShieldPlus className="h-3 w-3 text-primary" /> Mura ({walls.length}) · +{wallBonus}
+          </button>
+          <button
+            onClick={() => { hapticTap(); setCustomizerOpen(true); }}
+            className="panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
+          >
+            <Palette className="h-3 w-3 text-primary" /> Estetica
+          </button>
+        </div>
       </motion.div>
+
 
       {/* GIFTS */}
       {gifts.length > 0 && (
@@ -374,6 +402,18 @@ function VillaggioPage() {
         )}
       </AnimatePresence>
 
+      {/* MODAL CUSTOMIZER ESTETICA */}
+      <AnimatePresence>
+        {customizerOpen && (
+          <VillageCustomizer
+            agent={agent}
+            initial={cosmetics}
+            onClose={() => setCustomizerOpen(false)}
+            onSaved={reload}
+          />
+        )}
+      </AnimatePresence>
+
       {/* MODAL DETTAGLIO STRUTTURA */}
       <AnimatePresence>
         {selected && (
@@ -474,24 +514,32 @@ function BaseScene({
   catalog,
   onSelect,
   phase,
+  cosmetics,
 }: {
   theme: { sky: string; ground: string; accent: string; label: string };
   buildings: BaseBuilding[];
   catalog: BuildingCatalog[];
   onSelect: (b: BaseBuilding) => void;
   phase: DayPhase;
+  cosmetics?: VillageCosmetics;
 }) {
   const cat = (k: string) => catalog.find((c) => c.key === k);
   const overlay = phaseOverlay(phase);
   const isNight = phase === "notte";
   const isDusk = phase === "tramonto" || phase === "alba";
+  const skyTop = cosmetics?.skyTop ?? theme.sky;
+  const skyBottom = cosmetics?.skyBottom ?? theme.ground;
+  const ground = cosmetics?.groundColor ?? theme.ground;
+  const accent = cosmetics?.accentColor ?? theme.accent;
+  const pattern = cosmetics?.pattern ?? "erba";
   return (
     <div className="panel-strong relative overflow-hidden p-0" style={{ aspectRatio: "16 / 11" }}>
       {/* Cielo bioma */}
       <div
         className="absolute inset-0"
-        style={{ background: `linear-gradient(180deg, ${theme.sky} 0%, ${theme.sky} 55%, ${theme.ground} 100%)` }}
+        style={{ background: `linear-gradient(180deg, ${skyTop} 0%, ${skyTop} 55%, ${skyBottom} 100%)` }}
       />
+
       {/* Day/night overlay */}
       <div className="absolute inset-0 pointer-events-none transition-opacity duration-1000" style={{ background: overlay.background }} />
 
@@ -555,7 +603,12 @@ function BaseScene({
       ))}
 
       {/* Terreno */}
-      <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: `linear-gradient(180deg, transparent, ${theme.ground})` }} />
+      <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: `linear-gradient(180deg, transparent, ${ground})` }} />
+      {/* Pattern terreno */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-1/3 opacity-60 pointer-events-none"
+        style={{ background: patternBackground(pattern, accent) }}
+      />
 
       {/* Edifici */}
       {buildings.map((b) => {

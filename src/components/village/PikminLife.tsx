@@ -1,11 +1,19 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 import type { FactionKey } from "@/lib/village/factions";
+import type { PikminAccessory, PikminAura } from "@/lib/village/cosmetics";
 
 interface BuildingPos {
   position_x: number;
   position_y: number;
   type: string;
+}
+
+interface Skin {
+  body?: string;
+  accessory?: PikminAccessory;
+  aura?: PikminAura;
+  accent?: string;
 }
 
 interface Props {
@@ -14,6 +22,7 @@ interface Props {
   buildings?: BuildingPos[];
   threat?: boolean;
   phase?: "alba" | "giorno" | "tramonto" | "notte";
+  skin?: Skin;
 }
 
 const FACTION_COLORS: Record<FactionKey, string[]> = {
@@ -23,17 +32,14 @@ const FACTION_COLORS: Record<FactionKey, string[]> = {
   mystic: ["#c084fc", "#a78bfa", "#f0abfc"],
 };
 
-type PikminAgent = {
-  id: number;
-  hue: string;
-  role: "worker" | "guard" | "scout" | "sleeper";
-  homeX: number;
-  homeY: number;
-  targetX: number;
-  targetY: number;
-  duration: number;
-  delay: number;
-  carry?: string;
+const ACCESSORY_EMOJI: Record<PikminAccessory, string> = {
+  nessuno: "",
+  foglia: "🍃",
+  fiore: "🌸",
+  cappello: "🎩",
+  elmo: "⛑️",
+  stella: "⭐",
+  antenna: "📡",
 };
 
 /** Pikmin "vivi": vagano, raccolgono presso gli edifici, si difendono se c'è minaccia. */
@@ -43,9 +49,25 @@ export function PikminLife({
   buildings = [],
   threat = false,
   phase = "giorno",
+  skin,
 }: Props) {
+  type PikminAgent = {
+    id: number;
+    hue: string;
+    role: "worker" | "guard" | "scout" | "sleeper";
+    homeX: number;
+    homeY: number;
+    targetX: number;
+    targetY: number;
+    duration: number;
+    delay: number;
+    carry?: string;
+  };
+
+
   const agents = useMemo<PikminAgent[]>(() => {
-    const palette = FACTION_COLORS[faction ?? "eco"] ?? FACTION_COLORS.eco;
+    const fpalette = FACTION_COLORS[faction ?? "eco"] ?? FACTION_COLORS.eco;
+    const palette = skin?.body ? [skin.body, skin.body, skin.body] : fpalette;
     const sleep = phase === "notte";
     return Array.from({ length: count }).map((_, i) => {
       // ruolo
@@ -87,7 +109,19 @@ export function PikminLife({
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, faction, buildings.length, threat, phase]);
+  }, [count, faction, buildings.length, threat, phase, skin?.body]);
+
+  const accessoryEmoji = skin?.accessory ? ACCESSORY_EMOJI[skin.accessory] : "";
+  const auraShadow =
+    skin?.aura === "neon"
+      ? `0 0 10px ${skin?.body ?? "#7be07b"}`
+      : skin?.aura === "scintille"
+        ? `0 0 8px ${skin?.accent ?? "#fde047"}`
+        : skin?.aura === "ombra"
+          ? "0 0 8px #000a"
+          : skin?.aura === "soffice"
+            ? "0 0 6px #fff5"
+            : "0 0 6px rgba(0,0,0,.4)";
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -134,19 +168,19 @@ export function PikminLife({
               transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
             >
               <div
-                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full shadow-[0_0_6px_rgba(0,0,0,.4)]"
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full"
                 style={{
                   background: `radial-gradient(circle at 35% 30%, #fff8, ${p.hue} 60%, #0006)`,
+                  boxShadow: auraShadow,
                 }}
               />
-              {/* stelo */}
               <div
                 className="absolute left-1/2 -translate-x-1/2 bottom-3 w-[1.5px] h-2"
                 style={{ background: p.hue }}
               />
-              {/* foglia / segnale */}
+              {/* accessorio / segnale */}
               <div className="absolute left-1/2 -translate-x-1/2 -top-0.5 text-[8px] leading-none">
-                {p.role === "guard" ? "🛡" : p.role === "scout" ? "🔭" : p.carry ?? "🌱"}
+                {p.role === "guard" ? "🛡" : p.role === "scout" ? "🔭" : (accessoryEmoji || p.carry || "🌱")}
               </div>
             </motion.div>
           </motion.div>
