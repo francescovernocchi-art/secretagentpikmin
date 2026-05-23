@@ -29,6 +29,7 @@ import { Route as BaseRouteImport } from './routes/base'
 import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as ArchivioRouteImport } from './routes/archivio'
 import { Route as AgentiRouteImport } from './routes/agenti'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VillaggioScambiRouteImport } from './routes/villaggio.scambi'
 import { Route as VillaggioEdificiRouteImport } from './routes/villaggio.edifici'
@@ -135,6 +136,11 @@ const AgentiRoute = AgentiRouteImport.update({
   path: '/agenti',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -163,6 +169,7 @@ const SpedizioniKeyRoute = SpedizioniKeyRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/agenti': typeof AgentiRoute
   '/archivio': typeof ArchivioRoute
   '/atelier': typeof AtelierRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/agenti': typeof AgentiRoute
   '/archivio': typeof ArchivioRoute
   '/atelier': typeof AtelierRoute
@@ -218,6 +226,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/agenti': typeof AgentiRoute
   '/archivio': typeof ArchivioRoute
   '/atelier': typeof AtelierRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/agenti'
     | '/archivio'
     | '/atelier'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/agenti'
     | '/archivio'
     | '/atelier'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/agenti'
     | '/archivio'
     | '/atelier'
@@ -329,6 +341,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AgentiRoute: typeof AgentiRoute
   ArchivioRoute: typeof ArchivioRoute
   AtelierRoute: typeof AtelierRoute
@@ -493,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -561,6 +581,7 @@ const VillaggioRouteWithChildren = VillaggioRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AgentiRoute: AgentiRoute,
   ArchivioRoute: ArchivioRoute,
   AtelierRoute: AtelierRoute,

@@ -13,8 +13,10 @@ import { useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { BuzzButton } from "@/components/BuzzButton";
 import { TacticalBackground } from "@/components/TacticalBackground";
+import { GlobalAudioPlayer } from "@/components/GlobalAudioPlayer";
 import { getSession, refreshSession, clearStoredSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
+
 
 import appCss from "../styles.css?url";
 
@@ -165,8 +167,10 @@ function RootComponent() {
           <div className="relative z-10">
             <Outlet />
             <BuzzButton />
+            <GlobalAudioPlayer />
             <BottomNav />
           </div>
+
         </div>
       ) : (
         <Outlet />

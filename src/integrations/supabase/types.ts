@@ -89,6 +89,48 @@ export type Database = {
         }
         Relationships: []
       }
+      audio_assets: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          key: string
+          kind: string
+          loop: boolean
+          name: string
+          page: string | null
+          updated_at: string
+          url: string
+          volume: number
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          key: string
+          kind?: string
+          loop?: boolean
+          name: string
+          page?: string | null
+          updated_at?: string
+          url: string
+          volume?: number
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          key?: string
+          kind?: string
+          loop?: boolean
+          name?: string
+          page?: string | null
+          updated_at?: string
+          url?: string
+          volume?: number
+        }
+        Relationships: []
+      }
       base_buildings: {
         Row: {
           agent: string
@@ -340,6 +382,30 @@ export type Database = {
         }
         Relationships: []
       }
+      card_unlocks: {
+        Row: {
+          agent: string
+          card_id: string
+          id: string
+          source: string
+          unlocked_at: string
+        }
+        Insert: {
+          agent: string
+          card_id: string
+          id?: string
+          source?: string
+          unlocked_at?: string
+        }
+        Update: {
+          agent?: string
+          card_id?: string
+          id?: string
+          source?: string
+          unlocked_at?: string
+        }
+        Relationships: []
+      }
       coin_transactions: {
         Row: {
           agent: string
@@ -364,6 +430,48 @@ export type Database = {
           id?: string
           meta?: Json | null
           reason?: string
+        }
+        Relationships: []
+      }
+      collectible_cards: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          key: string
+          metadata: Json
+          name: string
+          rarity: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          key: string
+          metadata?: Json
+          name: string
+          rarity?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          key?: string
+          metadata?: Json
+          name?: string
+          rarity?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
