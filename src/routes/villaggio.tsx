@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageShell } from "@/components/PageShell";
@@ -46,7 +46,7 @@ function VillaggioPage() {
   const session = typeof window !== "undefined" ? getSession() : null;
   const agent = session?.role ?? "lorenzo";
   const partner = PARTNER_OF[agent];
-  void useNavigate;
+  
 
   const [base, setBase] = useState<BaseRow | null>(null);
   const [buildings, setBuildings] = useState<BaseBuilding[]>([]);
