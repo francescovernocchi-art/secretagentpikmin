@@ -4,14 +4,12 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-
   useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+
 import { BottomNav } from "@/components/BottomNav";
 import { BuzzButton } from "@/components/BuzzButton";
 import { TacticalBackground } from "@/components/TacticalBackground";
