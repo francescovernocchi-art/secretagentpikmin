@@ -71,13 +71,17 @@ function ProfiloPage() {
       </div>
 
       {session?.role === "papa" && (
-        <Link
-          to="/agenti"
-          className="panel w-full p-4 flex items-center justify-center gap-2 text-primary"
-        >
-          <Users className="h-4 w-4" /> Gestisci agenti operativi
-        </Link>
+        <>
+          <Link
+            to="/agenti"
+            className="panel w-full p-4 flex items-center justify-center gap-2 text-primary"
+          >
+            <Users className="h-4 w-4" /> Gestisci agenti operativi
+          </Link>
+          <InvitePanel />
+        </>
       )}
+
 
       <button
         onClick={() => {
