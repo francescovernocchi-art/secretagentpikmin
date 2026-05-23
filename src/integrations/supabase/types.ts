@@ -344,6 +344,7 @@ export type Database = {
           description: string | null
           emoji: string
           faction_required: string | null
+          image_url: string | null
           key: string
           max_level: number
           name: string
@@ -359,6 +360,7 @@ export type Database = {
           description?: string | null
           emoji?: string
           faction_required?: string | null
+          image_url?: string | null
           key: string
           max_level?: number
           name: string
@@ -374,6 +376,7 @@ export type Database = {
           description?: string | null
           emoji?: string
           faction_required?: string | null
+          image_url?: string | null
           key?: string
           max_level?: number
           name?: string
