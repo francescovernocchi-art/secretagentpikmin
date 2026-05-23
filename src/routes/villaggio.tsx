@@ -29,13 +29,19 @@ import {
   claimGift,
   BaseGift,
 } from "@/lib/base";
-import { Sparkles, Hammer, Gift, ArrowUpRight, Users } from "lucide-react";
+import { Sparkles, Hammer, Gift, ArrowUpRight, Users, ShieldPlus } from "lucide-react";
 import { FactionSelector } from "@/components/village/FactionSelector";
 import { VillageStatusBar } from "@/components/village/VillageStatusBar";
 import { VillageAtmosphere } from "@/components/village/VillageAtmosphere";
 import { PikminLife } from "@/components/village/PikminLife";
+import { WallLayer } from "@/components/village/WallLayer";
+import { WallEditor } from "@/components/village/WallEditor";
+import { DefenseRangeLayer } from "@/components/village/DefenseRangeLayer";
+import { ThreatBanner } from "@/components/village/ThreatBanner";
 import { computeVillageStatus } from "@/lib/village/bonuses";
 import type { FactionKey } from "@/lib/village/factions";
+import { listWalls, wallDefenseBonus, type WallSegment } from "@/lib/village/walls";
+import { listOpenEvents, scanThreats, type VillageEvent } from "@/lib/village/threats";
 
 
 export const Route = createFileRoute("/villaggio")({
@@ -59,6 +65,9 @@ function VillaggioPage() {
   const [catalog, setCatalog] = useState<BuildingCatalog[]>([]);
   const [coins, setCoins] = useState(0);
   const [gifts, setGifts] = useState<BaseGift[]>([]);
+  const [walls, setWalls] = useState<WallSegment[]>([]);
+  const [events, setEvents] = useState<VillageEvent[]>([]);
+  const [wallEditorOpen, setWallEditorOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [picker, setPicker] = useState<BuildingCatalog | null>(null);
@@ -81,18 +90,22 @@ function VillaggioPage() {
   }, []);
 
   const reload = async () => {
-    const [b, bld, cat, c, g] = await Promise.all([
+    const [b, bld, cat, c, g, w, ev] = await Promise.all([
       getBase(agent),
       listBuildings(agent),
       fetchCatalog(),
       getCoins(agent),
       listGifts(agent),
+      listWalls(agent),
+      listOpenEvents(agent),
     ]);
     setBase(b);
     setBuildings(bld);
     setCatalog(cat);
     setCoins(c);
     setGifts(g);
+    setWalls(w);
+    setEvents(ev);
     setLoading(false);
   };
 
