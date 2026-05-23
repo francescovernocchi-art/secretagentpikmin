@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as Char91indexChar93RouteImport } from './routes/[index]'
 import { Route as VillaggioRouteImport } from './routes/villaggio'
 import { Route as SpedizioniRouteImport } from './routes/spedizioni'
 import { Route as RicordiRouteImport } from './routes/ricordi'
@@ -23,7 +24,6 @@ import { Route as MercatoRouteImport } from './routes/mercato'
 import { Route as MappaRouteImport } from './routes/mappa'
 import { Route as LabRouteImport } from './routes/lab'
 import { Route as InventarioRouteImport } from './routes/inventario'
-import { Route as IndexRouteImport } from './routes/index_'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BaseRouteImport } from './routes/base'
 import { Route as AtelierRouteImport } from './routes/atelier'
@@ -35,6 +35,11 @@ import { Route as VillaggioEdificiRouteImport } from './routes/villaggio.edifici
 import { Route as VillaggioAgentRouteImport } from './routes/villaggio.$agent'
 import { Route as SpedizioniKeyRouteImport } from './routes/spedizioni.$key'
 
+const Char91indexChar93Route = Char91indexChar93RouteImport.update({
+  id: '/index',
+  path: '/index',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VillaggioRoute = VillaggioRouteImport.update({
   id: '/villaggio',
   path: '/villaggio',
@@ -105,11 +110,6 @@ const InventarioRoute = InventarioRouteImport.update({
   path: '/inventario',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/index_',
-  path: '/index',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ChatRoute = ChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -168,7 +168,7 @@ export interface FileRoutesByFullPath {
   '/atelier': typeof AtelierRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
-  '/index': typeof IndexRoute
+  '/index': typeof Char91indexChar93Route
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
@@ -195,7 +195,7 @@ export interface FileRoutesByTo {
   '/atelier': typeof AtelierRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
-  '/index': typeof IndexRoute
+  '/index': typeof Char91indexChar93Route
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
@@ -223,7 +223,7 @@ export interface FileRoutesById {
   '/atelier': typeof AtelierRoute
   '/base': typeof BaseRoute
   '/chat': typeof ChatRoute
-  '/index_': typeof IndexRoute
+  '/index': typeof Char91indexChar93Route
   '/inventario': typeof InventarioRoute
   '/lab': typeof LabRoute
   '/mappa': typeof MappaRoute
@@ -306,7 +306,7 @@ export interface FileRouteTypes {
     | '/atelier'
     | '/base'
     | '/chat'
-    | '/index_'
+    | '/index'
     | '/inventario'
     | '/lab'
     | '/mappa'
@@ -334,7 +334,7 @@ export interface RootRouteChildren {
   AtelierRoute: typeof AtelierRoute
   BaseRoute: typeof BaseRoute
   ChatRoute: typeof ChatRoute
-  IndexRoute: typeof IndexRoute
+  Char91indexChar93Route: typeof Char91indexChar93Route
   InventarioRoute: typeof InventarioRoute
   LabRoute: typeof LabRoute
   MappaRoute: typeof MappaRoute
@@ -353,6 +353,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/index': {
+      id: '/index'
+      path: '/index'
+      fullPath: '/index'
+      preLoaderRoute: typeof Char91indexChar93RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/villaggio': {
       id: '/villaggio'
       path: '/villaggio'
@@ -449,13 +456,6 @@ declare module '@tanstack/react-router' {
       path: '/inventario'
       fullPath: '/inventario'
       preLoaderRoute: typeof InventarioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/index_': {
-      id: '/index_'
-      path: '/index'
-      fullPath: '/index'
-      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -566,7 +566,7 @@ const rootRouteChildren: RootRouteChildren = {
   AtelierRoute: AtelierRoute,
   BaseRoute: BaseRoute,
   ChatRoute: ChatRoute,
-  IndexRoute: IndexRoute,
+  Char91indexChar93Route: Char91indexChar93Route,
   InventarioRoute: InventarioRoute,
   LabRoute: LabRoute,
   MappaRoute: MappaRoute,
@@ -585,3 +585,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
