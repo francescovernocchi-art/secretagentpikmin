@@ -27,6 +27,7 @@ function LoginPage() {
   const [name, setName] = useState("");
   const [role, setRole] = useState<Role>("lorenzo");
   const [emoji, setEmoji] = useState(EMOJI_CHOICES[0]);
+  const [inviteCode, setInviteCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
