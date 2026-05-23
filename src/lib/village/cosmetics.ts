@@ -122,7 +122,7 @@ export function getCosmetics(layout: Record<string, unknown> | null | undefined)
 export async function saveCosmetics(agent: string, cosmetics: VillageCosmetics) {
   const { data: cur } = await supabase.from("bases").select("layout").eq("agent", agent).maybeSingle();
   const layout = { ...((cur?.layout as Record<string, unknown>) ?? {}), cosmetics };
-  await supabase.from("bases").update({ layout, updated_at: new Date().toISOString() }).eq("agent", agent);
+  await supabase.from("bases").update({ layout: layout as any, updated_at: new Date().toISOString() }).eq("agent", agent);
   await supabase.from("base_events").insert({
     agent,
     type: "cosmetics_updated",
