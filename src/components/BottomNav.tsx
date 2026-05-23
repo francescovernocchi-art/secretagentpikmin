@@ -76,8 +76,9 @@ const GROUPS: NavGroup[] = [
     key: "personalizza",
     icon: Palette,
     label: "Stile",
-    primary: "/atelier",
+    primary: "/admin",
     links: [
+      { to: "/admin", icon: Wrench, label: "Admin Customizer", admin: true },
       { to: "/atelier", icon: Palette, label: "Atelier icone", admin: true },
       { to: "/villaggio", icon: Home, label: "Estetica villaggio" },
       { to: "/profilo", icon: User, label: "Skin agente" },
@@ -91,10 +92,11 @@ const GROUPS: NavGroup[] = [
     links: [
       { to: "/profilo", icon: User, label: "Profilo agente" },
       { to: "/agenti", icon: Users, label: "Famiglia" },
-      { to: "/profilo", icon: Wrench, label: "Comandante", admin: true },
+      { to: "/admin", icon: Wrench, label: "Pannello Admin", admin: true },
     ],
   },
 ];
+
 
 export function BottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
