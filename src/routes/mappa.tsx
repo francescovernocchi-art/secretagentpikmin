@@ -11,6 +11,7 @@ import { collectShipPart } from "@/lib/ship";
 import { spendPikmin, pikminCostFor, RARITY_LABEL, RARITY_COLOR, getPikminCount } from "@/lib/pikmin";
 import { PikminCounter } from "@/components/PikminCounter";
 import { EnemyLayer } from "@/components/EnemyLayer";
+import { escapeHtml } from "@/lib/escape";
 import {
   AlertDialog,
   AlertDialogAction,
