@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession, clearSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { FamilyPanel } from "@/components/FamilyPanel";
+import { AdminGodPanel } from "@/components/AdminGodPanel";
 import { LogOut, Shield, Users } from "lucide-react";
 
 export const Route = createFileRoute("/profilo")({
