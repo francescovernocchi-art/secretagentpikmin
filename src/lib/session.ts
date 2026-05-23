@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 export type Role = "papa" | "lorenzo";
 
 const KEY = "pikmin.session.v2";
+export const FAMILY_EMAIL_DOMAIN = "famiglia.pikmin";
 
 export interface Session {
   role: Role;
   name: string;
   emoji?: string;
-  agentId?: string; // = auth user id
+  agentId?: string;
   loggedAt: number;
 }
 
@@ -62,58 +63,27 @@ export async function refreshSession(): Promise<Session | null> {
   return hydrateProfile(data.user.id);
 }
 
-export async function signInWithPassword(email: string, password: string): Promise<Session | null> {
+export async function signInWithEmail(email: string, password: string): Promise<Session | null> {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user) throw error ?? new Error("Login fallito");
   return hydrateProfile(data.user.id);
 }
 
-export async function signUpWithPassword(args: {
-  email: string;
-  password: string;
-  name: string;
-  role: Role;
-  emoji: string;
-  inviteCode: string;
-}): Promise<Session | null> {
-  const code = args.inviteCode.trim().toUpperCase();
-  if (!code) throw new Error("Codice invito obbligatorio");
-
-  const { data, error } = await supabase.auth.signUp({
-    email: args.email,
-    password: args.password,
-    options: {
-      emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-      data: {
-        name: args.name,
-        agent_key: args.role,
-        emoji: args.emoji,
-      },
-    },
-  });
-  if (error) throw error;
-  if (!data.user) throw new Error("Signup non confermato");
-
-  const { data: ok, error: consumeErr } = await supabase.rpc("consume_invite_code", {
-    _code: code,
-    _user_id: data.user.id,
-  });
-  if (consumeErr || !ok) {
-    await supabase.auth.signOut().catch(() => {});
-    throw new Error("Codice invito non valido o già usato");
-  }
-
-  if (data.session) {
-    return hydrateProfile(data.user.id);
-  }
-  return null;
+export async function signInWithUsername(
+  username: string,
+  password: string,
+): Promise<Session | null> {
+  const u = username.trim().toLowerCase();
+  if (!u) throw new Error("Inserisci il nome agente");
+  return signInWithEmail(`${u}@${FAMILY_EMAIL_DOMAIN}`, password);
 }
 
-export async function createInviteCode(note?: string): Promise<string> {
-  const { data, error } = await supabase.rpc("create_invite_code", {
-    _note: note ?? undefined,
-    _expires_at: undefined,
-  });
-  if (error) throw error;
-  return data as string;
+/** Genera password "umana" da condividere a voce. */
+export function generateMemorablePassword(): string {
+  const adj = ["rapido", "felpato", "ombra", "lampo", "stellare", "siberiano", "audace", "calmo"];
+  const noun = ["pikmin", "radar", "cobalto", "vulcano", "atomo", "drone", "falco", "nebbia"];
+  const a = adj[Math.floor(Math.random() * adj.length)];
+  const n = noun[Math.floor(Math.random() * noun.length)];
+  const num = Math.floor(100 + Math.random() * 900);
+  return `${a}-${n}-${num}`;
 }
