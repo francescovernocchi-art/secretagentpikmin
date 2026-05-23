@@ -360,41 +360,88 @@ function BaseScene({
   buildings,
   catalog,
   onSelect,
+  phase,
 }: {
   theme: { sky: string; ground: string; accent: string; label: string };
   buildings: BaseBuilding[];
   catalog: BuildingCatalog[];
   onSelect: (b: BaseBuilding) => void;
+  phase: DayPhase;
 }) {
   const cat = (k: string) => catalog.find((c) => c.key === k);
+  const overlay = phaseOverlay(phase);
+  const isNight = phase === "notte";
+  const isDusk = phase === "tramonto" || phase === "alba";
   return (
-    <div
-      className="panel-strong relative overflow-hidden p-0"
-      style={{ aspectRatio: "16 / 11" }}
-    >
-      {/* Cielo */}
+    <div className="panel-strong relative overflow-hidden p-0" style={{ aspectRatio: "16 / 11" }}>
+      {/* Cielo bioma */}
       <div
         className="absolute inset-0"
         style={{ background: `linear-gradient(180deg, ${theme.sky} 0%, ${theme.sky} 55%, ${theme.ground} 100%)` }}
       />
-      {/* Sole */}
-      <motion.div
-        className="absolute h-12 w-12 rounded-full"
-        style={{ background: "radial-gradient(circle, #fff8c5, #ffd86b 70%, transparent)", top: 16, right: 18 }}
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: 4, repeat: Infinity }}
-      />
-      {/* Nuvole */}
+      {/* Day/night overlay */}
+      <div className="absolute inset-0 pointer-events-none transition-opacity duration-1000" style={{ background: overlay.background }} />
+
+      {/* Sole / Luna */}
+      {!isNight ? (
+        <motion.div
+          className="absolute h-12 w-12 rounded-full"
+          style={{
+            background: isDusk
+              ? "radial-gradient(circle, #ffe9b8, #fb923c 70%, transparent)"
+              : "radial-gradient(circle, #fff8c5, #ffd86b 70%, transparent)",
+            top: 16,
+            right: 18,
+            filter: isDusk ? "drop-shadow(0 0 12px #fb923c88)" : "drop-shadow(0 0 8px #ffd86b88)",
+          }}
+          animate={{ scale: [1, 1.06, 1] }}
+          transition={{ duration: 4, repeat: Infinity }}
+        />
+      ) : (
+        <>
+          <motion.div
+            className="absolute h-10 w-10 rounded-full"
+            style={{
+              background: "radial-gradient(circle, #f8fafc, #cbd5e1 65%, transparent)",
+              top: 18,
+              right: 22,
+              filter: "drop-shadow(0 0 14px #cbd5e188)",
+            }}
+            animate={{ opacity: [0.85, 1, 0.85] }}
+            transition={{ duration: 5, repeat: Infinity }}
+          />
+          {/* stelle */}
+          {Array.from({ length: 14 }).map((_, i) => {
+            const top = 6 + Math.random() * 30;
+            const left = Math.random() * 100;
+            const dur = 1.6 + Math.random() * 2;
+            return (
+              <motion.span
+                key={`s${i}`}
+                className="absolute text-[8px]"
+                style={{ top: `${top}%`, left: `${left}%`, color: "#fff" }}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: dur, repeat: Infinity, delay: i * 0.13 }}
+              >
+                ✦
+              </motion.span>
+            );
+          })}
+        </>
+      )}
+
+      {/* Nuvole (più trasparenti di notte) */}
       {[0, 1, 2].map((i) => (
         <motion.div
           key={i}
-          className="absolute h-4 w-12 rounded-full bg-white/70"
-          style={{ top: 24 + i * 18, left: -50 }}
+          className="absolute h-4 w-12 rounded-full"
+          style={{ top: 24 + i * 18, left: -50, background: isNight ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.75)" }}
           animate={{ x: [0, 380] }}
           transition={{ duration: 22 + i * 6, repeat: Infinity, ease: "linear", delay: i * 4 }}
         />
       ))}
-      {/* Terreno texture */}
+
+      {/* Terreno */}
       <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: `linear-gradient(180deg, transparent, ${theme.ground})` }} />
 
       {/* Edifici */}
@@ -409,6 +456,7 @@ function BaseScene({
             key={b.id}
             onClick={() => {
               hapticTap();
+              sfx.tap();
               onSelect(b);
             }}
             initial={{ opacity: 0, y: 20 }}
@@ -420,13 +468,46 @@ function BaseScene({
               transform: `translate(-50%, 50%) scale(${scale})`,
             }}
           >
+            {/* Aura maestro */}
+            {stage === "maestro" && (
+              <motion.span
+                aria-hidden
+                className="absolute inset-0 -z-0 rounded-full"
+                style={{ background: "radial-gradient(circle, #fde68a55, transparent 70%)" }}
+                animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.6, 0.2, 0.6] }}
+                transition={{ duration: 2.4, repeat: Infinity }}
+              />
+            )}
             <motion.span
-              className="text-3xl drop-shadow-lg"
-              animate={isBuilding ? { y: [0, -3, 0] } : { y: 0 }}
+              className="text-3xl drop-shadow-lg relative"
+              animate={isBuilding ? { y: [0, -3, 0], rotate: [-2, 2, -2] } : { y: 0 }}
               transition={isBuilding ? { duration: 1.2, repeat: Infinity } : undefined}
             >
               {c.emoji}
+              {isBuilding && (
+                <motion.span
+                  className="absolute -top-3 -right-2 text-sm"
+                  animate={{ rotate: [-12, 12, -12] }}
+                  transition={{ duration: 0.6, repeat: Infinity }}
+                >
+                  🔨
+                </motion.span>
+              )}
             </motion.span>
+            {/* Pikmin che trasportano pezzi durante la costruzione */}
+            {isBuilding &&
+              [0, 1].map((k) => (
+                <motion.span
+                  key={k}
+                  className="absolute text-[11px]"
+                  style={{ bottom: -6, left: "50%" }}
+                  initial={{ x: -18 + k * 36, y: 0, opacity: 0 }}
+                  animate={{ x: [-22, 22, -22], y: [0, -2, 0], opacity: [0, 1, 0] }}
+                  transition={{ duration: 2.4 + k * 0.4, repeat: Infinity, delay: k * 0.6 }}
+                >
+                  🌱📦
+                </motion.span>
+              ))}
             {isBuilding ? (
               <span className="mt-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-night/80 text-primary border border-primary/40">
                 🔨 {formatRemaining(b.build_end_at)}
@@ -440,28 +521,73 @@ function BaseScene({
         );
       })}
 
-      {/* Pikmin che camminano */}
-      {Array.from({ length: Math.min(5, 1 + buildings.length) }).map((_, i) => (
-        <motion.span
-          key={i}
-          className="absolute text-base"
-          style={{ bottom: 6 + (i % 2) * 8 }}
-          initial={{ left: `${10 + i * 12}%` }}
-          animate={{ left: [`${10 + i * 12}%`, `${85 - i * 8}%`, `${10 + i * 12}%`] }}
-          transition={{ duration: 14 + i * 3, repeat: Infinity, ease: "linear" }}
-        >
-          🌱
-        </motion.span>
-      ))}
+      {/* Pikmin abitanti: camminano di giorno, dormono di notte */}
+      {Array.from({ length: Math.min(5, 1 + buildings.length) }).map((_, i) => {
+        const baseLeft = 10 + i * 14;
+        if (isNight) {
+          return (
+            <div
+              key={i}
+              className="absolute"
+              style={{ bottom: 4 + (i % 2) * 6, left: `${baseLeft}%` }}
+            >
+              <span className="text-base opacity-80">🌱</span>
+              <motion.span
+                className="absolute -top-3 left-3 text-[10px] text-white/80"
+                animate={{ opacity: [0.2, 1, 0.2], y: [0, -2, 0] }}
+                transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.4 }}
+              >
+                💤
+              </motion.span>
+            </div>
+          );
+        }
+        return (
+          <motion.span
+            key={i}
+            className="absolute text-base"
+            style={{ bottom: 6 + (i % 2) * 8 }}
+            initial={{ left: `${baseLeft}%` }}
+            animate={{ left: [`${baseLeft}%`, `${85 - i * 8}%`, `${baseLeft}%`] }}
+            transition={{ duration: 14 + i * 3, repeat: Infinity, ease: "linear" }}
+          >
+            🌱
+          </motion.span>
+        );
+      })}
+
+      {/* Lucciole notturne */}
+      {isNight &&
+        Array.from({ length: 6 }).map((_, i) => (
+          <motion.span
+            key={`f${i}`}
+            className="absolute h-1.5 w-1.5 rounded-full"
+            style={{ background: "#fde68a", boxShadow: "0 0 8px #fde68a" }}
+            initial={{ left: `${10 + i * 14}%`, bottom: `${20 + (i % 3) * 18}%` }}
+            animate={{
+              left: [`${10 + i * 14}%`, `${30 + i * 10}%`, `${10 + i * 14}%`],
+              bottom: [`${20 + (i % 3) * 18}%`, `${35 + (i % 3) * 10}%`, `${20 + (i % 3) * 18}%`],
+              opacity: [0.4, 1, 0.4],
+            }}
+            transition={{ duration: 4 + i * 0.6, repeat: Infinity, ease: "easeInOut" }}
+          />
+        ))}
 
       {buildings.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
           <p className="panel px-3 py-2 text-xs text-center">Nessuna struttura. Scegli dal catalogo!</p>
         </div>
       )}
+
+      {/* Badge fase */}
+      <div className="absolute top-2 left-2 panel px-2 py-1 text-[10px] flex items-center gap-1">
+        <span>{PHASE_EMOJI[phase]}</span>
+        <span>{PHASE_LABEL[phase]}</span>
+      </div>
     </div>
   );
 }
+
 
 // ===== MODAL: build new =====
 function BuildModal({
