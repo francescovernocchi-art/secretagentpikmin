@@ -4,6 +4,8 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   useRouterState,
   HeadContent,
   Scripts,
