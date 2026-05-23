@@ -164,6 +164,12 @@ function LoginPage() {
                   </button>
                 ))}
               </div>
+              <input
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                placeholder="Codice invito"
+                className="panel px-4 py-3 bg-card/50 rounded-xl text-foreground placeholder:text-muted-foreground/60 tracking-widest uppercase"
+              />
             </motion.div>
           )}
         </AnimatePresence>
