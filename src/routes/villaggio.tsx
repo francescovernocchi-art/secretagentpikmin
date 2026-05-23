@@ -402,6 +402,18 @@ function VillaggioPage() {
         )}
       </AnimatePresence>
 
+      {/* MODAL CUSTOMIZER ESTETICA */}
+      <AnimatePresence>
+        {customizerOpen && (
+          <VillageCustomizer
+            agent={agent}
+            initial={cosmetics}
+            onClose={() => setCustomizerOpen(false)}
+            onSaved={reload}
+          />
+        )}
+      </AnimatePresence>
+
       {/* MODAL DETTAGLIO STRUTTURA */}
       <AnimatePresence>
         {selected && (
