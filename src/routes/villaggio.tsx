@@ -231,7 +231,13 @@ function VillaggioPage() {
           <DefenseRangeLayer buildings={buildings} />
           <WallLayer walls={walls} />
           <VillageAtmosphere faction={base.faction as FactionKey} />
-          <PikminLife count={Math.min(12, 4 + buildings.length)} />
+          <PikminLife
+            count={Math.min(14, 5 + buildings.length)}
+            faction={base.faction as FactionKey}
+            buildings={buildings.map((b) => ({ position_x: b.position_x, position_y: b.position_y, type: b.type }))}
+            threat={events.some((e) => !e.resolved_at && e.kind === "threat_active")}
+            phase={phase}
+          />
         </div>
         {/* CTA editor muri */}
         <button
