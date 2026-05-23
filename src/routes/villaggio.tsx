@@ -244,7 +244,7 @@ function VillaggioPage() {
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="relative"
       >
-        <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} />
+        <BaseScene theme={theme} buildings={buildings} catalog={catalog} onSelect={setSelected} phase={phase} cosmetics={cosmetics} />
         <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
           <DefenseRangeLayer buildings={buildings} />
           <WallLayer walls={walls} />
@@ -255,16 +255,26 @@ function VillaggioPage() {
             buildings={buildings.map((b) => ({ position_x: b.position_x, position_y: b.position_y, type: b.type }))}
             threat={events.some((e) => !e.resolved_at && e.kind === "threat")}
             phase={phase}
+            skin={{ body: cosmetics.pikminBody, accessory: cosmetics.pikminAccessory, aura: cosmetics.pikminAura, accent: cosmetics.accentColor }}
           />
         </div>
-        {/* CTA editor muri */}
-        <button
-          onClick={() => { hapticTap(); setWallEditorOpen(true); }}
-          className="absolute top-2 right-2 panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
-        >
-          <ShieldPlus className="h-3 w-3 text-primary" /> Mura ({walls.length}) · +{wallBonus}
-        </button>
+        {/* CTA editor muri + estetica */}
+        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+          <button
+            onClick={() => { hapticTap(); setWallEditorOpen(true); }}
+            className="panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
+          >
+            <ShieldPlus className="h-3 w-3 text-primary" /> Mura ({walls.length}) · +{wallBonus}
+          </button>
+          <button
+            onClick={() => { hapticTap(); setCustomizerOpen(true); }}
+            className="panel-strong px-2 py-1 text-[10px] flex items-center gap-1 active:scale-95 transition"
+          >
+            <Palette className="h-3 w-3 text-primary" /> Estetica
+          </button>
+        </div>
       </motion.div>
+
 
       {/* GIFTS */}
       {gifts.length > 0 && (
