@@ -109,7 +109,19 @@ export function PikminLife({
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, faction, buildings.length, threat, phase]);
+  }, [count, faction, buildings.length, threat, phase, skin?.body]);
+
+  const accessoryEmoji = skin?.accessory ? ACCESSORY_EMOJI[skin.accessory] : "";
+  const auraShadow =
+    skin?.aura === "neon"
+      ? `0 0 10px ${skin?.body ?? "#7be07b"}`
+      : skin?.aura === "scintille"
+        ? `0 0 8px ${skin?.accent ?? "#fde047"}`
+        : skin?.aura === "ombra"
+          ? "0 0 8px #000a"
+          : skin?.aura === "soffice"
+            ? "0 0 6px #fff5"
+            : "0 0 6px rgba(0,0,0,.4)";
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
