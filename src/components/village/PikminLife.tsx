@@ -1,11 +1,19 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 import type { FactionKey } from "@/lib/village/factions";
+import type { PikminAccessory, PikminAura } from "@/lib/village/cosmetics";
 
 interface BuildingPos {
   position_x: number;
   position_y: number;
   type: string;
+}
+
+interface Skin {
+  body?: string;
+  accessory?: PikminAccessory;
+  aura?: PikminAura;
+  accent?: string;
 }
 
 interface Props {
@@ -14,6 +22,7 @@ interface Props {
   buildings?: BuildingPos[];
   threat?: boolean;
   phase?: "alba" | "giorno" | "tramonto" | "notte";
+  skin?: Skin;
 }
 
 const FACTION_COLORS: Record<FactionKey, string[]> = {
@@ -23,17 +32,14 @@ const FACTION_COLORS: Record<FactionKey, string[]> = {
   mystic: ["#c084fc", "#a78bfa", "#f0abfc"],
 };
 
-type PikminAgent = {
-  id: number;
-  hue: string;
-  role: "worker" | "guard" | "scout" | "sleeper";
-  homeX: number;
-  homeY: number;
-  targetX: number;
-  targetY: number;
-  duration: number;
-  delay: number;
-  carry?: string;
+const ACCESSORY_EMOJI: Record<PikminAccessory, string> = {
+  nessuno: "",
+  foglia: "🍃",
+  fiore: "🌸",
+  cappello: "🎩",
+  elmo: "⛑️",
+  stella: "⭐",
+  antenna: "📡",
 };
 
 /** Pikmin "vivi": vagano, raccolgono presso gli edifici, si difendono se c'è minaccia. */
@@ -43,7 +49,9 @@ export function PikminLife({
   buildings = [],
   threat = false,
   phase = "giorno",
+  skin,
 }: Props) {
+
   const agents = useMemo<PikminAgent[]>(() => {
     const palette = FACTION_COLORS[faction ?? "eco"] ?? FACTION_COLORS.eco;
     const sleep = phase === "notte";
