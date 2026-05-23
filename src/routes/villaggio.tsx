@@ -208,6 +208,32 @@ function VillaggioPage() {
         </div>
       )}
 
+      {/* QUICK LINKS */}
+      <div className="grid grid-cols-2 gap-2">
+        <Link
+          to="/villaggio/edifici"
+          onClick={hapticTap}
+          className="panel-strong p-3 flex items-center gap-2 active:scale-95 transition"
+        >
+          <span className="text-2xl">🏗️</span>
+          <div className="flex-1">
+            <p className="text-xs font-semibold">Edifici</p>
+            <p className="text-[10px] text-muted-foreground">Catalogo & buff</p>
+          </div>
+        </Link>
+        <Link
+          to="/villaggio/scambi"
+          onClick={hapticTap}
+          className="panel-strong p-3 flex items-center gap-2 active:scale-95 transition"
+        >
+          <span className="text-2xl">🤝</span>
+          <div className="flex-1">
+            <p className="text-xs font-semibold">Scambi</p>
+            <p className="text-[10px] text-muted-foreground">Ambasciata Pikmin</p>
+          </div>
+        </Link>
+      </div>
+
       {/* COSTRUISCI */}
       <div className="panel p-3">
         <div className="flex items-center justify-between mb-2">
