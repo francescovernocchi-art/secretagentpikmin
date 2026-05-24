@@ -28,7 +28,9 @@ export function AestheticsPanel({
 }: Props) {
   const { species } = usePikminSpecies();
   const [customizerOpen, setCustomizerOpen] = useState(false);
+  const [dioramaOpen, setDioramaOpen] = useState(false);
   const cosmetics: VillageCosmetics = getCosmetics(base.layout);
+  const biomeKey = resolveBiome(base.theme).key;
 
   const update = (p: PikminLayerPrefs) => { onPrefsChange(p); savePikminPrefs(p); };
 
