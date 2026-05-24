@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { AnimatedPikmin } from "./AnimatedPikmin";
+import { PikminCustomizerModal } from "./PikminCustomizerModal";
+import { usePikminLabels } from "@/hooks/usePikminLabels";
 import {
   ANIMATION_LABEL,
   MISSION_HINTS,
