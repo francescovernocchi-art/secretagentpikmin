@@ -1,132 +1,131 @@
-# Villaggio: motore grafico Phaser 3 (RTS 2.5D)
+# Modular Diorama RTS Engine — Piano
 
-Sostituiamo **solo** il cuore grafico/interattivo della scena Villaggio con Phaser 3. Tutta l'UI, i pannelli, Supabase, login, missioni, inventario, mappa GPS, profilo restano invariati.
+Obiettivo: il Villaggio smette di essere una tilemap procedural e diventa un **diorama statico HD** con **camera RTS mobile** e **overlay dinamici** (slot, edifici, Pikmin, eventi). Riferimento visivo: l'immagine allegata.
 
-## Architettura
+---
 
-```
-React (HUD + pannelli + dati Supabase)
-   │
-   │ props: bioma, edifici, pikmin, sprite_url, bonus, placementMode
-   ▼
-VillageGameCanvas.tsx  ← monta Phaser.Game in un <div>
-   │
-   ▼
-VillageGame.ts → VillageScene.ts
-   ├─ VillageCamera  (pan/zoom, pinch, bounds)
-   ├─ VillageLayers  (terrain, paths, shadows, objects, buildings, pikmin, effects)
-   ├─ VillageBuildings  (sprite per edificio + livello, ombra, depth = y)
-   ├─ VillagePikmin     (sprite animati, AI vaga/segui)
-   ├─ VillageConstruction (anteprima placement, validazione, cantiere)
-   ├─ VillageEffects    (particelle, vento, luce ambiente)
-   └─ VillageInput      (tap/drag/pinch, emette eventi)
-```
+## 1. Database & Storage (Lovable Cloud)
 
-### Bridge React ↔ Phaser
+**Bucket storage**: `village-dioramas` (pubblico in lettura, scrittura controllata).
 
-- React → Phaser: la scena espone `applyState(state)` chiamata in `useEffect` ogni volta che cambiano edifici, pikmin, bioma, prefs. Niente re-mount del Game.
-- Phaser → React: `scene.events.emit('selectBuilding'|'placePosition'|'selectPikmin'|'tapGround', payload)`. `VillageGameCanvas` espone callback `onSelectBuilding`, `onPlacePosition`, ecc.
+**Tabella `village_dioramas`**
+- `id`, `owner_id` (uuid, nullable per diorami di sistema), `family_id` (nullable)
+- `biome` (text: forest/snow/volcanic/coast/industrial/space)
+- `name`, `image_url`, `width` (int), `height` (int)
+- `is_active` (bool), `is_system` (bool — preset condivisi)
+- `created_at`, `updated_at`
 
-### Asset loading
+**Tabella `village_diorama_slots`** (slot di costruzione per diorama)
+- `id`, `diorama_id` (fk), `slot_key`
+- `x`, `y` (coords nel sistema immagine), `size` (small/medium/large)
+- `allowed_categories` (text[]) — es. `["base","lab","defense"]`
 
-- Niente sprite hardcoded. Al `preload` carica:
-  - `building_catalog.image_url` + `visual_stages[0..4]` (già in DB)
-  - `pikmin_species.sprite_url` per ogni specie posseduta
-  - tile texture (erba/sentiero/acqua) generate proceduralmente con `Graphics.generateTexture()` per bioma → niente asset extra
-- Fallback emoji renderizzato come texture se URL manca.
+**RLS**: utente vede i propri diorami + quelli `is_system=true`; può editare solo i propri. Admin (via `has_role`) può tutto.
 
-### Camera
+---
 
-- `cameras.main.setBounds(0,0, WORLD_W, WORLD_H)` con WORLD_W=2400, H=1600.
-- Pan: drag con un dito.
-- Zoom: wheel + pinch (gesto a due dita custom su `pointermove`).
-- Zoom min calcolato per coprire viewport (niente bordi neri).
-- Bordi mondo con fade radiale disegnato nella scena (`Graphics` con `BlendMode.MULTIPLY`).
+## 2. Storage upload flow
 
-### Terreno organico
+Pannello **Estetica → Gestione Diorama**:
+- Upload da device (PNG/JPG/WebP, fino a 4096×4096)
+- Lettura `naturalWidth/Height` lato client → salvataggio nel record
+- Anteprima, sostituisci, elimina, set attivo, assegna bioma
+- Auto-save su Supabase
 
-- `TerrainLayer`: rect bioma-color full-mondo + 400 decorazioni sparse (ciuffi erba, fiori, sassolini) con `seedrandom` su `userId` per stabilità.
-- `PathsLayer`: curve di Bezier che collegano gli edifici al Centro Comando.
-- Nessuna griglia visibile; griglia logica 50×50 interna per snap placement.
+---
 
-### Edifici (depth = y per 2.5D)
+## 3. Phaser engine — riscrittura `VillageScene.ts`
 
-- Per ogni `base_building` con stato `building|upgrading|idle`:
-  - Sprite con texture `building:${key}:${level}` o fallback emoji.
-  - Ombra ellittica sotto (`Graphics`).
-  - `depth = y` per ordinamento 2.5D corretto.
-  - Tap → emette `selectBuilding(id)`.
-  - Se `building`/`upgrading`: barra progresso animata sopra.
-- Edifici `available/locked` **non** vengono mai aggiunti alla scena.
+Il diorama è **una sola immagine HD**. Phaser NON genera tile, NON disegna terreno.
 
-### Pikmin
+**Camera RTS mobile**
+- World size = dimensioni reali immagine (es. 3072×3072)
+- `camera.setBounds(0, 0, W, H)`
+- Drag pan (pointer move con `pointer.isDown`)
+- Pinch zoom (due dita, calcolo distanza)
+- Wheel zoom desktop
+- Zoom morbido (lerp), bounds zoom min/max
+- API esterna: `focusOn(x,y)`, `focusBuilding(id)`, `recenter()`
 
-- Per ogni specie posseduta, spawn N sprite (N proporzionale al breakdown, cap = pref slider).
-- AI semplice: wander con `Phaser.Math.RandomXY`, occasionalmente target un edificio.
-- Animazione walk: tween `scaleY` 1↔0.92 (squash) + flip orizzontale.
-- Sprite caricato da `pikmin_species.sprite_url`.
+**Layer order** (dal basso):
+1. `bgLayer` — diorama PNG (statico, immutabile)
+2. `slotLayer` — slot di costruzione (visibile solo in modalità build)
+3. `buildingsLayer` — edifici overlay PNG con livelli/glow/ombre
+4. `pikminLayer` — sprite Pikmin con movimento/path
+5. `eventLayer` — overlay stagionali (neve, foglie, meteore…)
+6. `fxLayer` — particelle, glow selezione
 
-### Construction flow
+**UI fissa**: HUD React resta fuori dal canvas, non zoomata.
 
-1. React `BuildPanel` → utente sceglie edificio → setta `placementMode={key, image}` su `VillageGameCanvas`.
-2. Phaser entra in `ConstructionMode`: sprite fantasma segue il dito, tinta verde/rossa per zona valida (no overlap altri edifici, dentro inset 18%/15%).
-3. Tap conferma → `onPlacePosition({key, x, y})` → React fa `INSERT base_buildings` Supabase → aggiorna props → scena ridisegna.
-4. Cancel: ESC / bottone React.
+---
 
-### Mostri
+## 4. Sistema Slot
 
-- Zero rendering nella scena. Solo `ThreatBadge` React (già esistente) e `ThreatAlertPanel` come Sheet.
+- Slot caricati da `village_diorama_slots` per il diorama attivo
+- Nascosti normalmente
+- In modalità "build" (placement attivo) si illuminano solo quelli compatibili con `placement.category`
+- Tap su slot → emit `placeOnSlot(slotKey)` → React salva building con `position_x/y` derivate da slot
 
-## File
+---
 
-**Creare**
-- `src/components/village/VillageGameCanvas.tsx` — wrapper React, monta/distrugge Phaser, bridge props/eventi.
-- `src/game/village/VillageGame.ts` — `new Phaser.Game(config)`, headless setup.
-- `src/game/village/VillageScene.ts` — scena principale, orchestratore.
-- `src/game/village/VillageCamera.ts` — controllo camera/pan/zoom/pinch.
-- `src/game/village/VillageLayers.ts` — z-order helpers + creazione container.
-- `src/game/village/VillageBuildings.ts` — gestore sprite edifici (add/update/remove diff).
-- `src/game/village/VillagePikmin.ts` — pool pikmin + AI wander.
-- `src/game/village/VillageConstruction.ts` — placement ghost + validazione.
-- `src/game/village/VillageEffects.ts` — particelle vento/foglie, fog radiale.
-- `src/game/village/VillageInput.ts` — gesture unificate (tap vs drag vs pinch).
-- `src/game/village/VillageTypes.ts` — interfacce `VillageGameProps`, `VillageGameEvents`, ecc.
+## 5. Edifici come overlay
 
-**Modificare**
-- `src/routes/villaggio.tsx` — sostituisce `<VillageMap />` con `<VillageGameCanvas />` passando stessi dati. BottomMenu, ThreatBadge, FixedTopHud, ModalPanels restano.
-- `src/components/village/panels/BuildPanel.tsx` — attiva `placementMode` sul canvas (callback), ascolta conferma.
+- Niente più tilemap. Building = sprite PNG centrato su slot
+- Stage visivi per livello (già esistenti in `building_catalog.visual_stages`)
+- Glow/ombra morbida via Phaser blend modes
+- Idle animation leggera (bobbing)
 
-**Lasciare invariati (potenzialmente eliminabili in futuro, ma non ora)**
-- `VillageMap.tsx`, `VillageMapViewport.tsx`, layer `EdgeFogLayer`, `TerrainLayer`, `BuildingsLayer`, `VillagePikminLayer`, `BuildingMarker`. Non li tocchiamo per non rompere `villaggio.$agent.tsx` o altri usi. La rotta `/villaggio` smette di importarli.
+---
 
-**Dipendenze**
-- `bun add phaser`
+## 6. Pikmin
 
-## Cosa NON tocchiamo
+Mantenere `VillagePikminLayer` ma agganciato al world Phaser, non DOM. Convertirli in sprite Phaser dentro la scena per partecipare a camera/zoom. Movimento verso anchors (edifici nel world space).
 
-- Auth, Supabase client, RLS, profili.
-- Schema DB (sprite/livelli sono già in `visual_stages`, `pikmin_species.sprite_url`).
-- Inventario, missioni, mappa GPS, agenti, scambi.
-- `villaggio.$agent.tsx`, `villaggio.edifici.tsx`, `villaggio.scambi.tsx`.
-- Admin editor (continua a popolare gli stessi campi DB letti da Phaser).
+---
 
-## Note tecniche
+## 7. Eventi modulari
 
-- Phaser SSR-safe: import dinamico in `useEffect` per evitare `window is not defined`.
-- `<canvas>` con `width=100dvw`, `height=100dvh`, `image-rendering: auto` (non pixelato — vogliamo look morbido).
-- Render scale `Phaser.Scale.RESIZE` + `parent` div.
-- Cleanup: `game.destroy(true)` in cleanup `useEffect`.
-- Sprite remoti: `scene.load.image(key, url)` con `crossOrigin='anonymous'` su `scene.load.crossOrigin`.
-- Ricarica sprite quando cambiano: diff su prop, `scene.load.image()` + `scene.load.start()`, sostituisce texture.
+Sistema `DioramaEventOverlay`:
+- Registry di eventi (`halloween`, `christmas`, `meteor`, `invasion`)
+- Ogni evento = componente Phaser che aggiunge sprite/particelle sopra `eventLayer`
+- Attivabili da pannello Estetica o trigger temporale
 
-## Ordine di esecuzione
+---
 
-1. `bun add phaser`.
-2. Scaffolding `src/game/village/*` con scena vuota che disegna terreno bioma e mostra "Phaser OK".
-3. `VillageGameCanvas` + integrazione in `villaggio.tsx` (sostituisce `VillageMap`).
-4. Camera pan/zoom/pinch.
-5. Edifici da props (con ombra + depth y).
-6. Pikmin da props con wander.
-7. Placement mode con ghost.
-8. Effetti (fog radiale, particelle leggere).
-9. QA mobile (407×749).
+## 8. Biomi
+
+Enum + preset di diorami di sistema. Attivo subito: **🌿 Foresta**. Gli altri biomi restano selezionabili ma senza diorama preset finché non viene caricato.
+
+---
+
+## 9. UI — Pannello Estetica → Gestione Diorama
+
+Nuova tab nel pannello Estetica:
+- Lista diorami dell'utente + preset di sistema
+- Upload widget
+- Selettore bioma
+- Editor slot visuale (modalità "edit slots": tap sul diorama per aggiungere/spostare slot) — **fase 2 opzionale**, per ora slot via DB
+
+---
+
+## Ordine di implementazione
+
+1. Migration DB (`village_dioramas`, `village_diorama_slots`, bucket, RLS, policies)
+2. Hook `useActiveDiorama` + `useDioramaSlots`
+3. Refactor `VillageScene.ts`: rimuove tilemap, carica immagine, camera RTS, layer puliti
+4. Sistema slot + overlay placement
+5. Edifici come sprite overlay con stages
+6. Pikmin dentro Phaser world
+7. Pannello "Gestione Diorama" (upload + lista + set attivo)
+8. Seed: 1 diorama di sistema "Foresta" (carico io l'immagine che hai allegato come preset iniziale, oppure attendo che tu la carichi dal pannello)
+
+---
+
+## Domande prima di partire
+
+1. **Immagine foresta**: la uso come preset di sistema iniziale (la salvo io nel bucket) o vuoi caricarla tu dal nuovo pannello Estetica?
+2. **Slot della foresta**: nell'immagine vedo 5 zone diamante. Li hardcodo come slot iniziali del preset, oppure preferisci un editor visuale per piazzarli tu?
+3. **Pikmin nel canvas Phaser**: ok migrarli dentro Phaser (così zoomano con la mappa)? Oggi sono DOM React.
+4. **Dimensione diorami**: target 3072×3072 o 4096×4096? Il secondo è più cinematografico ma pesa ~2× in banda mobile.
+
+Rispondi a queste 4 e parto con migration + engine.
