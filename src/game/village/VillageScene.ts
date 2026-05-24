@@ -45,6 +45,7 @@ export class VillageScene extends Phaser.Scene {
   private layerBg!: Phaser.GameObjects.Container;
   private layerSlots!: Phaser.GameObjects.Container;
   private layerBuildings!: Phaser.GameObjects.Container;
+  private layerPikmin!: Phaser.GameObjects.Container;
   private layerFx!: Phaser.GameObjects.Container;
   private layerPlacement!: Phaser.GameObjects.Container;
 
@@ -53,6 +54,11 @@ export class VillageScene extends Phaser.Scene {
   private buildingSprites = new Map<string, BuildingSprite>();
   private slotMarkers = new Map<string, Phaser.GameObjects.Container>();
   private placementGhost: Phaser.GameObjects.Container | null = null;
+
+  // pikmin
+  private pikminAgents: PikminAgent[] = [];
+  private pikminCfg: PikminLayerConfig | null = null;
+  private pikminTexLoading = new Set<string>();
 
   // input/camera
   private isPanning = false;
