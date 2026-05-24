@@ -200,7 +200,30 @@ function VillaggioPage() {
         pikminMaxVisible={pikminPrefs?.maxCap ?? 18}
         placement={placing}
         onPlacePosition={onPlace}
+        onReady={(c) => { cameraCtrlRef.current = c; }}
       />
+
+      {/* ─── CAMERA CONTROLS (sinistra, sopra il menu) ─── */}
+      <div
+        className="absolute left-2 z-30 flex flex-col gap-1.5"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+      >
+        <button
+          aria-label="Zoom in"
+          onClick={() => { hapticTap(); cameraCtrlRef.current?.zoomIn(); }}
+          className="panel-strong w-10 h-10 grid place-items-center backdrop-blur-md active:scale-95"
+        ><Plus className="h-4 w-4" /></button>
+        <button
+          aria-label="Zoom out"
+          onClick={() => { hapticTap(); cameraCtrlRef.current?.zoomOut(); }}
+          className="panel-strong w-10 h-10 grid place-items-center backdrop-blur-md active:scale-95"
+        ><Minus className="h-4 w-4" /></button>
+        <button
+          aria-label="Centra Campo Base"
+          onClick={() => { hapticTap(); cameraCtrlRef.current?.recenter(); }}
+          className="panel-strong w-10 h-10 grid place-items-center backdrop-blur-md active:scale-95 text-primary"
+        ><Crosshair className="h-4 w-4" /></button>
+      </div>
 
       {/* ─── FIXED TOP HUD ─── */}
       <div
