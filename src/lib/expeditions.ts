@@ -334,18 +334,43 @@ export async function joinExpedition(params: {
     .single();
   const template = tpl as unknown as MissionTemplate;
   const preview = previewExpedition({ template, totalPikmin: totals, breakdown: merged, coopBonus: true });
-  const duration = effectiveDurationMinutes(template, totals, true);
+  const newDuration = effectiveDurationMinutes(template, totals, true);
   const now = new Date();
+
+  // Se la spedizione era già attiva (caso "invito in volo"), conserva
+  // started_at e accorcia il tempo residuo del 10% grazie al supporto del partner.
+  // Altrimenti (era in waiting_partner) parte adesso.
+  const wasActive = detail.exp.status === "active" && detail.exp.started_at && detail.exp.end_at;
+  let startedAtIso: string;
+  let endAtIso: string;
+  let durationMinutes: number;
+  if (wasActive) {
+    startedAtIso = detail.exp.started_at as string;
+    const remaining = Math.max(0, new Date(detail.exp.end_at as string).getTime() - now.getTime());
+    const shortened = Math.round(remaining * 0.9);
+    endAtIso = new Date(now.getTime() + shortened).toISOString();
+    durationMinutes = Math.max(
+      1,
+      Math.round((new Date(endAtIso).getTime() - new Date(startedAtIso).getTime()) / 60_000),
+    );
+  } else {
+    startedAtIso = now.toISOString();
+    endAtIso = new Date(now.getTime() + newDuration * 60_000).toISOString();
+    durationMinutes = newDuration;
+  }
+
   await supabase
     .from("expeditions")
     .update({
       status: "active",
+      is_coop: true,
+      partner: agent,
       power: preview.power,
       success_chance: preview.successChance,
       risk: preview.risk,
-      duration_minutes: duration,
-      started_at: now.toISOString(),
-      end_at: new Date(now.getTime() + duration * 60_000).toISOString(),
+      duration_minutes: durationMinutes,
+      started_at: startedAtIso,
+      end_at: endAtIso,
     })
     .eq("id", expeditionId);
 
