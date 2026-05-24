@@ -151,6 +151,7 @@ export class VillageScene extends Phaser.Scene {
 
   update(_time: number, delta: number) {
     this.tickPikmin(delta);
+    this.tickConstruction();
   }
 
   // ───────── diorama loading ─────────
