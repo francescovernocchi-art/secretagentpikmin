@@ -59,7 +59,6 @@ function PrepareView({ templateKey }: { templateKey: string }) {
   const [available, setAvailable] = useState(0);
   const [squadBreakdown, setSquadBreakdown] = useState<Record<string, number>>({});
   const [allBreakdown, setAllBreakdown] = useState<Record<string, number>>({});
-  const [isCoop, setIsCoop] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
