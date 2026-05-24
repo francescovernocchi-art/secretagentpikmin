@@ -328,6 +328,7 @@ function VillaggioPage() {
         open={openPanel === "bonus"}
         onOpenChange={(o) => setOpenPanel(o ? "bonus" : null)}
         status={status}
+        biomeKey={base.theme}
       />
       <AestheticsPanel
         open={openPanel === "aesthetic"}
