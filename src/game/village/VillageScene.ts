@@ -319,26 +319,117 @@ export class VillageScene extends Phaser.Scene {
       this.spawnGiantProp(x, y, emoji, 90 + rnd() * 40);
     }
 
-    // 8) fog vignette morbido (ai bordi)
+    // 8) fog vignette MOLTO leggero (solo bordi)
     const fog = this.add.graphics();
-    const maxR = Math.max(WORLD_W, WORLD_H) * 0.62;
-    const steps = 14;
-    for (let i = steps; i >= 1; i--) {
-      const t = i / steps;
-      const alpha = (1 - t) * 0.18;
-      fog.fillStyle(palette.fog, alpha);
-      fog.fillCircle(cx, cy, maxR * (1 + (1 - t) * 0.2));
-    }
-    // bordi scuri
-    fog.fillStyle(palette.fog, 0.55);
-    fog.fillRect(0, 0, WORLD_W, 140);
-    fog.fillRect(0, WORLD_H - 140, WORLD_W, 140);
-    fog.fillRect(0, 0, 140, WORLD_H);
-    fog.fillRect(WORLD_W - 140, 0, 140, WORLD_H);
+    fog.fillStyle(palette.fog, 0.18);
+    fog.fillRect(0, 0, WORLD_W, 90);
+    fog.fillRect(0, WORLD_H - 90, WORLD_W, 90);
+    fog.fillRect(0, 0, 90, WORLD_H);
+    fog.fillRect(WORLD_W - 90, 0, 90, WORLD_H);
+    fog.fillStyle(palette.fog, 0.10);
+    fog.fillRect(0, 0, WORLD_W, 180);
+    fog.fillRect(0, WORLD_H - 180, WORLD_W, 180);
+    fog.fillRect(0, 0, 180, WORLD_H);
+    fog.fillRect(WORLD_W - 180, 0, 180, WORLD_H);
     this.layerEffects.add(fog);
 
     // 9) particelle ambientali (pollen / fireflies)
     this.spawnAmbientParticles(palette);
+
+    // 10) Campo Base permanente (bandiera + radura) sempre visibile, anche con 0 edifici
+    this.spawnHomeCamp(palette, rnd);
+  }
+
+  private spawnHomeCamp(palette: typeof BIOME_COLORS[keyof typeof BIOME_COLORS], rnd: () => number) {
+    const cx = WORLD_W / 2, cy = WORLD_H / 2;
+    // radura chiara
+    const clearing = this.add.graphics();
+    const groundLight = Phaser.Display.Color.IntegerToColor(palette.ground);
+    const lighter = Phaser.Display.Color.GetColor(
+      Math.min(255, groundLight.red + 38),
+      Math.min(255, groundLight.green + 30),
+      Math.min(255, groundLight.blue + 22),
+    );
+    clearing.fillStyle(lighter, 0.7);
+    clearing.fillEllipse(cx, cy, 520, 360);
+    clearing.fillStyle(lighter, 0.45);
+    clearing.fillEllipse(cx, cy, 720, 500);
+    this.layerPaths.add(clearing);
+
+    // sassi a cerchio (focolare/bordo campo)
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
+      const rx = cx + Math.cos(a) * 90;
+      const ry = cy + Math.sin(a) * 60;
+      this.layerDecor.add(this.add.ellipse(rx, ry, 14, 9, palette.rock, 0.95));
+    }
+
+    // casse di legno (starter camp)
+    const crateColor = 0x8b5a2b;
+    const crateDark = 0x5e3a18;
+    const crates = [
+      { x: cx - 150, y: cy + 60 },
+      { x: cx - 175, y: cy + 90, small: true },
+      { x: cx + 150, y: cy + 70 },
+    ];
+    for (const k of crates) {
+      const s = k.small ? 22 : 32;
+      const c = this.add.container(k.x, k.y);
+      c.add(this.add.ellipse(0, s * 0.45, s * 1.4, s * 0.35, 0x000000, 0.32));
+      c.add(this.add.rectangle(0, 0, s * 1.5, s * 1.1, crateColor).setStrokeStyle(2, crateDark));
+      c.add(this.add.line(0, 0, -s * 0.75, 0, s * 0.75, 0, crateDark).setLineWidth(1.5));
+      c.add(this.add.line(0, 0, 0, -s * 0.55, 0, s * 0.55, crateDark).setLineWidth(1.5));
+      c.setDepth(k.y);
+      this.layerProps.add(c);
+    }
+
+    // BANDIERA del Campo Base (sempre visibile)
+    const flag = this.add.container(cx, cy - 8);
+    flag.add(this.add.ellipse(0, 36, 70, 16, 0x000000, 0.35));
+    // basamento
+    flag.add(this.add.ellipse(0, 26, 56, 18, 0x6e6862));
+    flag.add(this.add.ellipse(0, 22, 56, 16, 0x9a8d80));
+    // palo
+    flag.add(this.add.rectangle(0, -20, 4, 70, 0x3a2a1a).setOrigin(0.5, 1));
+    // stendardo
+    const banner = this.add.graphics();
+    banner.fillStyle(0xe94560, 1);
+    banner.fillTriangle(2, -84, 40, -74, 2, -64);
+    banner.fillStyle(0xb02a3e, 1);
+    banner.fillTriangle(2, -64, 26, -68, 2, -56);
+    flag.add(banner);
+    flag.setDepth(cy);
+    this.layerBuildings.add(flag);
+
+    // micro-cartello "Campo Base"
+    const label = this.add.text(cx, cy - 100, "Campo Base", {
+      fontFamily: "system-ui, sans-serif",
+      fontSize: "18px",
+      color: "#fffbe8",
+      stroke: "#1a1a1a",
+      strokeThickness: 4,
+    }).setOrigin(0.5, 1).setDepth(cy + 1);
+    this.layerBuildings.add(label);
+
+    // 2 piccoli ambient pikmin sempre presenti (anche con 0 nell'inventario)
+    // li gestiamo come decor (non sono nello sprite pool reale)
+    const ambientColors = [0xef4444, 0x3b82f6];
+    for (let i = 0; i < ambientColors.length; i++) {
+      const ax = cx - 40 + i * 80 + (rnd() - 0.5) * 20;
+      const ay = cy + 30 + (rnd() - 0.5) * 16;
+      const ac = this.add.container(ax, ay);
+      ac.add(this.add.ellipse(0, 10, 16, 5, 0x000000, 0.35));
+      ac.add(this.add.ellipse(0, 0, 14, 18, ambientColors[i]));
+      ac.add(this.add.circle(0, -8, 5, ambientColors[i]));
+      ac.add(this.add.circle(-3, -9, 1.2, 0x111111));
+      ac.add(this.add.circle(3, -9, 1.2, 0x111111));
+      // stelo
+      ac.add(this.add.rectangle(0, -14, 1.5, 8, 0x1f3b22));
+      ac.add(this.add.circle(0, -18, 3, 0xffffff));
+      ac.setDepth(ay);
+      this.tweens.add({ targets: ac, y: ay - 3, duration: 700 + rnd() * 400, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      this.layerPikmin.add(ac);
+    }
   }
 
   private spawnTree(x: number, y: number, palette: typeof BIOME_COLORS[keyof typeof BIOME_COLORS], rnd: () => number) {
