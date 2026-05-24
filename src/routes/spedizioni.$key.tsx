@@ -326,7 +326,13 @@ function ExpeditionView({ id }: { id: string }) {
   const leftMs = exp.end_at ? new Date(exp.end_at).getTime() - Date.now() : 0;
   const pct = exp.status === "active" ? Math.max(0, Math.min(100, 100 - (leftMs / totalMs) * 100)) : 100;
   const mins = Math.max(0, Math.ceil(leftMs / 60000));
-  const isInvited = exp.partner === agent && exp.status === "waiting_partner";
+  const hasOwnSquad = squads.some((s) => s.agent === agent);
+  const isInvited =
+    exp.partner === agent &&
+    !hasOwnSquad &&
+    (exp.status === "waiting_partner" || exp.status === "active");
+  const canInvitePartner =
+    exp.created_by === agent && exp.status === "active" && !exp.is_coop && !exp.partner;
 
   return (
     <PageShell
