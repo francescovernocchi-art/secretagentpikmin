@@ -61,6 +61,7 @@ function VillaggioPage() {
   const [nearbyThreats, setNearbyThreats] = useState<NearbyThreat[]>([]);
   const [openPanel, setOpenPanel] = useState<VillageMenuKey | null>(null);
   const [placing, setPlacing] = useState<BuildingCatalog | null>(null);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [pikminPrefs, setPikminPrefs] = useState<PikminLayerPrefs>(() => loadPikminPrefs());
   const cameraCtrlRef = useRef<{ zoomIn: () => void; zoomOut: () => void; recenter: () => void } | null>(null);
   const prevBuildingsRef = useRef<BaseBuilding[]>([]);
