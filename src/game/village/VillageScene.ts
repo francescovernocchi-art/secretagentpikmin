@@ -87,7 +87,7 @@ export class VillageScene extends Phaser.Scene {
   create() {
     const cam = this.cameras.main;
     cam.setBounds(0, 0, WORLD_W, WORLD_H);
-    cam.setBackgroundColor(0x0a0f0a);
+    cam.setBackgroundColor(0x86b377);
 
     this.layerTerrain   = this.add.container(0, 0).setDepth(0);
     this.layerPaths     = this.add.container(0, 0).setDepth(1);
@@ -100,8 +100,8 @@ export class VillageScene extends Phaser.Scene {
     this.layerPlacement = this.add.container(0, 0).setDepth(99);
 
     this.setupInput();
-    this.fitCamera();
-    this.scale.on("resize", () => this.fitCamera());
+    this.fitCamera(true);
+    this.scale.on("resize", () => this.fitCamera(false));
 
     this.events.on(Phaser.Scenes.Events.UPDATE, this.tickPikmin, this);
 
@@ -114,13 +114,39 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  private fitCamera() {
+  /** Centro logico = Campo Base (centro mappa). */
+  private campCenter() { return { x: WORLD_W / 2, y: WORLD_H / 2 }; }
+
+  private fitCamera(recenter: boolean) {
     const cam = this.cameras.main;
     const w = this.scale.width, h = this.scale.height;
-    const minZoom = Math.max(w / WORLD_W, h / WORLD_H) * 1.05;
-    cam.setZoom(Math.max(cam.zoom || minZoom, minZoom));
-    (cam as any).__minZoom = minZoom;
-    cam.centerOn(WORLD_W / 2, WORLD_H / 2);
+    const fillZoom = Math.max(w / WORLD_W, h / WORLD_H) * 1.02;
+    const startZoom = Math.min(2.0, Math.max(fillZoom * 1.9, fillZoom));
+    (cam as any).__minZoom = fillZoom;
+    (cam as any).__maxZoom = 2.6;
+    if (recenter || !cam.zoom) cam.setZoom(startZoom);
+    else cam.setZoom(Phaser.Math.Clamp(cam.zoom, fillZoom, 2.6));
+    const c = this.campCenter();
+    if (recenter) cam.centerOn(c.x, c.y);
+  }
+
+  /** API esposta a React per i pulsanti +/-/centra. */
+  public cameraZoomBy(factor: number) {
+    const cam = this.cameras.main;
+    const mn = (cam as any).__minZoom ?? 0.4;
+    const mx = (cam as any).__maxZoom ?? 2.6;
+    this.tweens.add({ targets: cam, zoom: Phaser.Math.Clamp(cam.zoom * factor, mn, mx), duration: 180 });
+  }
+  public cameraRecenter() {
+    const cam = this.cameras.main;
+    const c = this.campCenter();
+    this.tweens.add({
+      targets: cam,
+      scrollX: c.x - this.scale.width / (2 * cam.zoom),
+      scrollY: c.y - this.scale.height / (2 * cam.zoom),
+      zoom: Math.min((cam as any).__maxZoom ?? 2.6, Math.max(cam.zoom, 1.4)),
+      duration: 260,
+    });
   }
 
   private setupInput() {
