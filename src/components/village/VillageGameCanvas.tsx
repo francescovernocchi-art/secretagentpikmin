@@ -98,6 +98,7 @@ export function VillageGameCanvas({
 
   // keep latest callbacks
   const onSelectBuildingRef = useRef(onSelectBuilding); onSelectBuildingRef.current = onSelectBuilding;
+  const onSelectSlotRef = useRef(onSelectSlot); onSelectSlotRef.current = onSelectSlot;
   const onPlacePositionRef = useRef(onPlacePosition); onPlacePositionRef.current = onPlacePosition;
   const onTapGroundRef = useRef(onTapGround); onTapGroundRef.current = onTapGround;
   const onReadyRef = useRef(onReady); onReadyRef.current = onReady;
