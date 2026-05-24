@@ -134,12 +134,14 @@ export type Database = {
       base_buildings: {
         Row: {
           agent: string
+          biome_key: string | null
           build_end_at: string | null
           created_at: string
           id: string
           level: number
           position_x: number
           position_y: number
+          slot_key: string | null
           started_at: string | null
           status: string
           type: string
@@ -147,12 +149,14 @@ export type Database = {
         }
         Insert: {
           agent: string
+          biome_key?: string | null
           build_end_at?: string | null
           created_at?: string
           id?: string
           level?: number
           position_x?: number
           position_y?: number
+          slot_key?: string | null
           started_at?: string | null
           status?: string
           type: string
@@ -160,12 +164,14 @@ export type Database = {
         }
         Update: {
           agent?: string
+          biome_key?: string | null
           build_end_at?: string | null
           created_at?: string
           id?: string
           level?: number
           position_x?: number
           position_y?: number
+          slot_key?: string | null
           started_at?: string | null
           status?: string
           type?: string
