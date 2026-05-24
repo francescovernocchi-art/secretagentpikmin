@@ -43,8 +43,7 @@ const EMOJI_TEXTURE_PREFIX = "emoji:";
 const BUILD_TEXTURE_PREFIX = "bld:";
 const PIK_TEXTURE_PREFIX = "pik:";
 
-/** Oggetti quotidiani giganti, per dare identità al mondo. */
-const GIANT_PROPS = ["🥫", "🍾", "🧴", "🔩", "🔧", "🪤", "🔥", "☕", "🪙", "🧴", "📎", "🪫"];
+/** (deprecato: ora si usa drawGiantObject procedurale) */
 
 export class VillageScene extends Phaser.Scene {
   private state: VillageGameState | null = null;
@@ -279,45 +278,67 @@ export class VillageScene extends Phaser.Scene {
       this.layerPaths.add(g);
     }
 
-    // 5) micro decor: ciuffi, fiori, sassi (flat)
-    for (let i = 0; i < 700; i++) {
+    // 5) micro decor: ciuffi, fiori, sassi (flat) - densità alta
+    for (let i = 0; i < 1500; i++) {
       const x = rnd() * WORLD_W, y = rnd() * WORLD_H;
       const v = rnd();
       if (v < 0.55) {
-        this.layerDecor.add(this.add.ellipse(x, y, 8, 4, 0x1f3b22, 0.7));
+        this.layerDecor.add(this.add.ellipse(x, y, 9, 4, 0x1f3b22, 0.75));
+        this.layerDecor.add(this.add.ellipse(x + 2, y - 1, 6, 3, 0x2e5a3a, 0.6));
       } else if (v < 0.85) {
-        this.layerDecor.add(this.add.circle(x, y, 3, palette.flower));
-        this.layerDecor.add(this.add.circle(x, y, 1.2, 0xfff7d6));
+        // fiore con stelo
+        this.layerDecor.add(this.add.rectangle(x, y + 2, 1, 5, 0x2e5a3a));
+        this.layerDecor.add(this.add.circle(x, y, 3.5, palette.flower));
+        this.layerDecor.add(this.add.circle(x, y, 1.4, 0xfff7d6));
       } else {
-        this.layerDecor.add(this.add.ellipse(x, y, 7, 5, palette.rock, 0.7));
+        this.layerDecor.add(this.add.ellipse(x, y + 1, 8, 3, 0x000000, 0.25));
+        this.layerDecor.add(this.add.ellipse(x, y, 7, 5, palette.rock, 0.85));
+      }
+    }
+
+    // 5b) chiazze di fiori a cluster (più decorative)
+    for (let i = 0; i < 22; i++) {
+      const cxF = rnd() * WORLD_W, cyF = rnd() * WORLD_H;
+      const n = 8 + Math.floor(rnd() * 10);
+      const colors = [palette.flower, 0xffffff, 0xff9ec4, 0xffd166];
+      const col = colors[Math.floor(rnd() * colors.length)];
+      for (let k = 0; k < n; k++) {
+        const a = rnd() * Math.PI * 2; const r = rnd() * 36;
+        const fx = cxF + Math.cos(a) * r, fy = cyF + Math.sin(a) * r;
+        this.layerDecor.add(this.add.rectangle(fx, fy + 2, 1, 5, 0x2e5a3a));
+        this.layerDecor.add(this.add.circle(fx, fy, 3.5, col));
+        this.layerDecor.add(this.add.circle(fx, fy, 1.4, 0xfff7d6));
       }
     }
 
     // 6) vegetazione "3D-ish": alberi, cespugli, rocce con depth=y
-    const vegCount = 220;
+    const vegCount = 380;
     for (let i = 0; i < vegCount; i++) {
       const x = rnd() * WORLD_W;
       const y = rnd() * WORLD_H;
-      // densità maggiore vicino ai bordi
       const distFromCenter = Math.hypot(x - cx, y - cy);
-      const edgeBias = distFromCenter / Math.hypot(cx, cy); // 0..1
-      if (rnd() > 0.25 + edgeBias * 0.75) continue;
+      const edgeBias = distFromCenter / Math.hypot(cx, cy);
+      if (rnd() > 0.30 + edgeBias * 0.70) continue;
+      // evita di piantare dentro il Campo Base
+      if (Math.hypot(x - cx, y - cy) < 260) continue;
       const kind = rnd();
       if (kind < 0.55) this.spawnTree(x, y, palette, rnd);
       else if (kind < 0.85) this.spawnBush(x, y, palette, rnd);
       else this.spawnRock(x, y, palette, rnd);
     }
 
-    // 7) oggetti giganti quotidiani — sparsi, soprattutto fuori zona costruibile
-    const propsCount = 18;
-    for (let i = 0; i < propsCount; i++) {
+    // 7) oggetti quotidiani GIGANTI (lattine, bottiglie, viti, fiammiferi, accendini, tappi)
+    const giantKinds: Array<"can" | "bottle" | "screw" | "match" | "lighter" | "cap" | "battery"> = [
+      "can", "bottle", "screw", "match", "lighter", "cap", "battery",
+    ];
+    for (let i = 0; i < 16; i++) {
       let x = 0, y = 0, tries = 0;
-      do {
-        x = rnd() * WORLD_W; y = rnd() * WORLD_H; tries++;
-      } while (isInBuildableArea(x, y) && tries < 6);
-      const emoji = GIANT_PROPS[Math.floor(rnd() * GIANT_PROPS.length)];
-      this.spawnGiantProp(x, y, emoji, 90 + rnd() * 40);
+      do { x = rnd() * WORLD_W; y = rnd() * WORLD_H; tries++; }
+      while ((isInBuildableArea(x, y) || Math.hypot(x - cx, y - cy) < 340) && tries < 8);
+      const kind = giantKinds[Math.floor(rnd() * giantKinds.length)];
+      this.drawGiantObject(kind, x, y, rnd);
     }
+
 
     // 8) fog vignette MOLTO leggero (solo bordi)
     const fog = this.add.graphics();
@@ -364,73 +385,284 @@ export class VillageScene extends Phaser.Scene {
       this.layerDecor.add(this.add.ellipse(rx, ry, 14, 9, palette.rock, 0.95));
     }
 
-    // casse di legno (starter camp)
+    // sentieri radiali brevi che escono dal Campo Base
+    const pathTint = Phaser.Display.Color.IntegerToColor(palette.ground);
+    const pathHex2 = Phaser.Display.Color.GetColor(
+      Math.min(255, pathTint.red + 50),
+      Math.min(255, pathTint.green + 38),
+      Math.min(255, pathTint.blue + 28),
+    );
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      const px = cx + Math.cos(a) * 260;
+      const py = cy + Math.sin(a) * 190;
+      const gP = this.add.graphics();
+      gP.lineStyle(36, pathHex2, 0.7);
+      gP.beginPath(); gP.moveTo(cx, cy); gP.lineTo(px, py); gP.strokePath();
+      gP.lineStyle(20, pathHex2, 0.95);
+      gP.beginPath(); gP.moveTo(cx, cy); gP.lineTo(px, py); gP.strokePath();
+      this.layerPaths.add(gP);
+    }
+
+    // sassi a cerchio (focolare/bordo campo)
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      const rx = cx + Math.cos(a) * 100;
+      const ry = cy + Math.sin(a) * 68;
+      this.layerDecor.add(this.add.ellipse(rx, ry + 2, 18, 6, 0x000000, 0.3));
+      this.layerDecor.add(this.add.ellipse(rx, ry, 16, 11, palette.rock, 0.98));
+      this.layerDecor.add(this.add.ellipse(rx - 2, ry - 2, 8, 5, 0xc8bfb5, 0.6));
+    }
+
+    // FOCOLARE centrale con particelle (vita immediata)
+    const fire = this.add.container(cx - 70, cy - 25);
+    fire.add(this.add.ellipse(0, 14, 44, 14, 0x000000, 0.45));
+    // pietre intorno
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2;
+      fire.add(this.add.ellipse(Math.cos(a) * 18, Math.sin(a) * 10, 10, 6, 0x4a423d));
+    }
+    // legna
+    fire.add(this.add.rectangle(-6, 0, 22, 3, 0x4a2d1a).setRotation(0.3));
+    fire.add(this.add.rectangle(4, 1, 22, 3, 0x3a2010).setRotation(-0.4));
+    // fiamma
+    const flame = this.add.graphics();
+    flame.fillStyle(0xff7a18, 0.95);
+    flame.fillTriangle(-6, -2, 6, -2, 0, -22);
+    flame.fillStyle(0xffd166, 1);
+    flame.fillTriangle(-3, -2, 3, -2, 0, -14);
+    fire.add(flame);
+    fire.setDepth(cy - 25);
+    this.layerProps.add(fire);
+    this.tweens.add({ targets: flame, scaleY: 1.15, scaleX: 0.92, duration: 220, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    // braci che salgono
+    if (!this.textures.exists("__dot")) this.spawnAmbientParticles(palette);
+    const sparks = this.add.particles(cx - 70, cy - 40, "__dot", {
+      lifespan: 1100, speedY: { min: -42, max: -22 }, speedX: { min: -8, max: 8 },
+      scale: { start: 0.5, end: 0 }, alpha: { start: 0.9, end: 0 },
+      tint: [0xffaa33, 0xff5a18], blendMode: "ADD", quantity: 1, frequency: 90,
+    });
+    this.layerEffects.add(sparks);
+
+    // TORCE ai 4 angoli del campo (fiamma animata)
+    const torchPositions = [
+      { x: cx - 200, y: cy - 80 }, { x: cx + 200, y: cy - 80 },
+      { x: cx - 200, y: cy + 110 }, { x: cx + 200, y: cy + 110 },
+    ];
+    for (const tp of torchPositions) {
+      const t = this.add.container(tp.x, tp.y);
+      t.add(this.add.ellipse(0, 20, 18, 6, 0x000000, 0.4));
+      t.add(this.add.rectangle(0, 0, 4, 36, 0x3a2a1a).setOrigin(0.5, 1));
+      t.add(this.add.ellipse(0, -34, 12, 7, 0x6e6862));
+      const tFlame = this.add.ellipse(0, -42, 9, 14, 0xffb400);
+      const tCore = this.add.ellipse(0, -42, 5, 9, 0xfff3a0);
+      t.add(tFlame); t.add(tCore);
+      // alone luminoso
+      const halo = this.add.circle(0, -38, 40, 0xffd166, 0.18);
+      halo.setBlendMode(Phaser.BlendModes.ADD);
+      t.add(halo);
+      t.setDepth(tp.y);
+      this.layerProps.add(t);
+      this.tweens.add({ targets: tFlame, scaleY: 1.2, scaleX: 0.85, duration: 260 + rnd() * 100, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      this.tweens.add({ targets: halo, alpha: 0.32, duration: 480 + rnd() * 200, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    }
+
+    // casse di legno (starter camp) — più numerose
     const crateColor = 0x8b5a2b;
     const crateDark = 0x5e3a18;
+    const crateLight = 0xb78656;
     const crates = [
-      { x: cx - 150, y: cy + 60 },
-      { x: cx - 175, y: cy + 90, small: true },
-      { x: cx + 150, y: cy + 70 },
+      { x: cx - 160, y: cy + 60 },
+      { x: cx - 188, y: cy + 92, small: true },
+      { x: cx - 142, y: cy + 92, small: true },
+      { x: cx + 165, y: cy + 70 },
+      { x: cx + 190, y: cy + 100, small: true },
+      { x: cx + 80, y: cy + 130, small: true },
     ];
     for (const k of crates) {
       const s = k.small ? 22 : 32;
       const c = this.add.container(k.x, k.y);
-      c.add(this.add.ellipse(0, s * 0.45, s * 1.4, s * 0.35, 0x000000, 0.32));
+      c.add(this.add.ellipse(0, s * 0.45, s * 1.5, s * 0.38, 0x000000, 0.38));
       c.add(this.add.rectangle(0, 0, s * 1.5, s * 1.1, crateColor).setStrokeStyle(2, crateDark));
+      c.add(this.add.rectangle(0, -s * 0.4, s * 1.5, s * 0.25, crateLight, 0.5));
       c.add(this.add.line(0, 0, -s * 0.75, 0, s * 0.75, 0, crateDark).setLineWidth(1.5));
       c.add(this.add.line(0, 0, 0, -s * 0.55, 0, s * 0.55, crateDark).setLineWidth(1.5));
+      // chiodi agli angoli
+      const corners = [[-s*0.7, -s*0.5], [s*0.7, -s*0.5], [-s*0.7, s*0.5], [s*0.7, s*0.5]];
+      for (const [nx, ny] of corners) c.add(this.add.circle(nx, ny, 1.6, 0x2a1a08));
       c.setDepth(k.y);
       this.layerProps.add(c);
     }
 
+    // sacco di rifornimenti
+    const sack = this.add.container(cx + 95, cy + 60);
+    sack.add(this.add.ellipse(0, 18, 40, 10, 0x000000, 0.35));
+    sack.add(this.add.ellipse(0, 0, 38, 42, 0xc9a87c));
+    sack.add(this.add.ellipse(0, 6, 34, 30, 0xa6855b, 0.7));
+    sack.add(this.add.rectangle(0, -18, 18, 4, 0x6e5230));
+    sack.setDepth(cy + 60);
+    this.layerProps.add(sack);
+
+    // cartello con freccia
+    const sign = this.add.container(cx - 220, cy - 20);
+    sign.add(this.add.ellipse(0, 22, 24, 7, 0x000000, 0.35));
+    sign.add(this.add.rectangle(0, 0, 3, 44, 0x3a2a1a).setOrigin(0.5, 1));
+    sign.add(this.add.rectangle(8, -28, 26, 12, 0xc9a87c).setStrokeStyle(1.5, 0x6e5230));
+    sign.setDepth(cy - 20);
+    this.layerProps.add(sign);
+
     // BANDIERA del Campo Base (sempre visibile)
     const flag = this.add.container(cx, cy - 8);
-    flag.add(this.add.ellipse(0, 36, 70, 16, 0x000000, 0.35));
-    // basamento
-    flag.add(this.add.ellipse(0, 26, 56, 18, 0x6e6862));
-    flag.add(this.add.ellipse(0, 22, 56, 16, 0x9a8d80));
+    flag.add(this.add.ellipse(0, 36, 80, 18, 0x000000, 0.4));
+    // basamento di pietra a 2 livelli
+    flag.add(this.add.ellipse(0, 28, 72, 22, 0x4a423d));
+    flag.add(this.add.ellipse(0, 24, 70, 20, 0x6e6862));
+    flag.add(this.add.ellipse(0, 18, 58, 18, 0x9a8d80));
+    flag.add(this.add.ellipse(-12, 14, 18, 10, 0xc8bfb5, 0.7));
     // palo
-    flag.add(this.add.rectangle(0, -20, 4, 70, 0x3a2a1a).setOrigin(0.5, 1));
-    // stendardo
+    flag.add(this.add.rectangle(0, -20, 5, 78, 0x3a2a1a).setOrigin(0.5, 1));
+    flag.add(this.add.rectangle(-1, -20, 1.5, 78, 0x5a4030, 0.6).setOrigin(0.5, 1));
+    // stendardo a due colori
     const banner = this.add.graphics();
     banner.fillStyle(0xe94560, 1);
-    banner.fillTriangle(2, -84, 40, -74, 2, -64);
+    banner.fillTriangle(2, -92, 44, -80, 2, -68);
     banner.fillStyle(0xb02a3e, 1);
-    banner.fillTriangle(2, -64, 26, -68, 2, -56);
+    banner.fillTriangle(2, -68, 30, -74, 2, -58);
+    banner.fillStyle(0xffd166, 1);
+    banner.fillCircle(20, -80, 4);
     flag.add(banner);
-    flag.setDepth(cy);
+    flag.setDepth(cy + 18);
     this.layerBuildings.add(flag);
+    // ondeggiamento della bandiera
+    this.tweens.add({ targets: banner, scaleX: 0.9, duration: 1400, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+
+    // luce dorata al centro (highlight)
+    const hl = this.add.graphics();
+    hl.fillStyle(0xfff1a8, 0.10);
+    hl.fillCircle(cx, cy, 220);
+    hl.fillStyle(0xfff1a8, 0.06);
+    hl.fillCircle(cx, cy, 360);
+    this.layerPaths.add(hl);
 
     // micro-cartello "Campo Base"
-    const label = this.add.text(cx, cy - 100, "Campo Base", {
+    const label = this.add.text(cx, cy - 110, "Campo Base", {
       fontFamily: "system-ui, sans-serif",
-      fontSize: "18px",
+      fontSize: "20px",
       color: "#fffbe8",
       stroke: "#1a1a1a",
-      strokeThickness: 4,
-    }).setOrigin(0.5, 1).setDepth(cy + 1);
+      strokeThickness: 5,
+    }).setOrigin(0.5, 1).setDepth(cy + 100);
     this.layerBuildings.add(label);
 
-    // 2 piccoli ambient pikmin sempre presenti (anche con 0 nell'inventario)
-    // li gestiamo come decor (non sono nello sprite pool reale)
-    const ambientColors = [0xef4444, 0x3b82f6];
+    // gruppi di pikmin ambientali sempre presenti (8 piccoli)
+    const ambientColors = [0xef4444, 0x3b82f6, 0xfacc15, 0xef4444, 0x3b82f6, 0xa855f7, 0xfacc15, 0xef4444];
     for (let i = 0; i < ambientColors.length; i++) {
-      const ax = cx - 40 + i * 80 + (rnd() - 0.5) * 20;
-      const ay = cy + 30 + (rnd() - 0.5) * 16;
+      const ang = (i / ambientColors.length) * Math.PI * 2;
+      const rad = 130 + rnd() * 40;
+      const ax = cx + Math.cos(ang) * rad + (rnd() - 0.5) * 18;
+      const ay = cy + Math.sin(ang) * rad * 0.7 + (rnd() - 0.5) * 14;
+      const col = ambientColors[i];
       const ac = this.add.container(ax, ay);
-      ac.add(this.add.ellipse(0, 10, 16, 5, 0x000000, 0.35));
-      ac.add(this.add.ellipse(0, 0, 14, 18, ambientColors[i]));
-      ac.add(this.add.circle(0, -8, 5, ambientColors[i]));
-      ac.add(this.add.circle(-3, -9, 1.2, 0x111111));
-      ac.add(this.add.circle(3, -9, 1.2, 0x111111));
-      // stelo
-      ac.add(this.add.rectangle(0, -14, 1.5, 8, 0x1f3b22));
-      ac.add(this.add.circle(0, -18, 3, 0xffffff));
+      ac.add(this.add.ellipse(0, 10, 18, 6, 0x000000, 0.4));
+      ac.add(this.add.ellipse(0, 0, 14, 18, col));
+      ac.add(this.add.ellipse(-3, 2, 6, 10, 0x000000, 0.15));
+      ac.add(this.add.circle(0, -8, 5.5, col));
+      ac.add(this.add.circle(-2, -10, 1.6, 0xffffff));
+      ac.add(this.add.circle(2, -10, 1.6, 0xffffff));
+      ac.add(this.add.circle(-2, -10, 0.9, 0x111111));
+      ac.add(this.add.circle(2, -10, 0.9, 0x111111));
+      ac.add(this.add.rectangle(0, -15, 1.5, 9, 0x1f3b22));
+      ac.add(this.add.circle(0, -20, 3.5, 0xffffff));
+      ac.add(this.add.circle(0, -20, 2, 0xffe066));
       ac.setDepth(ay);
-      this.tweens.add({ targets: ac, y: ay - 3, duration: 700 + rnd() * 400, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      this.tweens.add({ targets: ac, y: ay - 3, duration: 600 + rnd() * 500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
       this.layerPikmin.add(ac);
     }
   }
+
+  // ─────────── OGGETTI GIGANTI PROCEDURALI ───────────
+  private drawGiantObject(
+    kind: "can" | "bottle" | "screw" | "match" | "lighter" | "cap" | "battery",
+    x: number, y: number, rnd: () => number,
+  ) {
+    const c = this.add.container(x, y);
+    const rot = (rnd() - 0.5) * 0.5;
+    // ombra grande
+    c.add(this.add.ellipse(6, 60, 150, 28, 0x000000, 0.42));
+
+    if (kind === "can") {
+      // lattina rossa
+      c.add(this.add.rectangle(0, -10, 88, 110, 0xc23030).setStrokeStyle(3, 0x6e1818));
+      c.add(this.add.ellipse(0, -65, 88, 22, 0xd64545));
+      c.add(this.add.ellipse(0, -65, 80, 16, 0x8a2020));
+      c.add(this.add.ellipse(0, 45, 88, 22, 0x8a2020));
+      c.add(this.add.rectangle(0, -10, 76, 38, 0xfafafa));
+      c.add(this.add.rectangle(0, -10, 76, 38, 0xc23030).setStrokeStyle(2, 0x6e1818).setAlpha(0));
+      c.add(this.add.circle(0, -10, 12, 0x2e7a3a));
+      // highlight verticale
+      c.add(this.add.rectangle(-30, -10, 6, 100, 0xffffff, 0.18));
+    } else if (kind === "bottle") {
+      c.add(this.add.rectangle(0, 10, 70, 110, 0xa6d4e8, 0.85).setStrokeStyle(2, 0x4a90a8));
+      c.add(this.add.ellipse(0, 60, 72, 14, 0x4a90a8));
+      // collo
+      c.add(this.add.rectangle(0, -55, 28, 38, 0xa6d4e8, 0.9).setStrokeStyle(2, 0x4a90a8));
+      // tappo
+      c.add(this.add.rectangle(0, -82, 32, 16, 0x2540a8).setStrokeStyle(2, 0x152a78));
+      c.add(this.add.rectangle(0, -82, 32, 4, 0x4a60c8, 0.7));
+      // highlight
+      c.add(this.add.rectangle(-22, 0, 7, 90, 0xffffff, 0.45));
+      // etichetta
+      c.add(this.add.rectangle(0, 10, 56, 30, 0xfafafa, 0.85).setStrokeStyle(1.5, 0x9bb8c8));
+    } else if (kind === "screw") {
+      // vite vista dall'alto inclinata
+      c.add(this.add.ellipse(0, -10, 60, 60, 0xb8b8b8).setStrokeStyle(2, 0x5a5a5a));
+      c.add(this.add.ellipse(0, -10, 56, 56, 0x9a9a9a));
+      c.add(this.add.rectangle(0, -10, 50, 5, 0x4a4a4a));
+      c.add(this.add.rectangle(0, -10, 5, 50, 0x4a4a4a));
+      // gambo che scompare
+      c.add(this.add.rectangle(0, 30, 24, 80, 0x8a8a8a).setStrokeStyle(2, 0x4a4a4a));
+      // filettatura
+      for (let i = 0; i < 6; i++) c.add(this.add.rectangle(0, 14 + i * 12, 28, 2, 0x4a4a4a));
+    } else if (kind === "match") {
+      // fiammifero lungo
+      c.add(this.add.rectangle(0, 0, 22, 150, 0xe8c98a).setRotation(0.2).setStrokeStyle(2, 0x7a5a30));
+      c.add(this.add.rectangle(-4, -10, 6, 140, 0xfff3cc, 0.6).setRotation(0.2));
+      // capocchia
+      c.add(this.add.ellipse(14, -72, 26, 22, 0xc23030).setStrokeStyle(2, 0x6e1818));
+      c.add(this.add.ellipse(12, -76, 14, 10, 0xff7a18));
+    } else if (kind === "lighter") {
+      c.add(this.add.rectangle(0, 0, 60, 110, 0xc8302a).setStrokeStyle(3, 0x6e1818));
+      c.add(this.add.rectangle(-20, 0, 8, 100, 0xff5a4a, 0.55));
+      // metallo sopra
+      c.add(this.add.rectangle(0, -60, 56, 20, 0x9a9a9a).setStrokeStyle(2, 0x4a4a4a));
+      c.add(this.add.rectangle(0, -68, 22, 8, 0x6a6a6a));
+      // rotellina
+      c.add(this.add.circle(-10, -68, 5, 0x4a4a4a));
+      c.add(this.add.rectangle(0, 30, 38, 6, 0x8a2020));
+    } else if (kind === "cap") {
+      // tappo a corona
+      c.add(this.add.ellipse(0, -2, 100, 30, 0x2540a8).setStrokeStyle(3, 0x152a78));
+      c.add(this.add.ellipse(0, -6, 100, 26, 0x3656c8));
+      c.add(this.add.ellipse(0, -10, 76, 18, 0xfafafa, 0.9));
+      // denti del tappo
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        c.add(this.add.rectangle(Math.cos(a) * 48, -2 + Math.sin(a) * 12, 5, 8, 0x152a78));
+      }
+    } else { // battery
+      c.add(this.add.rectangle(0, 0, 60, 130, 0x3a3a3a).setStrokeStyle(3, 0x1a1a1a));
+      c.add(this.add.rectangle(0, -70, 22, 12, 0xc8a060));
+      c.add(this.add.rectangle(0, -36, 50, 22, 0xc23030));
+      c.add(this.add.rectangle(0, 6, 50, 18, 0xfafafa));
+      c.add(this.add.rectangle(0, 32, 50, 22, 0xc23030));
+      c.add(this.add.rectangle(-20, 0, 6, 110, 0xffffff, 0.2));
+    }
+
+    c.setRotation(rot);
+    c.setDepth(y);
+    this.layerProps.add(c);
+  }
+
 
   private spawnTree(x: number, y: number, palette: typeof BIOME_COLORS[keyof typeof BIOME_COLORS], rnd: () => number) {
     const size = 38 + rnd() * 36;
