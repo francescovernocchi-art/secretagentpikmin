@@ -25,6 +25,7 @@ import { getPikminCount } from "@/lib/pikmin";
 import { computeNearbyThreats, type NearbyThreat } from "@/components/village/ThreatAlertPanel";
 import { VillageBottomMenu, type VillageMenuKey } from "@/components/village/VillageBottomMenu";
 import { BuildPanel } from "@/components/village/panels/BuildPanel";
+import { BuildingPanel } from "@/components/village/panels/BuildingPanel";
 import { DefensePanel } from "@/components/village/panels/DefensePanel";
 import { BonusPanel } from "@/components/village/panels/BonusPanel";
 import { AestheticsPanel } from "@/components/village/panels/AestheticsPanel";
