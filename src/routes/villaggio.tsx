@@ -296,25 +296,35 @@ function VillaggioPage() {
       {/* MINACCE: solo se reali entro raggio */}
       <ThreatAlertPanel threats={nearbyThreats} />
 
-      {/* SCENA VILLAGGIO + PIKMIN ANIMATI */}
-      <div className="relative">
-        <VillageCanvas
-          faction={base.faction as FactionKey}
-          phase={phase}
-          buildings={buildings}
-          walls={walls}
-          cosmetics={cosmetics}
-          threat={nearbyThreats.length > 0}
-          onSelectBuilding={setSelected}
-          tick={tick}
-        />
-        <VillagePikminLayer
-          buildings={buildings}
-          pikminCount={pikminCount}
-          breakdown={pikminBreakdown}
-          threat={nearbyThreats.length > 0}
-        />
+      {/* SCENA VILLAGGIO + PIKMIN ANIMATI - zoomable */}
+      <div className="flex items-center justify-between gap-2 px-1">
+        <BiomeSelector agent={agent} currentTheme={base.theme} onChanged={() => refresh()} />
+        <span className="text-[10px] text-muted-foreground hidden sm:inline">
+          Trascina per spostare · Rotella o pizzica per zoom
+        </span>
       </div>
+      <VillageZoomPan>
+        <div className="relative w-full h-full">
+          <VillageCanvas
+            faction={base.faction as FactionKey}
+            phase={phase}
+            buildings={buildings}
+            walls={walls}
+            cosmetics={cosmetics}
+            threat={nearbyThreats.length > 0}
+            onSelectBuilding={setSelected}
+            tick={tick}
+            biome={base.theme}
+            embedded
+          />
+          <VillagePikminLayer
+            buildings={buildings}
+            pikminCount={pikminCount}
+            breakdown={pikminBreakdown}
+            threat={nearbyThreats.length > 0}
+          />
+        </div>
+      </VillageZoomPan>
 
       {/* AZIONI RAPIDE */}
       <VillageActions
