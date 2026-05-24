@@ -27,15 +27,29 @@ interface BuildingSprite {
   };
 }
 
+type PikminRole = "wander" | "patrol" | "carry" | "gather" | "sleep";
+type PikminMotion = "walk" | "idle" | "run" | "sleep";
+
 interface PikminAgent {
   container: Phaser.GameObjects.Container;
   body: Phaser.GameObjects.Image | Phaser.GameObjects.Arc;
   shadow: Phaser.GameObjects.Ellipse;
+  carry?: Phaser.GameObjects.Arc;
   speciesKey: string;
   x: number; y: number;
   tx: number; ty: number;
   speed: number;
-  state: "walk" | "idle" | "run";
+  state: PikminMotion;
+  role: PikminRole;
+  /** home anchor (es. edificio assegnato) */
+  homeX: number; homeY: number;
+  /** id edificio assegnato (per interazioni) */
+  homeBuildingId: string | null;
+  /** stato carry: 0=vuoto andata, 1=carico ritorno */
+  carrying: boolean;
+  /** bobbing */
+  bobPhase: number;
+  bobAmp: number;
   nextThinkAt: number;
 }
 
