@@ -35,6 +35,7 @@ export function AestheticsPanel({
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [dioramaOpen, setDioramaOpen] = useState(false);
   const [biomeAdminOpen, setBiomeAdminOpen] = useState(false);
+  const [eventsAdminOpen, setEventsAdminOpen] = useState(false);
   const [isPapa, setIsPapa] = useState(false);
   const cosmetics: VillageCosmetics = getCosmetics(base.layout);
   const biomeKey = resolveBiome(base.theme).key;
