@@ -311,34 +311,7 @@ export class VillageScene extends Phaser.Scene {
       }
     }
 
-    // 6) vegetazione "3D-ish": alberi, cespugli, rocce con depth=y
-    const vegCount = 380;
-    for (let i = 0; i < vegCount; i++) {
-      const x = rnd() * WORLD_W;
-      const y = rnd() * WORLD_H;
-      const distFromCenter = Math.hypot(x - cx, y - cy);
-      const edgeBias = distFromCenter / Math.hypot(cx, cy);
-      if (rnd() > 0.30 + edgeBias * 0.70) continue;
-      // evita di piantare dentro il Campo Base
-      if (Math.hypot(x - cx, y - cy) < 260) continue;
-      const kind = rnd();
-      if (kind < 0.55) this.spawnTree(x, y, palette, rnd);
-      else if (kind < 0.85) this.spawnBush(x, y, palette, rnd);
-      else this.spawnRock(x, y, palette, rnd);
-    }
-
-    // 7) oggetti quotidiani GIGANTI (lattine, bottiglie, viti, fiammiferi, accendini, tappi)
-    const giantKinds: Array<"can" | "bottle" | "screw" | "match" | "lighter" | "cap" | "battery"> = [
-      "can", "bottle", "screw", "match", "lighter", "cap", "battery",
-    ];
-    for (let i = 0; i < 16; i++) {
-      let x = 0, y = 0, tries = 0;
-      do { x = rnd() * WORLD_W; y = rnd() * WORLD_H; tries++; }
-      while ((isInBuildableArea(x, y) || Math.hypot(x - cx, y - cy) < 340) && tries < 8);
-      const kind = giantKinds[Math.floor(rnd() * giantKinds.length)];
-      this.drawGiantObject(kind, x, y, rnd);
-    }
-
+    // (vegetazione, oggetti giganti e Campo Base rimossi: gli sprite li carica l'utente)
 
     // 8) fog vignette MOLTO leggero (solo bordi)
     const fog = this.add.graphics();
@@ -356,10 +329,8 @@ export class VillageScene extends Phaser.Scene {
 
     // 9) particelle ambientali (pollen / fireflies)
     this.spawnAmbientParticles(palette);
-
-    // 10) Campo Base permanente (bandiera + radura) sempre visibile, anche con 0 edifici
-    this.spawnHomeCamp(palette, rnd);
   }
+
 
   private spawnHomeCamp(palette: typeof BIOME_COLORS[keyof typeof BIOME_COLORS], rnd: () => number) {
     const cx = WORLD_W / 2, cy = WORLD_H / 2;
