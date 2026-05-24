@@ -4,7 +4,8 @@ import { resolveBiome } from "@/lib/village/biomes";
 import { useBuildingImages } from "@/hooks/useBuildingImages";
 import { pickBuildingImage } from "@/lib/village/buildingImages";
 import { useActiveDiorama } from "@/hooks/useActiveDiorama";
-import type { PlacementInfo, VillageGameState } from "@/game/village/VillageTypes";
+import { usePikminSpecies } from "@/hooks/usePikminSpecies";
+import type { PlacementInfo, VillageGameState, PikminLayerConfig, PikminSpeciesInfo } from "@/game/village/VillageTypes";
 
 interface Props {
   agent: string;
@@ -12,6 +13,8 @@ interface Props {
   buildings: BaseBuilding[];
   catalog: BuildingCatalog[];
   placement: BuildingCatalog | null;
+  /** Configurazione layer Pikmin (mostra/cap/velocità/filtri + breakdown specie). */
+  pikminConfig?: Omit<PikminLayerConfig, "species"> | null;
   onSelectBuilding?: (id: string) => void;
   onPlacePosition?: (pct: { x: number; y: number; slotKey?: string }) => void;
   onTapGround?: () => void;
@@ -26,7 +29,7 @@ interface Props {
 /** Canvas Phaser Diorama RTS del Villaggio. Tutta l'UI resta React fuori da qui. */
 export function VillageGameCanvas({
   agent, biomeKey, buildings, catalog,
-  placement, onSelectBuilding, onPlacePosition, onTapGround, onReady,
+  placement, pikminConfig, onSelectBuilding, onPlacePosition, onTapGround, onReady,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
@@ -37,6 +40,7 @@ export function VillageGameCanvas({
   const imageMap = useBuildingImages();
   const biome = resolveBiome(biomeKey).key;
   const { diorama, slots } = useActiveDiorama(biome);
+  const { species } = usePikminSpecies();
 
   // mount Phaser
   useEffect(() => {
@@ -128,6 +132,17 @@ export function VillageGameCanvas({
     };
   }, [placement, imageMap]);
 
+  const pikminFull: PikminLayerConfig | null = useMemo(() => {
+    if (!pikminConfig) return null;
+    const specs: PikminSpeciesInfo[] = species.map((s) => ({
+      key: s.key,
+      name: s.name,
+      color: s.color,
+      imageUrl: s.image_url ?? s.icon_url ?? null,
+    }));
+    return { ...pikminConfig, species: specs };
+  }, [pikminConfig, species]);
+
   // push state
   useEffect(() => {
     const state: VillageGameState = {
@@ -140,10 +155,11 @@ export function VillageGameCanvas({
       buildingEmojiByType,
       buildingCategoryByType,
       placement: placementInfo,
+      pikmin: pikminFull ?? undefined,
     };
     pendingStateRef.current = state;
     if (readyRef.current && sceneRef.current) sceneRef.current.applyState(state);
-  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo]);
+  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo, pikminFull]);
 
   return (
     <div
