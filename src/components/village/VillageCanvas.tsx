@@ -5,6 +5,7 @@ import type { DayPhase } from "@/lib/daycycle";
 import type { VillageCosmetics } from "@/lib/village/cosmetics";
 import type { WallSegment } from "@/lib/village/walls";
 import { VillageBackground } from "./VillageBackground";
+import { BiomeBackground } from "./BiomeBackground";
 import { BuildingSprite } from "./BuildingSprite";
 import { WallLayer } from "./WallLayer";
 import { DefenseRangeLayer } from "./DefenseRangeLayer";
