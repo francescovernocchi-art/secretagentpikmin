@@ -298,7 +298,11 @@ function VillaggioPage() {
 
       {/* SCENA VILLAGGIO + PIKMIN ANIMATI - zoomable */}
       <div className="flex items-center justify-between gap-2 px-1">
-        <BiomeSelector agent={agent} currentTheme={base.theme} onChanged={() => refresh()} />
+        <BiomeSelector
+          agent={agent}
+          currentTheme={base.theme}
+          onChanged={(key) => setBase({ ...base, theme: key } as BaseRow)}
+        />
         <span className="text-[10px] text-muted-foreground hidden sm:inline">
           Trascina per spostare · Rotella o pizzica per zoom
         </span>
