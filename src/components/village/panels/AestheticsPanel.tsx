@@ -1,13 +1,15 @@
-import { Palette } from "lucide-react";
+import { Palette, Image as ImageIcon } from "lucide-react";
 import { VillagePanelSheet } from "./VillagePanelSheet";
 import { BiomeSelector } from "../BiomeSelector";
 import { VillageCustomizer } from "../VillageCustomizer";
+import { DioramaPanel } from "./DioramaPanel";
 import { useState } from "react";
 import { usePikminSpecies } from "@/hooks/usePikminSpecies";
 import {
   loadPikminPrefs, savePikminPrefs, MAX_PIKMIN, type PikminLayerPrefs,
 } from "@/components/pikmin/VillagePikminLayer";
 import { getCosmetics, type VillageCosmetics } from "@/lib/village/cosmetics";
+import { resolveBiome } from "@/lib/village/biomes";
 import type { BaseRow } from "@/lib/base";
 
 interface Props {
@@ -26,7 +28,9 @@ export function AestheticsPanel({
 }: Props) {
   const { species } = usePikminSpecies();
   const [customizerOpen, setCustomizerOpen] = useState(false);
+  const [dioramaOpen, setDioramaOpen] = useState(false);
   const cosmetics: VillageCosmetics = getCosmetics(base.layout);
+  const biomeKey = resolveBiome(base.theme).key;
 
   const update = (p: PikminLayerPrefs) => { onPrefsChange(p); savePikminPrefs(p); };
 
@@ -96,12 +100,24 @@ export function AestheticsPanel({
             </div>
           </section>
 
+          <button onClick={() => setDioramaOpen(true)}
+            className="btn-neon w-full py-2 text-xs inline-flex items-center justify-center gap-2">
+            <ImageIcon className="h-4 w-4" /> Gestione Diorama
+          </button>
+
           <button onClick={() => setCustomizerOpen(true)}
             className="btn-neon w-full py-2 text-xs">
             Apri Customizer Villaggio
           </button>
         </div>
       </VillagePanelSheet>
+
+      <DioramaPanel
+        open={dioramaOpen}
+        onOpenChange={setDioramaOpen}
+        biome={biomeKey}
+        onChanged={onRefresh}
+      />
 
       {customizerOpen && (
         <VillageCustomizer
