@@ -352,6 +352,15 @@ function VillaggioPage() {
         total={pikminCount}
         breakdown={pikminBreakdown}
       />
+      <BuildingPanel
+        open={openPanel === ("building" as any)}
+        onOpenChange={(o) => { if (!o) { setOpenPanel(null); setSelectedBuildingId(null); } }}
+        agent={agent}
+        coins={coins}
+        building={selectedBuilding}
+        catalog={catalog}
+        onRefresh={reload}
+      />
     </div>
   );
 }
