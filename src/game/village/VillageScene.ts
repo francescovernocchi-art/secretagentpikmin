@@ -279,45 +279,67 @@ export class VillageScene extends Phaser.Scene {
       this.layerPaths.add(g);
     }
 
-    // 5) micro decor: ciuffi, fiori, sassi (flat)
-    for (let i = 0; i < 700; i++) {
+    // 5) micro decor: ciuffi, fiori, sassi (flat) - densità alta
+    for (let i = 0; i < 1500; i++) {
       const x = rnd() * WORLD_W, y = rnd() * WORLD_H;
       const v = rnd();
       if (v < 0.55) {
-        this.layerDecor.add(this.add.ellipse(x, y, 8, 4, 0x1f3b22, 0.7));
+        this.layerDecor.add(this.add.ellipse(x, y, 9, 4, 0x1f3b22, 0.75));
+        this.layerDecor.add(this.add.ellipse(x + 2, y - 1, 6, 3, 0x2e5a3a, 0.6));
       } else if (v < 0.85) {
-        this.layerDecor.add(this.add.circle(x, y, 3, palette.flower));
-        this.layerDecor.add(this.add.circle(x, y, 1.2, 0xfff7d6));
+        // fiore con stelo
+        this.layerDecor.add(this.add.rectangle(x, y + 2, 1, 5, 0x2e5a3a));
+        this.layerDecor.add(this.add.circle(x, y, 3.5, palette.flower));
+        this.layerDecor.add(this.add.circle(x, y, 1.4, 0xfff7d6));
       } else {
-        this.layerDecor.add(this.add.ellipse(x, y, 7, 5, palette.rock, 0.7));
+        this.layerDecor.add(this.add.ellipse(x, y + 1, 8, 3, 0x000000, 0.25));
+        this.layerDecor.add(this.add.ellipse(x, y, 7, 5, palette.rock, 0.85));
+      }
+    }
+
+    // 5b) chiazze di fiori a cluster (più decorative)
+    for (let i = 0; i < 22; i++) {
+      const cxF = rnd() * WORLD_W, cyF = rnd() * WORLD_H;
+      const n = 8 + Math.floor(rnd() * 10);
+      const colors = [palette.flower, 0xffffff, 0xff9ec4, 0xffd166];
+      const col = colors[Math.floor(rnd() * colors.length)];
+      for (let k = 0; k < n; k++) {
+        const a = rnd() * Math.PI * 2; const r = rnd() * 36;
+        const fx = cxF + Math.cos(a) * r, fy = cyF + Math.sin(a) * r;
+        this.layerDecor.add(this.add.rectangle(fx, fy + 2, 1, 5, 0x2e5a3a));
+        this.layerDecor.add(this.add.circle(fx, fy, 3.5, col));
+        this.layerDecor.add(this.add.circle(fx, fy, 1.4, 0xfff7d6));
       }
     }
 
     // 6) vegetazione "3D-ish": alberi, cespugli, rocce con depth=y
-    const vegCount = 220;
+    const vegCount = 380;
     for (let i = 0; i < vegCount; i++) {
       const x = rnd() * WORLD_W;
       const y = rnd() * WORLD_H;
-      // densità maggiore vicino ai bordi
       const distFromCenter = Math.hypot(x - cx, y - cy);
-      const edgeBias = distFromCenter / Math.hypot(cx, cy); // 0..1
-      if (rnd() > 0.25 + edgeBias * 0.75) continue;
+      const edgeBias = distFromCenter / Math.hypot(cx, cy);
+      if (rnd() > 0.30 + edgeBias * 0.70) continue;
+      // evita di piantare dentro il Campo Base
+      if (Math.hypot(x - cx, y - cy) < 260) continue;
       const kind = rnd();
       if (kind < 0.55) this.spawnTree(x, y, palette, rnd);
       else if (kind < 0.85) this.spawnBush(x, y, palette, rnd);
       else this.spawnRock(x, y, palette, rnd);
     }
 
-    // 7) oggetti giganti quotidiani — sparsi, soprattutto fuori zona costruibile
-    const propsCount = 18;
-    for (let i = 0; i < propsCount; i++) {
+    // 7) oggetti quotidiani GIGANTI (lattine, bottiglie, viti, fiammiferi, accendini, tappi)
+    const giantKinds: Array<"can" | "bottle" | "screw" | "match" | "lighter" | "cap" | "battery"> = [
+      "can", "bottle", "screw", "match", "lighter", "cap", "battery",
+    ];
+    for (let i = 0; i < 16; i++) {
       let x = 0, y = 0, tries = 0;
-      do {
-        x = rnd() * WORLD_W; y = rnd() * WORLD_H; tries++;
-      } while (isInBuildableArea(x, y) && tries < 6);
-      const emoji = GIANT_PROPS[Math.floor(rnd() * GIANT_PROPS.length)];
-      this.spawnGiantProp(x, y, emoji, 90 + rnd() * 40);
+      do { x = rnd() * WORLD_W; y = rnd() * WORLD_H; tries++; }
+      while ((isInBuildableArea(x, y) || Math.hypot(x - cx, y - cy) < 340) && tries < 8);
+      const kind = giantKinds[Math.floor(rnd() * giantKinds.length)];
+      this.drawGiantObject(kind, x, y, rnd);
     }
+
 
     // 8) fog vignette MOLTO leggero (solo bordi)
     const fog = this.add.graphics();
