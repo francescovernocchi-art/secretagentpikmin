@@ -46,7 +46,7 @@ function resolveSpriteUrl(
       const c = urls.idle ?? urls.walk;
       if (c) return c;
     }
-    const any = urls.idle ?? urls.walk ?? urls.attack ?? urls.sleep;
+    const any = urls.idle ?? urls.walk ?? urls.sleep;
     if (any) return any;
   }
   return fallbackImage ?? null;
