@@ -31,7 +31,7 @@ interface Props {
 /** Canvas Phaser Diorama RTS del Villaggio. Tutta l'UI resta React fuori da qui. */
 export function VillageGameCanvas({
   agent, biomeKey, buildings, catalog,
-  placement, pikminConfig, onSelectBuilding, onPlacePosition, onTapGround, onReady,
+  placement, pikminConfig, onSelectBuilding, onSelectSlot, onPlacePosition, onTapGround, onReady,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
