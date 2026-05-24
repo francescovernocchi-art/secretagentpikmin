@@ -8,18 +8,10 @@ import industriale from "@/assets/biomes/industriale.jpg";
 import spaziale from "@/assets/biomes/spaziale.jpg";
 import desertico from "@/assets/biomes/desertico.jpg";
 
-export type BiomeKey =
-  | "foresta"
-  | "roccioso"
-  | "litorale"
-  | "montanaro"
-  | "vulcanico"
-  | "industriale"
-  | "spaziale"
-  | "desertico";
+export type BiomeKey = string;
 
 export interface BiomeConfig {
-  key: BiomeKey;
+  key: string;
   label: string;
   emoji: string;
   image: string;
