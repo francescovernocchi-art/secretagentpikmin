@@ -157,28 +157,14 @@ function PrepareView({ templateKey }: { templateKey: string }) {
         </div>
       </div>
 
-      {/* COOP TOGGLE */}
-      <button
-        onClick={() => setIsCoop((v) => !v)}
-        className={`w-full panel p-3 flex items-center justify-between ${
-          isCoop ? "ring-1 ring-fuchsia-500/50 bg-fuchsia-500/10" : ""
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <Users className={`h-4 w-4 ${isCoop ? "text-fuchsia-300" : "text-muted-foreground"}`} />
-          <div className="text-left">
-            <p className="text-sm font-semibold">Missione cooperativa</p>
-            <p className="text-[10px] text-muted-foreground">
-              Invita {PARTNER_OF[agent] === "papa" ? "Papà" : "Lorenzo"} · +15% successo
-            </p>
-          </div>
-        </div>
-        <div className={`h-5 w-9 rounded-full ${isCoop ? "bg-fuchsia-500" : "bg-muted/40"} relative transition`}>
-          <span
-            className={`absolute top-0.5 ${isCoop ? "left-4" : "left-0.5"} h-4 w-4 rounded-full bg-white transition-all`}
-          />
-        </div>
-      </button>
+      {/* INFO COOP: dopo aver lanciato la spedizione potrai invitare il partner */}
+      <div className="panel p-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <Users className="h-4 w-4 text-primary/70 shrink-0" />
+        <span>
+          Spedizione in solo. Una volta lanciata potrai invitare {PARTNER_OF[agent] === "papa" ? "Papà" : "Lorenzo"} ad
+          unirsi (bonus +15% successo).
+        </span>
+      </div>
 
       {/* COMPOSIZIONE SQUADRA */}
       <div className="panel p-4 space-y-3">
