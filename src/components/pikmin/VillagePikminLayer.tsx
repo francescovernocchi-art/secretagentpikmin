@@ -5,16 +5,15 @@ import { usePikminSpecies, type PikminSpeciesRow } from "@/hooks/usePikminSpecie
 import {
   ANIMATION_LABEL,
   type PikminAnimation,
-  type PikminType,
 } from "@/data/pikminSprites";
 import type { BaseBuilding } from "@/lib/base";
 
 const MAX_PIKMIN = 30;
-const LS_KEY = "village.pikminLayer.v2";
+const LS_KEY = "village.pikminLayer.v3";
 
 interface Prefs {
   show: boolean;
-  count: number;
+  maxCap: number;
   speed: number;
   filters: Record<string, boolean>;
   night: boolean;
@@ -22,7 +21,7 @@ interface Prefs {
 
 const DEFAULT_PREFS: Prefs = {
   show: true,
-  count: 12,
+  maxCap: MAX_PIKMIN,
   speed: 1,
   filters: {},
   night: false,
@@ -59,7 +58,8 @@ interface Props {
   buildings: BaseBuilding[];
   pikminCount: number;
   threat?: boolean;
-  breakdown?: Partial<Record<PikminType, number>>;
+  /** Quantità reale per specie dall'inventario (chiave specie → numero). */
+  breakdown?: Record<string, number>;
 }
 
 function rand(a: number, b: number) { return a + Math.random() * (b - a); }
@@ -126,27 +126,44 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
     return pts;
   }, [buildings, size]);
 
-  const visibleCount = useMemo(() => {
-    const base = prefs.count;
-    if (!pikminCount) return Math.min(base, MAX_PIKMIN);
-    return Math.min(MAX_PIKMIN, Math.max(3, Math.min(base, Math.ceil(pikminCount / 2))));
-  }, [prefs.count, pikminCount]);
-
-  // Pool di chiavi specie rispettando filtri + breakdown
+  // Pool: ESATTAMENTE i Pikmin posseduti per specie (filtrati + cappati).
+  // Niente padding con specie non possedute: se non ne hai, non li vedi.
   const speciesPool = useMemo<string[]>(() => {
-    const enabled = species.filter((s) => prefs.filters[s.key] !== false);
-    if (!enabled.length) return [];
-    const total = enabled.reduce((a, s) => a + ((breakdown as any)?.[s.key] ?? 0), 0);
+    const owned = species
+      .filter((s) => prefs.filters[s.key] !== false)
+      .map((s) => ({ key: s.key, n: Math.max(0, Math.floor(breakdown?.[s.key] ?? 0)) }))
+      .filter((e) => e.n > 0);
+
+    const total = owned.reduce((a, e) => a + e.n, 0);
+    if (total === 0) return [];
+
+    const cap = Math.max(1, Math.min(MAX_PIKMIN, prefs.maxCap));
     const pool: string[] = [];
-    if (total > 0) {
-      for (const s of enabled) {
-        const n = Math.max(0, Math.round((((breakdown as any)?.[s.key] ?? 0) / total) * visibleCount));
-        for (let i = 0; i < n; i++) pool.push(s.key);
+    if (total <= cap) {
+      for (const e of owned) for (let i = 0; i < e.n; i++) pool.push(e.key);
+    } else {
+      // Scala proporzionalmente conservando almeno 1 per specie posseduta
+      const scaled = owned.map((e) => ({ key: e.key, n: Math.max(1, Math.round((e.n / total) * cap)) }));
+      let sum = scaled.reduce((a, e) => a + e.n, 0);
+      while (sum > cap) {
+        const idx = scaled.reduce((mi, e, i, arr) => (e.n > arr[mi].n ? i : mi), 0);
+        scaled[idx].n--; sum--;
       }
+      while (sum < cap) {
+        const idx = scaled.reduce((mi, e, i, arr) => (e.n < arr[mi].n ? i : mi), 0);
+        scaled[idx].n++; sum++;
+      }
+      for (const e of scaled) for (let i = 0; i < e.n; i++) pool.push(e.key);
     }
-    while (pool.length < visibleCount) pool.push(enabled[pool.length % enabled.length].key);
-    return pool.slice(0, visibleCount);
-  }, [species, breakdown, prefs.filters, visibleCount]);
+    // mescola per varietà visiva
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool;
+  }, [species, breakdown, prefs.filters, prefs.maxCap]);
+
+  void pikminCount;
 
   const agentsRef = useRef<Agent[]>([]);
   const [agentsTick, setAgentsTick] = useState(0);
@@ -272,14 +289,14 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
           <span>Mostra Pikmin</span>
         </label>
         <span className="text-muted-foreground">·</span>
-        <label className="flex items-center gap-1">
-          Qtà
+        <label className="flex items-center gap-1" title="Limite massimo di Pikmin visibili contemporaneamente">
+          Max
           <input
-            type="range" min={3} max={MAX_PIKMIN} value={prefs.count}
-            onChange={(e) => setPrefs((p) => ({ ...p, count: Number(e.target.value) }))}
+            type="range" min={3} max={MAX_PIKMIN} value={prefs.maxCap}
+            onChange={(e) => setPrefs((p) => ({ ...p, maxCap: Number(e.target.value) }))}
             className="w-20 accent-primary"
           />
-          <span className="w-5 text-right">{prefs.count}</span>
+          <span className="w-5 text-right">{prefs.maxCap}</span>
         </label>
         <label className="flex items-center gap-1">
           Vel
