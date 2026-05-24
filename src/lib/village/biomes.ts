@@ -41,11 +41,32 @@ export const BIOMES: Record<BiomeKey, BiomeConfig> = {
 
 export const BIOME_LIST = Object.values(BIOMES);
 
-/** Mappa retrocompatibile temi vecchi → nuovi biomi. */
+/** Registry runtime per biomi personalizzati caricati da DB. */
+const customBiomes = new Map<string, BiomeConfig>();
+const listeners = new Set<() => void>();
+
+export function registerCustomBiomes(rows: BiomeConfig[]) {
+  customBiomes.clear();
+  for (const b of rows) customBiomes.set(b.key, b);
+  listeners.forEach((l) => l());
+}
+
+export function subscribeCustomBiomes(fn: () => void) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+export function getAllBiomes(): BiomeConfig[] {
+  return [...BIOME_LIST, ...customBiomes.values()];
+}
+
+/** Mappa retrocompatibile temi vecchi → nuovi biomi (include biomi custom). */
 export function resolveBiome(theme: string | null | undefined): BiomeConfig {
   if (!theme) return BIOMES.foresta;
   const direct = BIOMES[theme as BiomeKey];
   if (direct) return direct;
+  const custom = customBiomes.get(theme);
+  if (custom) return custom;
   const legacy: Record<string, BiomeKey> = {
     lago: "litorale",
     deserto: "desertico",
