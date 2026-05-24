@@ -659,6 +659,45 @@ export class VillageScene extends Phaser.Scene {
     return pts;
   }
 
+  /** Trova edificio con categoria preferita, fallback any. */
+  private pickHomeBuilding(prefer?: string[]): BaseBuilding | null {
+    const list = this.state?.buildings ?? [];
+    if (list.length === 0) return null;
+    const cats = this.state?.buildingCategoryByType ?? {};
+    if (prefer && prefer.length) {
+      const filtered = list.filter((b) => prefer.includes(cats[b.building_type] ?? "utility"));
+      if (filtered.length) return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+    return list[Math.floor(Math.random() * list.length)];
+  }
+
+  private buildingWorldPos(b: BaseBuilding) {
+    return {
+      x: (b.position_x / 100) * this.worldW,
+      y: (b.position_y / 100) * this.worldH,
+    };
+  }
+
+  /** Modalità globale derivata dagli eventi attivi. */
+  private currentEventMode(): "alarm" | "shelter" | "nectar" | "none" {
+    const evs = this.state?.events ?? [];
+    if (!evs.length) return "none";
+    for (const e of evs) {
+      if (e.event_type === "invasione" || e.event_type === "meteora") return "alarm";
+      if (e.event_type === "bufera" || e.event_type === "eruzione") return "shelter";
+      if (e.event_type === "nettare") return "nectar";
+    }
+    return "none";
+  }
+
+  private assignRole(): PikminRole {
+    const r = Math.random();
+    if (r < 0.25) return "patrol";
+    if (r < 0.5) return "carry";
+    if (r < 0.75) return "gather";
+    return "wander";
+  }
+
   private syncPikmin() {
     const cfg = this.state?.pikmin ?? null;
     this.pikminCfg = cfg;
@@ -666,18 +705,15 @@ export class VillageScene extends Phaser.Scene {
       this.clearPikmin();
       return;
     }
-    // preload textures
     for (const s of cfg.species) this.ensurePikminTexture(s.key, s.imageUrl);
 
     const pool = this.computePikminPool();
     const anchors = this.anchorPoints();
 
-    // shrink
     while (this.pikminAgents.length > pool.length) {
       const a = this.pikminAgents.pop();
       a?.container.destroy();
     }
-    // adjust existing species mismatch
     for (let i = 0; i < this.pikminAgents.length; i++) {
       const a = this.pikminAgents[i];
       const desired = pool[i];
@@ -686,7 +722,6 @@ export class VillageScene extends Phaser.Scene {
         this.pikminAgents[i] = this.spawnPikmin(desired, cfg, anchors);
       }
     }
-    // grow
     while (this.pikminAgents.length < pool.length) {
       const i = this.pikminAgents.length;
       this.pikminAgents.push(this.spawnPikmin(pool[i], cfg, anchors));
@@ -701,9 +736,20 @@ export class VillageScene extends Phaser.Scene {
   private spawnPikmin(speciesKey: string, cfg: PikminLayerConfig, anchors: { x: number; y: number }[]): PikminAgent {
     const sp = cfg.species.find((s) => s.key === speciesKey);
     const tint = sp?.color ? Phaser.Display.Color.HexStringToColor(sp.color).color : 0xa3e635;
-    const anchor = anchors[Math.floor(Math.random() * anchors.length)];
-    const x = anchor.x + (Math.random() - 0.5) * 180;
-    const y = anchor.y + (Math.random() - 0.5) * 180;
+
+    const role: PikminRole = this.assignRole();
+    const preferByRole: Record<PikminRole, string[]> = {
+      patrol: ["defense"],
+      carry:  ["production", "energy", "science"],
+      gather: ["social", "coop", "pikmin"],
+      wander: [],
+      sleep:  [],
+    };
+    const home = this.pickHomeBuilding(preferByRole[role]);
+    const homePos = home ? this.buildingWorldPos(home) : anchors[Math.floor(Math.random() * anchors.length)];
+
+    const x = homePos.x + (Math.random() - 0.5) * 140;
+    const y = homePos.y + (Math.random() - 0.5) * 140;
 
     const shadow = this.add.ellipse(0, 4, 28, 9, 0x000000, 0.35);
     const key = PIKMIN_TEX_PREFIX + speciesKey;
@@ -725,52 +771,150 @@ export class VillageScene extends Phaser.Scene {
       speciesKey,
       x, y,
       tx: x, ty: y,
-      speed: 60 + Math.random() * 40,
+      speed: 55 + Math.random() * 35,
       state: "walk",
-      nextThinkAt: performance.now() + 500 + Math.random() * 2000,
+      role,
+      homeX: homePos.x, homeY: homePos.y,
+      homeBuildingId: home?.id ?? null,
+      carrying: false,
+      bobPhase: Math.random() * Math.PI * 2,
+      bobAmp: 1.4 + Math.random() * 1.2,
+      nextThinkAt: performance.now() + 400 + Math.random() * 1800,
     };
+  }
+
+  /** Aggiorna/rimuove icona carry. */
+  private setCarryVisual(a: PikminAgent, on: boolean) {
+    if (on && !a.carry) {
+      a.carry = this.add.circle(8, -30, 4, 0xffd54a, 1).setStrokeStyle(1, 0x4a3000, 0.6);
+      a.container.add(a.carry);
+    } else if (!on && a.carry) {
+      a.carry.destroy();
+      a.carry = undefined;
+    }
+  }
+
+  private pickRoleTarget(a: PikminAgent, anchors: { x: number; y: number }[]): { x: number; y: number } {
+    const jitter = (n: number) => (Math.random() - 0.5) * n;
+    switch (a.role) {
+      case "patrol": {
+        // orbita attorno a home
+        const ang = Math.random() * Math.PI * 2;
+        const r = 60 + Math.random() * 60;
+        return { x: a.homeX + Math.cos(ang) * r, y: a.homeY + Math.sin(ang) * r };
+      }
+      case "carry": {
+        // alterna: home ↔ random anchor
+        if (a.carrying) return { x: a.homeX + jitter(30), y: a.homeY + jitter(30) };
+        const other = anchors[Math.floor(Math.random() * anchors.length)];
+        return { x: other.x + jitter(40), y: other.y + jitter(40) };
+      }
+      case "gather": {
+        return { x: a.homeX + jitter(80), y: a.homeY + jitter(80) };
+      }
+      default: {
+        if (Math.random() < 0.6 && anchors.length) {
+          const t = anchors[Math.floor(Math.random() * anchors.length)];
+          return { x: t.x + jitter(120), y: t.y + jitter(120) };
+        }
+        return { x: Math.random() * this.worldW, y: Math.random() * this.worldH };
+      }
+    }
   }
 
   private tickPikmin(deltaMs: number) {
     const cfg = this.pikminCfg;
     if (!cfg || !cfg.show || this.pikminAgents.length === 0) return;
     const now = performance.now();
-    const speedMul = cfg.speed * (cfg.threat ? 1.6 : 1);
+    const mode = this.currentEventMode();
+    const night = !!cfg.night;
+    const threat = !!cfg.threat || mode === "alarm";
+    const speedMul = cfg.speed * (threat ? 1.7 : mode === "shelter" ? 1.4 : night ? 0.5 : 1);
     const anchors = this.anchorPoints();
 
+    // Off-camera sleep: calcola bounds camera con margine
+    const cam = this.cameras.main;
+    const margin = 120;
+    const view = cam.worldView;
+    const inView = (x: number, y: number) =>
+      x >= view.x - margin && x <= view.x + view.width + margin &&
+      y >= view.y - margin && y <= view.y + view.height + margin;
+
     for (const a of this.pikminAgents) {
+      // Sleep fuori camera: salta motion, mantieni pos
+      if (!inView(a.x, a.y)) {
+        // ricicla think saltuariamente per non bloccare per sempre
+        if (now >= a.nextThinkAt) a.nextThinkAt = now + 3000 + Math.random() * 4000;
+        continue;
+      }
+
       const dx = a.tx - a.x;
       const dy = a.ty - a.y;
       const dist = Math.hypot(dx, dy);
 
-      if (a.state !== "idle" && dist > 2) {
-        const v = (a.state === "run" ? a.speed * 1.6 : a.speed) * speedMul;
+      if (a.state !== "idle" && a.state !== "sleep" && dist > 2) {
+        const baseSpeed = a.state === "run" ? a.speed * 1.7 : a.speed;
+        const v = baseSpeed * speedMul;
         const step = (v * deltaMs) / 1000;
         a.x += (dx / dist) * step;
         a.y += (dy / dist) * step;
-        // flip
-        if (a.body instanceof Phaser.GameObjects.Image) {
-          a.body.setFlipX(dx < 0);
-        }
+        if (a.body instanceof Phaser.GameObjects.Image) a.body.setFlipX(dx < 0);
+
+        // bobbing morbido durante walk/run
+        a.bobPhase += deltaMs * 0.012 * (a.state === "run" ? 1.6 : 1);
+        const bob = Math.sin(a.bobPhase) * a.bobAmp;
         a.container.x = a.x;
-        a.container.y = a.y;
+        a.container.y = a.y + bob;
         a.container.setDepth(a.y);
-      } else if (dist <= 2 && a.state !== "idle") {
-        a.state = "idle";
-        a.nextThinkAt = now + 800 + Math.random() * 2200;
+      } else if (dist <= 2 && a.state !== "idle" && a.state !== "sleep") {
+        a.state = night ? "sleep" : "idle";
+        // arrivato a destinazione carry → toggle stato
+        if (a.role === "carry") {
+          a.carrying = !a.carrying;
+          this.setCarryVisual(a, a.carrying);
+        }
+        const idleMs = mode === "alarm" ? 300 + Math.random() * 400
+          : mode === "shelter" ? 4000 + Math.random() * 3000
+          : night ? 5000 + Math.random() * 5000
+          : 800 + Math.random() * 2200;
+        a.nextThinkAt = now + idleMs;
       }
 
       if (now >= a.nextThinkAt) {
-        a.state = cfg.threat ? "run" : Math.random() < 0.75 ? "walk" : "idle";
-        const target = Math.random() < 0.7 && anchors.length
-          ? anchors[Math.floor(Math.random() * anchors.length)]
-          : { x: Math.random() * this.worldW, y: Math.random() * this.worldH };
-        a.tx = Phaser.Math.Clamp(target.x + (Math.random() - 0.5) * 120, 20, this.worldW - 20);
-        a.ty = Phaser.Math.Clamp(target.y + (Math.random() - 0.5) * 120, 20, this.worldH - 20);
-        a.nextThinkAt = now + 2500 + Math.random() * 4000;
+        // Override comportamento per eventi globali
+        if (mode === "alarm") {
+          // corre al centro comando / defense più vicino
+          const home = this.pickHomeBuilding(["defense", "pikmin"]);
+          const target = home ? this.buildingWorldPos(home) : { x: this.worldW / 2, y: this.worldH / 2 };
+          a.tx = target.x + (Math.random() - 0.5) * 60;
+          a.ty = target.y + (Math.random() - 0.5) * 60;
+          a.state = "run";
+        } else if (mode === "shelter") {
+          // corre al proprio home (riparo)
+          a.tx = a.homeX + (Math.random() - 0.5) * 30;
+          a.ty = a.homeY + (Math.random() - 0.5) * 30;
+          a.state = "run";
+        } else if (mode === "nectar") {
+          // si radunano vicino a un anchor casuale (pioggia di nettare)
+          const t = anchors[Math.floor(Math.random() * anchors.length)];
+          a.tx = t.x + (Math.random() - 0.5) * 60;
+          a.ty = t.y + (Math.random() - 0.5) * 60;
+          a.state = "walk";
+        } else if (night && Math.random() < 0.6) {
+          a.state = "sleep";
+          a.tx = a.x; a.ty = a.y;
+        } else {
+          const t = this.pickRoleTarget(a, anchors);
+          a.tx = Phaser.Math.Clamp(t.x, 20, this.worldW - 20);
+          a.ty = Phaser.Math.Clamp(t.y, 20, this.worldH - 20);
+          a.state = Math.random() < 0.85 ? "walk" : "idle";
+        }
+        const baseThink = night ? 5000 : mode === "alarm" ? 1200 : 2500;
+        a.nextThinkAt = now + baseThink + Math.random() * 3500;
       }
     }
   }
+
 
   // ───────── events (overlay diorama) ─────────
 
