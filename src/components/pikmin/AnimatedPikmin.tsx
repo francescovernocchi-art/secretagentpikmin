@@ -21,6 +21,19 @@ export interface AnimatedPikminProps {
   showParticles?: boolean;
   showShadow?: boolean;
   showZ?: boolean;
+  /** Sprite personalizzati per animazione (URL pubblici). Se assenti si usa il disegno SVG. */
+  spriteUrls?: Partial<Record<PikminAnimation, string | null>> | null;
+}
+
+/** Mappa animazione → chiave sprite. carry/work/run riusano walk; celebrate riusa idle. */
+function resolveSpriteUrl(anim: PikminAnimation, urls?: AnimatedPikminProps["spriteUrls"]): string | null {
+  if (!urls) return null;
+  const direct = urls[anim];
+  if (direct) return direct;
+  // fallback intelligente tra i 4 sprite supportati (idle/walk/sleep/attack)
+  if (anim === "carry" || anim === "work" || anim === "run") return urls.walk ?? urls.idle ?? null;
+  if (anim === "celebrate") return urls.idle ?? urls.walk ?? null;
+  return urls.idle ?? null;
 }
 
 const BODY: Record<PikminType, string> = {
