@@ -46,6 +46,7 @@ export interface VillageGameState {
 
 export interface VillageGameEvents {
   selectBuilding: (id: string) => void;
+  selectSlot: (info: { slotKey: string; x: number; y: number; allowedCategories: string[] }) => void;
   /** percentuali 0..100 rispetto a (width,height) immagine */
   placePosition: (pct: { x: number; y: number; slotKey?: string }) => void;
   tapGround: () => void;

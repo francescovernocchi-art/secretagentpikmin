@@ -15,6 +15,16 @@ interface BuildingSprite {
   shadow: Phaser.GameObjects.Ellipse;
   art: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
   data: BaseBuilding;
+  hasTexture: boolean;
+  // Construction overlay
+  cs?: {
+    root: Phaser.GameObjects.Container;
+    barBg: Phaser.GameObjects.Rectangle;
+    barFill: Phaser.GameObjects.Rectangle;
+    label: Phaser.GameObjects.Text;
+    spin: Phaser.GameObjects.Arc;
+    tween: Phaser.Tweens.Tween;
+  };
 }
 
 interface PikminAgent {
@@ -141,6 +151,7 @@ export class VillageScene extends Phaser.Scene {
 
   update(_time: number, delta: number) {
     this.tickPikmin(delta);
+    this.tickConstruction();
   }
 
   // ───────── diorama loading ─────────
@@ -220,12 +231,10 @@ export class VillageScene extends Phaser.Scene {
     this.layerSlots.removeAll(true);
 
     const inBuildMode = !!this.state.placement;
-    if (!inBuildMode) return;
-
-    const placement = this.state.placement!;
+    const placement = this.state.placement;
     const usedSlotKeys = new Set<string>();
-    // mark slots already occupied (best-effort by proximity)
     for (const b of this.state.buildings) {
+      if (b.slot_key) { usedSlotKeys.add(b.slot_key); continue; }
       const slot = this.findNearestSlot(
         (b.position_x / 100) * this.worldW,
         (b.position_y / 100) * this.worldH,
@@ -234,21 +243,26 @@ export class VillageScene extends Phaser.Scene {
     }
 
     for (const slot of this.state.slots) {
-      const compatible = slot.allowed_categories.length === 0
+      const occupied = usedSlotKeys.has(slot.slot_key);
+      const compatible = !placement
+        || slot.allowed_categories.length === 0
         || !placement.category
         || slot.allowed_categories.includes(placement.category);
-      const occupied = usedSlotKeys.has(slot.slot_key);
-      this.createSlotMarker(slot, compatible && !occupied);
+      this.createSlotMarker(slot, !occupied, compatible, inBuildMode);
     }
   }
 
-  private createSlotMarker(slot: DioramaSlot, available: boolean) {
+  private createSlotMarker(slot: DioramaSlot, available: boolean, compatible: boolean, inBuildMode: boolean) {
     const radius = slot.size === "large" ? 64 : slot.size === "medium" ? 50 : 38;
-    const color = available ? 0x6ee7a8 : 0x9ca3af;
+    const usable = available && compatible;
+    // In build mode → verde acceso se compatibile, grigio se no/occupato
+    // In modalità normale → ring discreto solo per slot liberi
+    const color = usable ? 0x6ee7a8 : 0x9ca3af;
+    const baseAlpha = inBuildMode ? 0.95 : (available ? 0.55 : 0);
     const ring = this.add.circle(0, 0, radius, color, 0);
-    ring.setStrokeStyle(4, color, 0.95);
-    const fill = this.add.circle(0, 0, radius - 8, color, available ? 0.25 : 0.1);
-    const pulse = this.add.circle(0, 0, radius, color, 0.18);
+    ring.setStrokeStyle(inBuildMode ? 4 : 2, color, baseAlpha);
+    const fill = this.add.circle(0, 0, radius - 8, color, inBuildMode && usable ? 0.25 : (available ? 0.08 : 0));
+    const pulse = this.add.circle(0, 0, radius, color, inBuildMode && usable ? 0.18 : 0);
 
     const c = this.add.container(slot.x, slot.y, [pulse, fill, ring]);
     c.setSize(radius * 2, radius * 2);
@@ -262,17 +276,28 @@ export class VillageScene extends Phaser.Scene {
       c.on("pointerup", (p: Phaser.Input.Pointer) => {
         if (this.dragMoved) return;
         if (p.event && (p.event as any).stopPropagation) (p.event as any).stopPropagation();
-        this.events.emit("placePosition", {
-          x: (slot.x / this.worldW) * 100,
-          y: (slot.y / this.worldH) * 100,
-          slotKey: slot.slot_key,
-        });
+        if (inBuildMode && compatible) {
+          this.events.emit("placePosition", {
+            x: (slot.x / this.worldW) * 100,
+            y: (slot.y / this.worldH) * 100,
+            slotKey: slot.slot_key,
+          });
+        } else if (!inBuildMode) {
+          this.events.emit("selectSlot", {
+            slotKey: slot.slot_key,
+            x: (slot.x / this.worldW) * 100,
+            y: (slot.y / this.worldH) * 100,
+            allowedCategories: slot.allowed_categories,
+          });
+        }
       });
 
-      this.tweens.add({
-        targets: pulse, scale: { from: 0.9, to: 1.2 }, alpha: { from: 0.4, to: 0 },
-        duration: 1400, repeat: -1, ease: "Sine.Out",
-      });
+      if (inBuildMode && usable) {
+        this.tweens.add({
+          targets: pulse, scale: { from: 0.9, to: 1.2 }, alpha: { from: 0.4, to: 0 },
+          duration: 1400, repeat: -1, ease: "Sine.Out",
+        });
+      }
     }
 
     this.layerSlots.add(c);
@@ -364,21 +389,87 @@ export class VillageScene extends Phaser.Scene {
       yoyo: true, repeat: -1, ease: "Sine.InOut",
     });
 
-    this.buildingSprites.set(b.id, { container, shadow, art, data: b });
+    const sp: BuildingSprite = { container, shadow, art, data: b, hasTexture };
+    this.buildingSprites.set(b.id, sp);
+    this.syncConstructionOverlay(sp);
   }
 
   private updateBuildingSprite(sp: BuildingSprite, b: BaseBuilding) {
+    const levelChanged = sp.data.level !== b.level;
+    const typeKey = BUILD_TEX_PREFIX + b.type;
+    const nowHasTexture = this.textures.exists(typeKey);
     sp.data = b;
     const pos = this.worldPosForBuilding(b);
     sp.container.x = pos.x; sp.container.y = pos.y;
     sp.container.setDepth(pos.y);
+    // Se è cambiato il livello (o è apparsa una texture), rigenera lo sprite per cambiare immagine
+    if (levelChanged || (!sp.hasTexture && nowHasTexture)) {
+      this.refreshBuildingSprite(sp);
+      return;
+    }
+    this.syncConstructionOverlay(sp);
   }
 
   private refreshBuildingSprite(sp: BuildingSprite) {
+    sp.cs?.tween.stop();
+    sp.cs?.root.destroy();
     sp.container.destroy();
     this.buildingSprites.delete(sp.data.id);
     this.createBuildingSprite(sp.data);
   }
+
+  // ───────── construction overlay ─────────
+
+  private syncConstructionOverlay(sp: BuildingSprite) {
+    const isBusy = sp.data.status !== "idle";
+    if (!isBusy) {
+      if (sp.cs) {
+        sp.cs.tween.stop();
+        sp.cs.root.destroy();
+        sp.cs = undefined;
+      }
+      return;
+    }
+    if (sp.cs) return; // già attivo: aggiornato dal tick
+    const W = 90, H = 8;
+    const root = this.add.container(0, 18);
+    const ring = this.add.circle(0, -60, 22, 0xfacc15, 0).setStrokeStyle(3, 0xfacc15, 0.85);
+    const spin = this.add.arc(0, -60, 26, 0, 270, false, 0xfacc15, 0).setStrokeStyle(3, 0xfacc15, 0.95);
+    const barBg = this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setStrokeStyle(1, 0xfacc15, 0.7);
+    const barFill = this.add.rectangle(-W / 2, 0, 1, H - 2, 0xfacc15, 1).setOrigin(0, 0.5);
+    const label = this.add.text(0, 14, sp.data.status === "upgrading" ? "Upgrade…" : "Costruzione…", {
+      fontSize: "10px", color: "#facc15", fontStyle: "bold",
+    }).setOrigin(0.5, 0);
+    root.add([ring, spin, barBg, barFill, label]);
+    sp.container.add(root);
+    const tween = this.tweens.add({
+      targets: spin, angle: 360, duration: 1400, repeat: -1, ease: "Linear",
+    });
+    sp.cs = { root, barBg, barFill, label, spin, tween };
+  }
+
+  private tickConstruction() {
+    if (this.buildingSprites.size === 0) return;
+    const now = Date.now();
+    const W = 90;
+    for (const sp of this.buildingSprites.values()) {
+      if (!sp.cs) continue;
+      const b = sp.data;
+      if (!b.build_end_at || !b.started_at) continue;
+      const start = new Date(b.started_at).getTime();
+      const end = new Date(b.build_end_at).getTime();
+      const total = Math.max(1, end - start);
+      const elapsed = Math.max(0, Math.min(total, now - start));
+      const pct = elapsed / total;
+      sp.cs.barFill.width = Math.max(1, pct * (W - 2));
+      const remaining = Math.max(0, Math.round((end - now) / 1000));
+      const mm = Math.floor(remaining / 60);
+      const ss = (remaining % 60).toString().padStart(2, "0");
+      const prefix = b.status === "upgrading" ? "Lv→" + (b.level + 1) + " " : "";
+      sp.cs.label.setText(remaining > 0 ? `${prefix}${mm}:${ss}` : "Pronto!");
+    }
+  }
+
 
   // ───────── placement ghost ─────────
 

@@ -17,6 +17,7 @@ interface Props {
   /** Configurazione layer Pikmin (mostra/cap/velocità/filtri + breakdown specie). */
   pikminConfig?: Omit<PikminLayerConfig, "species"> | null;
   onSelectBuilding?: (id: string) => void;
+  onSelectSlot?: (info: { slotKey: string; x: number; y: number; allowedCategories: string[] }) => void;
   onPlacePosition?: (pct: { x: number; y: number; slotKey?: string }) => void;
   onTapGround?: () => void;
   onReady?: (controls: {
@@ -30,7 +31,7 @@ interface Props {
 /** Canvas Phaser Diorama RTS del Villaggio. Tutta l'UI resta React fuori da qui. */
 export function VillageGameCanvas({
   agent, biomeKey, buildings, catalog,
-  placement, pikminConfig, onSelectBuilding, onPlacePosition, onTapGround, onReady,
+  placement, pikminConfig, onSelectBuilding, onSelectSlot, onPlacePosition, onTapGround, onReady,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
@@ -71,6 +72,7 @@ export function VillageGameCanvas({
         sceneRef.current = game.scene.getScene("village");
         readyRef.current = true;
         sceneRef.current.events.on("selectBuilding", (id: string) => onSelectBuildingRef.current?.(id));
+        sceneRef.current.events.on("selectSlot", (info: any) => onSelectSlotRef.current?.(info));
         sceneRef.current.events.on("placePosition", (pct: any) => onPlacePositionRef.current?.(pct));
         sceneRef.current.events.on("tapGround", () => onTapGroundRef.current?.());
         if (pendingStateRef.current) sceneRef.current.applyState(pendingStateRef.current);
@@ -96,6 +98,7 @@ export function VillageGameCanvas({
 
   // keep latest callbacks
   const onSelectBuildingRef = useRef(onSelectBuilding); onSelectBuildingRef.current = onSelectBuilding;
+  const onSelectSlotRef = useRef(onSelectSlot); onSelectSlotRef.current = onSelectSlot;
   const onPlacePositionRef = useRef(onPlacePosition); onPlacePositionRef.current = onPlacePosition;
   const onTapGroundRef = useRef(onTapGround); onTapGroundRef.current = onTapGround;
   const onReadyRef = useRef(onReady); onReadyRef.current = onReady;

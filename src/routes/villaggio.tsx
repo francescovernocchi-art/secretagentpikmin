@@ -25,6 +25,7 @@ import { getPikminCount } from "@/lib/pikmin";
 import { computeNearbyThreats, type NearbyThreat } from "@/components/village/ThreatAlertPanel";
 import { VillageBottomMenu, type VillageMenuKey } from "@/components/village/VillageBottomMenu";
 import { BuildPanel } from "@/components/village/panels/BuildPanel";
+import { BuildingPanel } from "@/components/village/panels/BuildingPanel";
 import { DefensePanel } from "@/components/village/panels/DefensePanel";
 import { BonusPanel } from "@/components/village/panels/BonusPanel";
 import { AestheticsPanel } from "@/components/village/panels/AestheticsPanel";
@@ -61,6 +62,7 @@ function VillaggioPage() {
   const [nearbyThreats, setNearbyThreats] = useState<NearbyThreat[]>([]);
   const [openPanel, setOpenPanel] = useState<VillageMenuKey | null>(null);
   const [placing, setPlacing] = useState<BuildingCatalog | null>(null);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [pikminPrefs, setPikminPrefs] = useState<PikminLayerPrefs>(() => loadPikminPrefs());
   const cameraCtrlRef = useRef<{ zoomIn: () => void; zoomOut: () => void; recenter: () => void } | null>(null);
   const prevBuildingsRef = useRef<BaseBuilding[]>([]);
@@ -173,10 +175,10 @@ function VillaggioPage() {
   const status = { ...baseStatus, defenseRating: baseStatus.defenseRating + wallBonus };
   const threatActive = nearbyThreats.length > 0 || events.some((e) => !e.resolved_at);
 
-  const onPlace = async (pct: { x: number; y: number }) => {
+  const onPlace = async (pct: { x: number; y: number; slotKey?: string }) => {
     if (!placing) return;
     try {
-      await startBuilding(agent, placing, pct);
+      await startBuilding(agent, placing, { x: pct.x, y: pct.y, slotKey: pct.slotKey, biomeKey: base.theme });
       sfx.build();
       setPlacing(null);
       reload();
@@ -185,6 +187,8 @@ function VillaggioPage() {
       setPlacing(null);
     }
   };
+
+  const selectedBuilding = buildings.find((b) => b.id === selectedBuildingId) ?? null;
 
   return (
     <div className="fixed inset-0 z-10 overflow-hidden bg-background">
@@ -207,8 +211,11 @@ function VillaggioPage() {
           threat: threatActive,
         }}
         onPlacePosition={onPlace}
+        onSelectBuilding={(id) => { setSelectedBuildingId(id); setOpenPanel("building" as any); }}
+        onSelectSlot={() => { setOpenPanel("build"); }}
         onReady={(c) => { cameraCtrlRef.current = c; }}
       />
+
 
       {/* ─── CAMERA CONTROLS (sinistra, sopra il menu) ─── */}
       <div
@@ -345,6 +352,15 @@ function VillaggioPage() {
         onOpenChange={(o) => setOpenPanel(o ? "pikmin" : null)}
         total={pikminCount}
         breakdown={pikminBreakdown}
+      />
+      <BuildingPanel
+        open={openPanel === ("building" as any)}
+        onOpenChange={(o: boolean) => { if (!o) { setOpenPanel(null); setSelectedBuildingId(null); } }}
+        agent={agent}
+        coins={coins}
+        building={selectedBuilding}
+        catalog={catalog}
+        onRefresh={reload}
       />
     </div>
   );
