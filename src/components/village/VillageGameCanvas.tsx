@@ -29,7 +29,7 @@ interface Props {
 /** Canvas Phaser Diorama RTS del Villaggio. Tutta l'UI resta React fuori da qui. */
 export function VillageGameCanvas({
   agent, biomeKey, buildings, catalog,
-  placement, onSelectBuilding, onPlacePosition, onTapGround, onReady,
+  placement, pikminConfig, onSelectBuilding, onPlacePosition, onTapGround, onReady,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
@@ -40,6 +40,7 @@ export function VillageGameCanvas({
   const imageMap = useBuildingImages();
   const biome = resolveBiome(biomeKey).key;
   const { diorama, slots } = useActiveDiorama(biome);
+  const { species } = usePikminSpecies();
 
   // mount Phaser
   useEffect(() => {
