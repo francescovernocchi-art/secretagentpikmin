@@ -484,7 +484,6 @@ export class VillageScene extends Phaser.Scene {
     const sec = dt / 1000;
     const padX = WORLD_W * 0.15, padY = WORLD_H * 0.15;
     for (const p of this.pikminSprites) {
-      // occasionale cambio direzione
       if (Math.random() < 0.005) {
         const a = Math.random() * Math.PI * 2;
         const s = 14 + Math.random() * 20;
@@ -493,13 +492,8 @@ export class VillageScene extends Phaser.Scene {
       p.art.x += p.vx * sec; p.art.y += p.vy * sec;
       if (p.art.x < padX || p.art.x > WORLD_W - padX) p.vx *= -1;
       if (p.art.y < padY || p.art.y > WORLD_H - padY) p.vy *= -1;
-      p.art.flipX = p.vx < 0;
+      (p.art as Phaser.GameObjects.Image).flipX = p.vx < 0;
       p.shadow.x = p.art.x; p.shadow.y = p.art.y + 12;
-      // squash
-      const s = 1 + Math.sin((p.art.x + p.art.y) * 0.05 + this.time.now * 0.01) * 0.05;
-      p.art.scaleY = (p.art.scaleX = 1) * s * (32 / Math.max(1, p.art.width));
-      p.art.scaleX = 32 / Math.max(1, p.art.width);
-      // depth = y per 2.5D
       p.art.depth = p.art.y + 0.5;
     }
   }
