@@ -15,6 +15,16 @@ interface BuildingSprite {
   shadow: Phaser.GameObjects.Ellipse;
   art: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
   data: BaseBuilding;
+  hasTexture: boolean;
+  // Construction overlay
+  cs?: {
+    root: Phaser.GameObjects.Container;
+    barBg: Phaser.GameObjects.Rectangle;
+    barFill: Phaser.GameObjects.Rectangle;
+    label: Phaser.GameObjects.Text;
+    spin: Phaser.GameObjects.Arc;
+    tween: Phaser.Tweens.Tween;
+  };
 }
 
 interface PikminAgent {
