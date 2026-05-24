@@ -132,6 +132,17 @@ export function VillageGameCanvas({
     };
   }, [placement, imageMap]);
 
+  const pikminFull: PikminLayerConfig | null = useMemo(() => {
+    if (!pikminConfig) return null;
+    const specs: PikminSpeciesInfo[] = species.map((s) => ({
+      key: s.key,
+      name: s.name,
+      color: s.color,
+      imageUrl: s.image_url ?? s.icon_url ?? null,
+    }));
+    return { ...pikminConfig, species: specs };
+  }, [pikminConfig, species]);
+
   // push state
   useEffect(() => {
     const state: VillageGameState = {
@@ -144,10 +155,11 @@ export function VillageGameCanvas({
       buildingEmojiByType,
       buildingCategoryByType,
       placement: placementInfo,
+      pikmin: pikminFull ?? undefined,
     };
     pendingStateRef.current = state;
     if (readyRef.current && sceneRef.current) sceneRef.current.applyState(state);
-  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo]);
+  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo, pikminFull]);
 
   return (
     <div
