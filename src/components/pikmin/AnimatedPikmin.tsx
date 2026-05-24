@@ -117,7 +117,7 @@ function PikminBody({ type }: { type: PikminType }) {
   );
 }
 
-/** Singolo Pikmin animato — pure SVG/CSS. */
+/** Singolo Pikmin animato — sprite caricato dall'admin oppure fallback SVG. */
 function AnimatedPikminBase({
   type,
   animation,
@@ -133,10 +133,12 @@ function AnimatedPikminBase({
   showParticles,
   showShadow = true,
   showZ,
+  spriteUrls,
 }: AnimatedPikminProps) {
   const def = ANIMATIONS[animation];
   const w = size;
   const h = Math.round(size * 1.25);
+  const customSprite = resolveSpriteUrl(animation, spriteUrls);
 
   const positioned = x !== undefined || y !== undefined;
   const wrapperStyle: React.CSSProperties = positioned
