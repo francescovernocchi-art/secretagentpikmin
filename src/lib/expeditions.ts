@@ -129,46 +129,48 @@ export function previewExpedition({ template, totalPikmin, breakdown, coopBonus 
   const max = template.pikmin_max;
   const diffMult = DIFFICULTY_META[template.difficulty].mult;
 
-  // potenza base: numero pikmin * scala difficolta
   let power = Math.round(totalPikmin * 10);
-  // bonus tipi consigliati
   const recommendedSet = new Set(template.recommended_types);
   let matching = 0;
+  let wrong = 0;
   for (const [type, count] of Object.entries(breakdown)) {
     if (recommendedSet.has(type)) matching += count;
+    else wrong += count;
   }
   const matchPct = totalPikmin > 0 ? matching / totalPikmin : 0;
-  power = Math.round(power * (1 + matchPct * 0.4));
+  const wrongPct = totalPikmin > 0 ? wrong / totalPikmin : 0;
+  // bonus tipi giusti + PENALITA FORTE tipi sbagliati (fino a -60% potenza)
+  power = Math.round(power * (1 + matchPct * 0.4) * (1 - wrongPct * 0.6));
   if (coopBonus) power = Math.round(power * 1.15);
 
-  // potenza richiesta come riferimento
   const required = Math.round(rec * 10 * diffMult);
   let chance = required > 0 ? power / required : 1;
-  chance = Math.min(0.98, Math.max(0.1, chance * 0.85));
+  chance = chance * 0.85;
+  // penalita aggiuntiva se sotto il minimo
+  if (totalPikmin < min) {
+    const deficit = min > 0 ? (min - totalPikmin) / min : 0;
+    chance = chance * Math.max(0.2, 1 - deficit * 0.7);
+  }
+  // penalita extra forte per composizione completamente sbagliata
+  if (wrongPct >= 0.8) chance = chance * 0.5;
+  chance = Math.min(0.98, Math.max(0.03, chance));
   if (coopBonus) chance = Math.min(0.98, chance + 0.05);
 
-  // velocita
   let speed: "lenta" | "stabile" | "veloce" = "stabile";
   if (totalPikmin < rec) speed = "lenta";
   else if (totalPikmin > rec + Math.ceil((max - rec) / 2)) speed = "veloce";
 
-  // rischio
   let risk: Risk = "medio";
   if (totalPikmin < min) risk = "estremo";
   else if (totalPikmin < rec) risk = "alto";
   else if (totalPikmin >= rec) risk = diffMult >= 2 ? "alto" : diffMult >= 1.5 ? "medio" : "basso";
+  if (wrongPct >= 0.5 && risk !== "estremo") risk = "alto";
   if (coopBonus && risk !== "estremo") {
     if (risk === "alto") risk = "medio";
     else if (risk === "medio") risk = "basso";
   }
 
-  return {
-    power,
-    successChance: chance,
-    risk,
-    speed,
-    recommendedMatchPct: matchPct,
-  };
+  return { power, successChance: chance, risk, speed, recommendedMatchPct: matchPct };
 }
 
 export function effectiveDurationMinutes(template: MissionTemplate, totalPikmin: number, coopBonus: boolean) {
