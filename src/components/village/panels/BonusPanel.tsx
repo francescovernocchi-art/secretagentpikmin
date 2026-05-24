@@ -1,14 +1,17 @@
 import { Sparkles } from "lucide-react";
 import { VillagePanelSheet } from "./VillagePanelSheet";
 import { BONUS_ICON, BONUS_LABEL, type VillageStatus, type BonusKey } from "@/lib/village/bonuses";
+import { useActiveVillageEvents } from "@/hooks/useVillageEvents";
 
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   status: VillageStatus;
+  biomeKey?: string | null;
 }
 
-export function BonusPanel({ open, onOpenChange, status }: Props) {
+export function BonusPanel({ open, onOpenChange, status, biomeKey }: Props) {
+  const { events } = useActiveVillageEvents(biomeKey ?? null);
   // Raggruppa per bonus key
   const grouped = new Map<BonusKey, { total: number; sources: { name: string; level: number; amount: number }[] }>();
   for (const s of status.sources) {
