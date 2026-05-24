@@ -88,6 +88,7 @@ export function VillageGameCanvas({
   const onSelectBuildingRef = useRef(onSelectBuilding); onSelectBuildingRef.current = onSelectBuilding;
   const onPlacePositionRef = useRef(onPlacePosition); onPlacePositionRef.current = onPlacePosition;
   const onTapGroundRef = useRef(onTapGround); onTapGroundRef.current = onTapGround;
+  const onReadyRef = useRef(onReady); onReadyRef.current = onReady;
 
   const buildingImageByType = useMemo(() => {
     const map: Record<string, string | null> = {};
