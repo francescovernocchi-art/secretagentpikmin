@@ -130,9 +130,11 @@ export class VillageScene extends Phaser.Scene {
     this.layerSlots     = this.add.container(0, 0).setDepth(2);
     this.layerBuildings = this.add.container(0, 0).setDepth(3);
     this.layerPikmin    = this.add.container(0, 0).setDepth(10);
+    this.layerEvents    = this.add.container(0, 0).setDepth(40);
     this.layerFx        = this.add.container(0, 0).setDepth(50);
     this.layerPlacement = this.add.container(0, 0).setDepth(99);
 
+    this.ensureParticleTexture();
     this.setupInput();
     this.scale.on("resize", () => this.refitOnResize());
   }
