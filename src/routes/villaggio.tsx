@@ -196,8 +196,6 @@ function VillaggioPage() {
         biomeKey={base.theme}
         buildings={buildings}
         catalog={catalog}
-        pikminBreakdown={pikminBreakdown}
-        pikminMaxVisible={pikminPrefs?.maxCap ?? 18}
         placement={placing}
         onPlacePosition={onPlace}
         onReady={(c) => { cameraCtrlRef.current = c; }}
