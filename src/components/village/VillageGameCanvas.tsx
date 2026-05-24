@@ -17,12 +17,13 @@ interface Props {
   onSelectBuilding?: (id: string) => void;
   onPlacePosition?: (pct: { x: number; y: number }) => void;
   onTapGround?: () => void;
+  onReady?: (controls: { zoomIn: () => void; zoomOut: () => void; recenter: () => void }) => void;
 }
 
 /** Canvas Phaser RTS 2.5D del Villaggio. Tutta l'UI resta React fuori da qui. */
 export function VillageGameCanvas({
   agent, biomeKey, buildings, catalog, pikminBreakdown, pikminMaxVisible = 18,
-  placement, onSelectBuilding, onPlacePosition, onTapGround,
+  placement, onSelectBuilding, onPlacePosition, onTapGround, onReady,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
@@ -64,6 +65,11 @@ export function VillageGameCanvas({
         sceneRef.current.events.on("placePosition", (pct: any) => onPlacePositionRef.current?.(pct));
         sceneRef.current.events.on("tapGround", () => onTapGroundRef.current?.());
         if (pendingStateRef.current) sceneRef.current.applyState(pendingStateRef.current);
+        onReadyRef.current?.({
+          zoomIn: () => sceneRef.current?.cameraZoomBy(1.25),
+          zoomOut: () => sceneRef.current?.cameraZoomBy(0.8),
+          recenter: () => sceneRef.current?.cameraRecenter(),
+        });
       });
     })();
     return () => {
@@ -82,6 +88,7 @@ export function VillageGameCanvas({
   const onSelectBuildingRef = useRef(onSelectBuilding); onSelectBuildingRef.current = onSelectBuilding;
   const onPlacePositionRef = useRef(onPlacePosition); onPlacePositionRef.current = onPlacePosition;
   const onTapGroundRef = useRef(onTapGround); onTapGroundRef.current = onTapGround;
+  const onReadyRef = useRef(onReady); onReadyRef.current = onReady;
 
   const buildingImageByType = useMemo(() => {
     const map: Record<string, string | null> = {};
