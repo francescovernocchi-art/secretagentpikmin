@@ -85,6 +85,8 @@ function randomAnim(): PikminAnimation {
 export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }: Props) {
   const [prefs, setPrefs] = useState<Prefs>(() => loadPrefs());
   const [selected, setSelected] = useState<Agent | null>(null);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
+  const { labels, refresh: refreshLabels } = usePikminLabels();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 600, h: 360 });
 
