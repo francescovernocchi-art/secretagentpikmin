@@ -289,14 +289,14 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
           <span>Mostra Pikmin</span>
         </label>
         <span className="text-muted-foreground">·</span>
-        <label className="flex items-center gap-1">
-          Qtà
+        <label className="flex items-center gap-1" title="Limite massimo di Pikmin visibili contemporaneamente">
+          Max
           <input
-            type="range" min={3} max={MAX_PIKMIN} value={prefs.count}
-            onChange={(e) => setPrefs((p) => ({ ...p, count: Number(e.target.value) }))}
+            type="range" min={3} max={MAX_PIKMIN} value={prefs.maxCap}
+            onChange={(e) => setPrefs((p) => ({ ...p, maxCap: Number(e.target.value) }))}
             className="w-20 accent-primary"
           />
-          <span className="w-5 text-right">{prefs.count}</span>
+          <span className="w-5 text-right">{prefs.maxCap}</span>
         </label>
         <label className="flex items-center gap-1">
           Vel
