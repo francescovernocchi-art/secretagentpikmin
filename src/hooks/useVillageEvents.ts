@@ -32,9 +32,8 @@ export function useActiveVillageEvents(biome: string | null | undefined) {
 
   useEffect(() => {
     load();
-    const ch = supabase
-      .channel("village_events:" + (biome ?? "all"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "village_diorama_events" }, () => load())
+    const ch = supabase.channel(`village_events:${biome ?? "all"}:${Math.random().toString(36).slice(2)}`);
+    ch.on("postgres_changes" as any, { event: "*", schema: "public", table: "village_diorama_events" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [biome, load]);
