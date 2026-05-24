@@ -249,6 +249,7 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
               showBubbles={a.type === "blue" && (a.anim === "idle" || a.anim === "work")}
               showParticles={a.anim === "celebrate"}
               showZ={a.anim === "sleep"}
+              spriteUrls={labels[a.type]?.sprites}
               onClick={() => setSelected({ ...a })}
             />
           );

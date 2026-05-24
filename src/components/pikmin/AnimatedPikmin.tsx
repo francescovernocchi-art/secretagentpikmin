@@ -21,6 +21,19 @@ export interface AnimatedPikminProps {
   showParticles?: boolean;
   showShadow?: boolean;
   showZ?: boolean;
+  /** Sprite personalizzati per animazione (URL pubblici). Se assenti si usa il disegno SVG. */
+  spriteUrls?: Partial<Record<PikminAnimation, string | null>> | null;
+}
+
+/** Mappa animazione → chiave sprite. carry/work/run riusano walk; celebrate riusa idle. */
+function resolveSpriteUrl(anim: PikminAnimation, urls?: AnimatedPikminProps["spriteUrls"]): string | null {
+  if (!urls) return null;
+  const direct = urls[anim];
+  if (direct) return direct;
+  // fallback intelligente tra i 4 sprite supportati (idle/walk/sleep/attack)
+  if (anim === "carry" || anim === "work" || anim === "run") return urls.walk ?? urls.idle ?? null;
+  if (anim === "celebrate") return urls.idle ?? urls.walk ?? null;
+  return urls.idle ?? null;
 }
 
 const BODY: Record<PikminType, string> = {
@@ -104,7 +117,7 @@ function PikminBody({ type }: { type: PikminType }) {
   );
 }
 
-/** Singolo Pikmin animato — pure SVG/CSS. */
+/** Singolo Pikmin animato — sprite caricato dall'admin oppure fallback SVG. */
 function AnimatedPikminBase({
   type,
   animation,
@@ -120,10 +133,12 @@ function AnimatedPikminBase({
   showParticles,
   showShadow = true,
   showZ,
+  spriteUrls,
 }: AnimatedPikminProps) {
   const def = ANIMATIONS[animation];
   const w = size;
   const h = Math.round(size * 1.25);
+  const customSprite = resolveSpriteUrl(animation, spriteUrls);
 
   const positioned = x !== undefined || y !== undefined;
   const wrapperStyle: React.CSSProperties = positioned
@@ -155,31 +170,43 @@ function AnimatedPikminBase({
         }}
       >
         <div style={{ width: "100%", height: "100%", transform: `scale(${scale})`, transformOrigin: "center bottom" }}>
-          <PikminBody type={type} />
+          {customSprite ? (
+            <img
+              src={customSprite}
+              alt=""
+              draggable={false}
+              style={{ width: "100%", height: "100%", objectFit: "contain", imageRendering: "auto", pointerEvents: "none" }}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+            />
+          ) : (
+            <>
+              <PikminBody type={type} />
 
-          {/* Oggetto trasportato */}
-          {animation === "carry" && (
-            <div style={{
-              position: "absolute",
-              left: "30%", top: "8%",
-              width: "40%", height: "22%",
-              background: "#a16207",
-              border: "1.5px solid #422006",
-              borderRadius: 2,
-            }} />
-          )}
+              {/* Oggetto trasportato */}
+              {animation === "carry" && (
+                <div style={{
+                  position: "absolute",
+                  left: "30%", top: "8%",
+                  width: "40%", height: "22%",
+                  background: "#a16207",
+                  border: "1.5px solid #422006",
+                  borderRadius: 2,
+                }} />
+              )}
 
-          {/* Martello/strumento durante lavoro */}
-          {animation === "work" && (
-            <div style={{
-              position: "absolute",
-              right: "-10%", top: "40%",
-              width: "30%", height: "8%",
-              background: "#52525b",
-              borderRadius: 2,
-              transformOrigin: "left center",
-              animation: "pikminWork var(--pikmin-anim-dur, 0.5s) ease-in-out infinite",
-            }} />
+              {/* Martello/strumento durante lavoro */}
+              {animation === "work" && (
+                <div style={{
+                  position: "absolute",
+                  right: "-10%", top: "40%",
+                  width: "30%", height: "8%",
+                  background: "#52525b",
+                  borderRadius: 2,
+                  transformOrigin: "left center",
+                  animation: "pikminWork var(--pikmin-anim-dur, 0.5s) ease-in-out infinite",
+                }} />
+              )}
+            </>
           )}
         </div>
       </div>

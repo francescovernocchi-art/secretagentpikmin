@@ -1141,6 +1141,7 @@ export type Database = {
           description: string | null
           exploration_use: string | null
           first_appearance: string | null
+          icon_url: string | null
           id: string
           image_url: string | null
           key: string
@@ -1148,6 +1149,10 @@ export type Database = {
           resistances: string[]
           sort_order: number
           source_url: string | null
+          sprite_attack_url: string | null
+          sprite_idle_url: string | null
+          sprite_sleep_url: string | null
+          sprite_walk_url: string | null
           updated_at: string
           weaknesses: string[]
         }
@@ -1159,6 +1164,7 @@ export type Database = {
           description?: string | null
           exploration_use?: string | null
           first_appearance?: string | null
+          icon_url?: string | null
           id?: string
           image_url?: string | null
           key: string
@@ -1166,6 +1172,10 @@ export type Database = {
           resistances?: string[]
           sort_order?: number
           source_url?: string | null
+          sprite_attack_url?: string | null
+          sprite_idle_url?: string | null
+          sprite_sleep_url?: string | null
+          sprite_walk_url?: string | null
           updated_at?: string
           weaknesses?: string[]
         }
@@ -1177,6 +1187,7 @@ export type Database = {
           description?: string | null
           exploration_use?: string | null
           first_appearance?: string | null
+          icon_url?: string | null
           id?: string
           image_url?: string | null
           key?: string
@@ -1184,6 +1195,10 @@ export type Database = {
           resistances?: string[]
           sort_order?: number
           source_url?: string | null
+          sprite_attack_url?: string | null
+          sprite_idle_url?: string | null
+          sprite_sleep_url?: string | null
+          sprite_walk_url?: string | null
           updated_at?: string
           weaknesses?: string[]
         }
@@ -1460,6 +1475,36 @@ export type Database = {
             referencedColumns: ["key"]
           },
         ]
+      }
+      sprite_assets: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          tags: string[]
+          url: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          tags?: string[]
+          url: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          tags?: string[]
+          url?: string
+        }
+        Relationships: []
       }
       trade_offers: {
         Row: {
