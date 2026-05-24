@@ -47,7 +47,7 @@ export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
           <DialogTitle>Scegli il bioma del villaggio</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {BIOME_LIST.map((b) => {
+          {allBiomes.map((b) => {
             const active = b.key === current.key;
             return (
               <button
