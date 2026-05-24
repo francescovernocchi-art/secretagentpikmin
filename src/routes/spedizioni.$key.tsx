@@ -583,3 +583,47 @@ function JoinPanel({
     </div>
   );
 }
+
+function hasOwnSquadOther(squads: ExpeditionSquad[], agent: string | null) {
+  if (!agent) return false;
+  return squads.some((s) => s.agent === agent);
+}
+
+function InvitePartnerButton({
+  expeditionId,
+  agent,
+  onInvited,
+}: {
+  expeditionId: string;
+  agent: string;
+  onInvited: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const partner = PARTNER_OF[agent];
+  const partnerLabel = partner === "papa" ? "Papà" : "Lorenzo";
+  const invite = async () => {
+    setErr(null);
+    setBusy(true);
+    try {
+      await inviteToExpedition(expeditionId, agent);
+      onInvited();
+    } catch (e: any) {
+      setErr(e?.message ?? "Errore");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="panel p-3 space-y-2">
+      <button
+        onClick={invite}
+        disabled={busy}
+        className="w-full rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/10 px-3 py-2.5 text-sm flex items-center justify-center gap-2 text-fuchsia-100 disabled:opacity-50"
+      >
+        <UserPlus className="h-4 w-4" /> Invita {partnerLabel} ad unirsi (+15% successo)
+      </button>
+      {err && <p className="text-xs text-destructive">{err}</p>}
+    </div>
+  );
+}
