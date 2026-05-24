@@ -355,7 +355,7 @@ function VillaggioPage() {
       />
       <BuildingPanel
         open={openPanel === ("building" as any)}
-        onOpenChange={(o) => { if (!o) { setOpenPanel(null); setSelectedBuildingId(null); } }}
+        onOpenChange={(o: boolean) => { if (!o) { setOpenPanel(null); setSelectedBuildingId(null); } }}
         agent={agent}
         coins={coins}
         building={selectedBuilding}
