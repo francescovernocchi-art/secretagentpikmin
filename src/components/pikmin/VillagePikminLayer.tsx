@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { AnimatedPikmin } from "./AnimatedPikmin";
+import { PikminCustomizerModal } from "./PikminCustomizerModal";
+import { usePikminLabels } from "@/hooks/usePikminLabels";
 import {
   ANIMATION_LABEL,
   MISSION_HINTS,
   PIKMIN_COLOR_DOT,
-  PIKMIN_LABEL,
+  
   TYPE_NAMES,
   type PikminAnimation,
   type PikminType,
@@ -83,6 +85,8 @@ function randomAnim(): PikminAnimation {
 export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }: Props) {
   const [prefs, setPrefs] = useState<Prefs>(() => loadPrefs());
   const [selected, setSelected] = useState<Agent | null>(null);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
+  const { labels, refresh: refreshLabels } = usePikminLabels();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 600, h: 360 });
 
@@ -297,12 +301,27 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
                 : "bg-transparent border-muted-foreground/30 text-muted-foreground opacity-60"
             }`}
             aria-pressed={prefs.filters[t]}
+            title={labels[t].name}
           >
             <span className="inline-block w-2 h-2 rounded-full mr-1 align-middle" style={{ background: PIKMIN_COLOR_DOT[t] }} />
             {t}
           </button>
         ))}
+        <span className="text-muted-foreground">·</span>
+        <button
+          onClick={() => setCustomizerOpen(true)}
+          className="px-2 py-0.5 rounded-full border border-primary/50 bg-primary/10 text-[10px] hover:bg-primary/20"
+          title="Rinomina Pikmin / icone"
+        >
+          ✏️ Personalizza
+        </button>
       </div>
+
+      <PikminCustomizerModal
+        open={customizerOpen}
+        onClose={() => setCustomizerOpen(false)}
+        onSaved={() => { void refreshLabels(); }}
+      />
 
       {/* Tooltip al click */}
       {selected && (
@@ -316,11 +335,19 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
           >
             <div className="flex items-center gap-3">
               <div className="panel p-1 flex items-center justify-center" style={{ width: 64, height: 80 }}>
-                <AnimatedPikmin type={selected.type} animation={selected.anim} size={48} showShadow={false} />
+                {labels[selected.type].image_url ? (
+                  <img
+                    src={labels[selected.type].image_url!}
+                    alt={labels[selected.type].name}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <AnimatedPikmin type={selected.type} animation={selected.anim} size={48} showShadow={false} />
+                )}
               </div>
               <div className="flex-1">
                 <p className="font-display text-base">{selected.name}</p>
-                <p className="text-[11px] text-muted-foreground">{PIKMIN_LABEL[selected.type]}</p>
+                <p className="text-[11px] text-muted-foreground">{labels[selected.type].name}</p>
                 <p className="text-[10px] text-primary">Lv {selected.level}</p>
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded-full"
