@@ -42,6 +42,7 @@ export function VillageGameCanvas({
   const biome = resolveBiome(biomeKey).key;
   const { diorama, slots } = useActiveDiorama(biome);
   const { species } = usePikminSpecies();
+  const { events } = useActiveVillageEvents(biome);
 
   // mount Phaser
   useEffect(() => {
