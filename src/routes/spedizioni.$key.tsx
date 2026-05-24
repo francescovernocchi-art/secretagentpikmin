@@ -226,7 +226,6 @@ function PrepareView({ templateKey }: { templateKey: string }) {
           </div>
           <p className="text-[10px] text-muted-foreground text-center">
             Compatibilità bioma: {Math.round(preview.recommendedMatchPct * 100)}%
-            {isCoop && " · Bonus coop attivo +15%"}
           </p>
         </div>
       )}
