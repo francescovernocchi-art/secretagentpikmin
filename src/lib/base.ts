@@ -50,6 +50,8 @@ export interface BaseBuilding {
   build_end_at: string | null;
   position_x: number;
   position_y: number;
+  slot_key: string | null;
+  biome_key: string | null;
   created_at: string;
   updated_at: string;
 }
