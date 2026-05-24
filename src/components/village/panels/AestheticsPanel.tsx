@@ -1,9 +1,10 @@
-import { Palette, Image as ImageIcon, Mountain } from "lucide-react";
+import { Palette, Image as ImageIcon, Mountain, Sparkles } from "lucide-react";
 import { VillagePanelSheet } from "./VillagePanelSheet";
 import { BiomeSelector } from "../BiomeSelector";
 import { VillageCustomizer } from "../VillageCustomizer";
 import { DioramaPanel } from "./DioramaPanel";
 import { BiomeAdminPanel } from "./BiomeAdminPanel";
+import { EventsAdminPanel } from "./EventsAdminPanel";
 import { useState, useEffect } from "react";
 import { usePikminSpecies } from "@/hooks/usePikminSpecies";
 import {
@@ -34,6 +35,7 @@ export function AestheticsPanel({
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [dioramaOpen, setDioramaOpen] = useState(false);
   const [biomeAdminOpen, setBiomeAdminOpen] = useState(false);
+  const [eventsAdminOpen, setEventsAdminOpen] = useState(false);
   const [isPapa, setIsPapa] = useState(false);
   const cosmetics: VillageCosmetics = getCosmetics(base.layout);
   const biomeKey = resolveBiome(base.theme).key;
@@ -120,6 +122,13 @@ export function AestheticsPanel({
             </button>
           )}
 
+          {isPapa && (
+            <button onClick={() => setEventsAdminOpen(true)}
+              className="btn-neon w-full py-2 text-xs inline-flex items-center justify-center gap-2">
+              <Sparkles className="h-4 w-4" /> Eventi del Villaggio (admin)
+            </button>
+          )}
+
           <button onClick={() => setCustomizerOpen(true)}
             className="btn-neon w-full py-2 text-xs">
             Apri Customizer Villaggio
@@ -139,6 +148,14 @@ export function AestheticsPanel({
           open={biomeAdminOpen}
           onOpenChange={setBiomeAdminOpen}
           onChanged={() => { reloadBiomes(); onRefresh(); }}
+        />
+      )}
+
+      {isPapa && (
+        <EventsAdminPanel
+          open={eventsAdminOpen}
+          onOpenChange={setEventsAdminOpen}
+          onChanged={onRefresh}
         />
       )}
 

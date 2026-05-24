@@ -5,6 +5,7 @@ import { useBuildingImages } from "@/hooks/useBuildingImages";
 import { pickBuildingImage } from "@/lib/village/buildingImages";
 import { useActiveDiorama } from "@/hooks/useActiveDiorama";
 import { usePikminSpecies } from "@/hooks/usePikminSpecies";
+import { useActiveVillageEvents } from "@/hooks/useVillageEvents";
 import type { PlacementInfo, VillageGameState, PikminLayerConfig, PikminSpeciesInfo } from "@/game/village/VillageTypes";
 
 interface Props {
@@ -41,6 +42,7 @@ export function VillageGameCanvas({
   const biome = resolveBiome(biomeKey).key;
   const { diorama, slots } = useActiveDiorama(biome);
   const { species } = usePikminSpecies();
+  const { events } = useActiveVillageEvents(biome);
 
   // mount Phaser
   useEffect(() => {
@@ -156,10 +158,11 @@ export function VillageGameCanvas({
       buildingCategoryByType,
       placement: placementInfo,
       pikmin: pikminFull ?? undefined,
+      events,
     };
     pendingStateRef.current = state;
     if (readyRef.current && sceneRef.current) sceneRef.current.applyState(state);
-  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo, pikminFull]);
+  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo, pikminFull, events]);
 
   return (
     <div

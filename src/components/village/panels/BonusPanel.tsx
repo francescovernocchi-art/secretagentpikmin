@@ -1,14 +1,17 @@
 import { Sparkles } from "lucide-react";
 import { VillagePanelSheet } from "./VillagePanelSheet";
 import { BONUS_ICON, BONUS_LABEL, type VillageStatus, type BonusKey } from "@/lib/village/bonuses";
+import { useActiveVillageEvents } from "@/hooks/useVillageEvents";
 
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   status: VillageStatus;
+  biomeKey?: string | null;
 }
 
-export function BonusPanel({ open, onOpenChange, status }: Props) {
+export function BonusPanel({ open, onOpenChange, status, biomeKey }: Props) {
+  const { events } = useActiveVillageEvents(biomeKey ?? null);
   // Raggruppa per bonus key
   const grouped = new Map<BonusKey, { total: number; sources: { name: string; level: number; amount: number }[] }>();
   for (const s of status.sources) {
@@ -31,6 +34,40 @@ export function BonusPanel({ open, onOpenChange, status }: Props) {
     <VillagePanelSheet open={open} onOpenChange={onOpenChange}
       title="Bonus aggregati" icon={<Sparkles className="h-4 w-4 text-cyan-400" />}>
       <div className="space-y-3">
+        {events.length > 0 && (
+          <section>
+            <p className="text-[10px] uppercase tracking-widest text-amber-400 mb-2">Eventi attivi</p>
+            <div className="space-y-1.5">
+              {events.map((ev) => (
+                <div key={ev.id} className="panel p-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{ev.icon}</span>
+                    <p className="text-xs font-semibold flex-1 truncate">{ev.name}</p>
+                  </div>
+                  {(ev.bonuses.length > 0 || ev.maluses.length > 0) && (
+                    <ul className="text-[10px] text-muted-foreground mt-1 space-y-0.5">
+                      {ev.bonuses.map((b, i) => (
+                        <li key={`b${i}`} className="flex justify-between">
+                          <span>{BONUS_LABEL[b.key as BonusKey] ?? b.key}</span>
+                          <span className={b.amount >= 0 ? "text-emerald-400" : "text-rose-400"}>
+                            {b.amount >= 0 ? "+" : ""}{b.amount}
+                          </span>
+                        </li>
+                      ))}
+                      {ev.maluses.map((b, i) => (
+                        <li key={`m${i}`} className="flex justify-between">
+                          <span>{BONUS_LABEL[b.key as BonusKey] ?? b.key}</span>
+                          <span className="text-rose-400">-{Math.abs(b.amount)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="grid grid-cols-2 gap-2">
           {totals.map((t) => (
             <div key={t.key} className="panel-strong p-2 flex items-center gap-2">
