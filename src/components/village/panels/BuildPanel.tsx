@@ -59,8 +59,8 @@ export function BuildPanel({
             const canAfford = coins >= cost.coins;
             return (
               <motion.div key={c.key} layout
-                className="panel p-3 flex items-center gap-3">
-                <div className="w-14 h-14 panel-strong flex items-center justify-center overflow-hidden shrink-0">
+                className="rounded-xl p-3 flex items-center gap-3 border border-primary/25 bg-[oklch(0.22_0.04_250_/_0.95)] shadow-md">
+                <div className="w-14 h-14 rounded-lg bg-[oklch(0.14_0.03_250)] border border-primary/30 flex items-center justify-center overflow-hidden shrink-0">
                   {img ? <img src={img} alt={c.name} className="w-full h-full object-contain" />
                        : <span className="text-2xl">{c.emoji}</span>}
                 </div>
