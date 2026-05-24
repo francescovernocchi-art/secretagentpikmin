@@ -666,4 +666,139 @@ export class VillageScene extends Phaser.Scene {
       }
     }
   }
+
+  // ───────── events (overlay diorama) ─────────
+
+  private ensureParticleTexture() {
+    if (this.textures.exists(PARTICLE_TEX_KEY)) return;
+    const g = this.add.graphics({ x: 0, y: 0 });
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(4, 4, 4);
+    g.generateTexture(PARTICLE_TEX_KEY, 8, 8);
+    g.destroy();
+  }
+
+  private ensureEventTexture(url: string, onReady: () => void) {
+    const key = EVENT_TEX_PREFIX + url;
+    if (this.textures.exists(key)) { onReady(); return; }
+    if (this.eventTexLoading.has(key)) return;
+    this.eventTexLoading.add(key);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      if (!this.textures.exists(key)) this.textures.addImage(key, img);
+      this.eventTexLoading.delete(key);
+      onReady();
+    };
+    img.onerror = () => this.eventTexLoading.delete(key);
+    img.src = url;
+  }
+
+  private syncEvents() {
+    const wanted = new Map<string, VillageEventRow>();
+    for (const e of this.state?.events ?? []) wanted.set(e.id, e);
+
+    // remove old
+    for (const [id, nodes] of this.eventNodes) {
+      if (!wanted.has(id)) {
+        nodes.forEach((n) => { try { n.destroy(); } catch { /* ignore */ } });
+        this.eventNodes.delete(id);
+      }
+    }
+    // add new
+    for (const [id, evt] of wanted) {
+      if (!this.eventNodes.has(id)) this.spawnEvent(evt);
+    }
+  }
+
+  private spawnEvent(evt: VillageEventRow) {
+    const nodes: Phaser.GameObjects.GameObject[] = [];
+    const fx = evt.effects ?? {};
+    const w = this.worldW, h = this.worldH;
+
+    // overlay tint full-world
+    if (fx.overlay?.tint) {
+      const color = Phaser.Display.Color.HexStringToColor(fx.overlay.tint).color;
+      const rect = this.add.rectangle(0, 0, w, h, color, fx.overlay.alpha ?? 0.2).setOrigin(0, 0);
+      rect.setBlendMode(Phaser.BlendModes.MULTIPLY);
+      this.layerEvents.add(rect);
+      nodes.push(rect);
+    }
+
+    // overlay image (es. neve, ragnatele, nebbia)
+    if (evt.overlay_image_url) {
+      const url = evt.overlay_image_url;
+      this.ensureEventTexture(url, () => {
+        if (!this.eventNodes.has(evt.id)) return; // already removed
+        const key = EVENT_TEX_PREFIX + url;
+        const img = this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(w, h).setAlpha(0.85);
+        this.layerEvents.add(img);
+        this.eventNodes.get(evt.id)!.push(img);
+      });
+    }
+
+    // glow centrale
+    if (fx.glow) {
+      const c = Phaser.Display.Color.HexStringToColor(fx.glow.color).color;
+      const radius = Math.min(w, h) * 0.6;
+      const glow = this.add.circle(w / 2, h / 2, radius, c, (fx.glow.intensity ?? 0.3));
+      glow.setBlendMode(Phaser.BlendModes.ADD);
+      this.layerEvents.add(glow);
+      this.tweens.add({ targets: glow, alpha: { from: glow.alpha * 0.6, to: glow.alpha }, duration: 1800, yoyo: true, repeat: -1 });
+      nodes.push(glow);
+    }
+
+    // particelle
+    if (fx.particles) {
+      const p = this.spawnParticles(fx.particles.kind, fx.particles.color, fx.particles.count);
+      if (p) { this.layerEvents.add(p); nodes.push(p); }
+    }
+
+    this.eventNodes.set(evt.id, nodes);
+  }
+
+  private spawnParticles(kind: ParticleKind, color: string | undefined, count: number | undefined) {
+    if (!this.textures.exists(PARTICLE_TEX_KEY)) this.ensureParticleTexture();
+    const w = this.worldW, h = this.worldH;
+    const tint = color ? Phaser.Display.Color.HexStringToColor(color).color : 0xffffff;
+    const qty = Math.max(4, Math.min(200, count ?? 40));
+
+    const cfg: Phaser.Types.GameObjects.Particles.ParticleEmitterConfig = (() => {
+      switch (kind) {
+        case "snow":
+          return { x: { min: 0, max: w }, y: -20, lifespan: 8000, speedY: { min: 30, max: 70 },
+            speedX: { min: -20, max: 20 }, scale: { start: 0.6, end: 0.4 }, alpha: { start: 0.9, end: 0.5 },
+            quantity: 1, frequency: 4000 / qty, tint };
+        case "rain":
+          return { x: { min: 0, max: w }, y: -20, lifespan: 1800, speedY: { min: 400, max: 700 },
+            speedX: { min: -40, max: -10 }, scaleX: 0.4, scaleY: 1.8, alpha: { start: 0.8, end: 0.2 },
+            quantity: 2, frequency: 1500 / qty, tint };
+        case "leaves":
+          return { x: { min: 0, max: w }, y: -20, lifespan: 7000, speedY: { min: 40, max: 90 },
+            speedX: { min: -60, max: 60 }, rotate: { min: 0, max: 360 }, scale: { start: 0.8, end: 0.6 },
+            alpha: { start: 1, end: 0.7 }, quantity: 1, frequency: 5000 / qty, tint };
+        case "embers":
+          return { x: { min: 0, max: w }, y: h + 20, lifespan: 4500, speedY: { min: -120, max: -40 },
+            speedX: { min: -25, max: 25 }, scale: { start: 0.8, end: 0 }, alpha: { start: 1, end: 0 },
+            blendMode: Phaser.BlendModes.ADD, quantity: 1, frequency: 3500 / qty, tint };
+        case "meteor":
+          return { x: { min: 0, max: w }, y: -50, lifespan: 1400, speedY: { min: 700, max: 1100 },
+            speedX: { min: -300, max: -150 }, scaleX: 0.6, scaleY: 3, alpha: { start: 1, end: 0 },
+            blendMode: Phaser.BlendModes.ADD, quantity: 1, frequency: 9000 / qty, tint };
+        case "nectar":
+          return { x: { min: 0, max: w }, y: -20, lifespan: 6000, speedY: { min: 60, max: 130 },
+            speedX: { min: -10, max: 10 }, scale: { start: 0.7, end: 0.5 }, alpha: { start: 0.95, end: 0.6 },
+            blendMode: Phaser.BlendModes.ADD, quantity: 1, frequency: 4000 / qty, tint };
+        case "sparkle":
+        default:
+          return { x: { min: 0, max: w }, y: { min: 0, max: h }, lifespan: 1600,
+            scale: { start: 0.8, end: 0 }, alpha: { start: 1, end: 0 },
+            blendMode: Phaser.BlendModes.ADD, quantity: 1, frequency: 200, tint };
+      }
+    })();
+
+    const em = this.add.particles(0, 0, PARTICLE_TEX_KEY, cfg);
+    em.setDepth(40);
+    return em;
+  }
 }
