@@ -1,15 +1,18 @@
-import { Palette, Image as ImageIcon } from "lucide-react";
+import { Palette, Image as ImageIcon, Mountain } from "lucide-react";
 import { VillagePanelSheet } from "./VillagePanelSheet";
 import { BiomeSelector } from "../BiomeSelector";
 import { VillageCustomizer } from "../VillageCustomizer";
 import { DioramaPanel } from "./DioramaPanel";
-import { useState } from "react";
+import { BiomeAdminPanel } from "./BiomeAdminPanel";
+import { useState, useEffect } from "react";
 import { usePikminSpecies } from "@/hooks/usePikminSpecies";
 import {
   loadPikminPrefs, savePikminPrefs, MAX_PIKMIN, type PikminLayerPrefs,
 } from "@/components/pikmin/VillagePikminLayer";
 import { getCosmetics, type VillageCosmetics } from "@/lib/village/cosmetics";
 import { resolveBiome } from "@/lib/village/biomes";
+import { useCustomBiomes } from "@/hooks/useCustomBiomes";
+import { getSession } from "@/lib/session";
 import type { BaseRow } from "@/lib/base";
 
 interface Props {
@@ -27,10 +30,15 @@ export function AestheticsPanel({
   open, onOpenChange, agent, base, prefs, onPrefsChange, onBaseChange, onRefresh,
 }: Props) {
   const { species } = usePikminSpecies();
+  const { reload: reloadBiomes } = useCustomBiomes();
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [dioramaOpen, setDioramaOpen] = useState(false);
+  const [biomeAdminOpen, setBiomeAdminOpen] = useState(false);
+  const [isPapa, setIsPapa] = useState(false);
   const cosmetics: VillageCosmetics = getCosmetics(base.layout);
   const biomeKey = resolveBiome(base.theme).key;
+
+  useEffect(() => { setIsPapa(getSession()?.role === "papa"); }, []);
 
   const update = (p: PikminLayerPrefs) => { onPrefsChange(p); savePikminPrefs(p); };
 
