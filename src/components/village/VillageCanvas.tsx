@@ -108,6 +108,6 @@ export function VillageCanvas({
           </div>
         </div>
       )}
-    </motion.div>
+    </Wrapper>
   );
 }
