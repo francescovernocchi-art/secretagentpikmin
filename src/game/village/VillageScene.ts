@@ -231,12 +231,10 @@ export class VillageScene extends Phaser.Scene {
     this.layerSlots.removeAll(true);
 
     const inBuildMode = !!this.state.placement;
-    if (!inBuildMode) return;
-
-    const placement = this.state.placement!;
+    const placement = this.state.placement;
     const usedSlotKeys = new Set<string>();
-    // mark slots already occupied (best-effort by proximity)
     for (const b of this.state.buildings) {
+      if (b.slot_key) { usedSlotKeys.add(b.slot_key); continue; }
       const slot = this.findNearestSlot(
         (b.position_x / 100) * this.worldW,
         (b.position_y / 100) * this.worldH,
@@ -245,21 +243,26 @@ export class VillageScene extends Phaser.Scene {
     }
 
     for (const slot of this.state.slots) {
-      const compatible = slot.allowed_categories.length === 0
+      const occupied = usedSlotKeys.has(slot.slot_key);
+      const compatible = !placement
+        || slot.allowed_categories.length === 0
         || !placement.category
         || slot.allowed_categories.includes(placement.category);
-      const occupied = usedSlotKeys.has(slot.slot_key);
-      this.createSlotMarker(slot, compatible && !occupied);
+      this.createSlotMarker(slot, !occupied, compatible, inBuildMode);
     }
   }
 
-  private createSlotMarker(slot: DioramaSlot, available: boolean) {
+  private createSlotMarker(slot: DioramaSlot, available: boolean, compatible: boolean, inBuildMode: boolean) {
     const radius = slot.size === "large" ? 64 : slot.size === "medium" ? 50 : 38;
-    const color = available ? 0x6ee7a8 : 0x9ca3af;
+    const usable = available && compatible;
+    // In build mode → verde acceso se compatibile, grigio se no/occupato
+    // In modalità normale → ring discreto solo per slot liberi
+    const color = usable ? 0x6ee7a8 : 0x9ca3af;
+    const baseAlpha = inBuildMode ? 0.95 : (available ? 0.55 : 0);
     const ring = this.add.circle(0, 0, radius, color, 0);
-    ring.setStrokeStyle(4, color, 0.95);
-    const fill = this.add.circle(0, 0, radius - 8, color, available ? 0.25 : 0.1);
-    const pulse = this.add.circle(0, 0, radius, color, 0.18);
+    ring.setStrokeStyle(inBuildMode ? 4 : 2, color, baseAlpha);
+    const fill = this.add.circle(0, 0, radius - 8, color, inBuildMode && usable ? 0.25 : (available ? 0.08 : 0));
+    const pulse = this.add.circle(0, 0, radius, color, inBuildMode && usable ? 0.18 : 0);
 
     const c = this.add.container(slot.x, slot.y, [pulse, fill, ring]);
     c.setSize(radius * 2, radius * 2);
@@ -273,17 +276,28 @@ export class VillageScene extends Phaser.Scene {
       c.on("pointerup", (p: Phaser.Input.Pointer) => {
         if (this.dragMoved) return;
         if (p.event && (p.event as any).stopPropagation) (p.event as any).stopPropagation();
-        this.events.emit("placePosition", {
-          x: (slot.x / this.worldW) * 100,
-          y: (slot.y / this.worldH) * 100,
-          slotKey: slot.slot_key,
-        });
+        if (inBuildMode && compatible) {
+          this.events.emit("placePosition", {
+            x: (slot.x / this.worldW) * 100,
+            y: (slot.y / this.worldH) * 100,
+            slotKey: slot.slot_key,
+          });
+        } else if (!inBuildMode) {
+          this.events.emit("selectSlot", {
+            slotKey: slot.slot_key,
+            x: (slot.x / this.worldW) * 100,
+            y: (slot.y / this.worldH) * 100,
+            allowedCategories: slot.allowed_categories,
+          });
+        }
       });
 
-      this.tweens.add({
-        targets: pulse, scale: { from: 0.9, to: 1.2 }, alpha: { from: 0.4, to: 0 },
-        duration: 1400, repeat: -1, ease: "Sine.Out",
-      });
+      if (inBuildMode && usable) {
+        this.tweens.add({
+          targets: pulse, scale: { from: 0.9, to: 1.2 }, alpha: { from: 0.4, to: 0 },
+          duration: 1400, repeat: -1, ease: "Sine.Out",
+        });
+      }
     }
 
     this.layerSlots.add(c);
