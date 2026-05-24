@@ -214,7 +214,8 @@ export async function fetchExpedition(id: string): Promise<{ exp: Expedition; sq
 export interface CreateExpeditionInput {
   template: MissionTemplate;
   agent: string;
-  isCoop: boolean;
+  /** @deprecated le spedizioni partono single-player; il coop si attiva via invito */
+  isCoop?: boolean;
   totalPikmin: number;
   breakdown: Record<string, number>;
 }
