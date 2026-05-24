@@ -100,12 +100,24 @@ export function AestheticsPanel({
             </div>
           </section>
 
+          <button onClick={() => setDioramaOpen(true)}
+            className="btn-neon w-full py-2 text-xs inline-flex items-center justify-center gap-2">
+            <ImageIcon className="h-4 w-4" /> Gestione Diorama
+          </button>
+
           <button onClick={() => setCustomizerOpen(true)}
             className="btn-neon w-full py-2 text-xs">
             Apri Customizer Villaggio
           </button>
         </div>
       </VillagePanelSheet>
+
+      <DioramaPanel
+        open={dioramaOpen}
+        onOpenChange={setDioramaOpen}
+        biome={biomeKey}
+        onChanged={onRefresh}
+      />
 
       {customizerOpen && (
         <VillageCustomizer
