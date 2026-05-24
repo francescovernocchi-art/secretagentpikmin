@@ -1,6 +1,5 @@
 import Phaser from "phaser";
 import type { BaseBuilding } from "@/lib/base";
-import type { BiomeKey } from "@/lib/village/biomes";
 import type { PikminSpeciesRow } from "@/hooks/usePikminSpecies";
 import {
   WORLD_W, WORLD_H, BIOME_COLORS,
@@ -8,7 +7,7 @@ import {
   type VillageGameState, type PlacementInfo,
 } from "./VillageTypes";
 
-/** PRNG deterministico (mulberry32) per scena stabile cross-reload. */
+/** PRNG deterministico (mulberry32). */
 function mulberry32(seed: number) {
   return function () {
     let t = (seed += 0x6d2b79f5);
@@ -37,43 +36,46 @@ interface PikminSprite {
   vx: number;
   vy: number;
   speciesKey: string;
+  bob: number;
 }
 
 const EMOJI_TEXTURE_PREFIX = "emoji:";
 const BUILD_TEXTURE_PREFIX = "bld:";
 const PIK_TEXTURE_PREFIX = "pik:";
 
+/** Oggetti quotidiani giganti, per dare identità al mondo. */
+const GIANT_PROPS = ["🥫", "🍾", "🧴", "🔩", "🔧", "🪤", "🔥", "☕", "🪙", "🧴", "📎", "🪫"];
+
 export class VillageScene extends Phaser.Scene {
   private state: VillageGameState | null = null;
 
   // layers
-  private layerTerrain!: Phaser.GameObjects.Container;
-  private layerDecor!: Phaser.GameObjects.Container;
-  private layerShadows!: Phaser.GameObjects.Container;
-  private layerBuildings!: Phaser.GameObjects.Container;
-  private layerPikmin!: Phaser.GameObjects.Container;
-  private layerEffects!: Phaser.GameObjects.Container;
-  private layerPlacement!: Phaser.GameObjects.Container;
+  private layerTerrain!: Phaser.GameObjects.Container;       // base + blobs
+  private layerPaths!: Phaser.GameObjects.Container;         // sentieri
+  private layerDecor!: Phaser.GameObjects.Container;         // grass/flowers/pebbles (flat)
+  private layerVeg!: Phaser.GameObjects.Container;           // alberi/cespugli (depth=y)
+  private layerProps!: Phaser.GameObjects.Container;         // oggetti giganti (depth=y)
+  private layerBuildings!: Phaser.GameObjects.Container;     // edifici (depth=y)
+  private layerPikmin!: Phaser.GameObjects.Container;        // pikmin (depth=y)
+  private layerEffects!: Phaser.GameObjects.Container;       // fog/particelle
+  private layerPlacement!: Phaser.GameObjects.Container;     // ghost build
 
   private buildingSprites = new Map<string, BuildingSprite>();
   private pikminSprites: PikminSprite[] = [];
 
-  // placement
   private placementGhost: Phaser.GameObjects.Container | null = null;
   private placementValid = false;
 
-  // input pan/zoom
   private isPanning = false;
   private pinchPrevDist = 0;
 
   constructor() { super("village"); }
 
-  /** API esterna chiamata dal canvas React quando lo stato cambia. */
   public applyState(next: VillageGameState) {
     const prev = this.state;
     this.state = next;
     if (!prev || prev.biome !== next.biome || prev.seed !== next.seed) {
-      this.rebuildTerrain();
+      this.rebuildWorld();
     }
     this.ensureBuildingTextures();
     this.ensurePikminTextures();
@@ -87,24 +89,24 @@ export class VillageScene extends Phaser.Scene {
     cam.setBounds(0, 0, WORLD_W, WORLD_H);
     cam.setBackgroundColor(0x0a0f0a);
 
-    this.layerTerrain = this.add.container(0, 0).setDepth(0);
-    this.layerDecor = this.add.container(0, 0).setDepth(1);
-    this.layerShadows = this.add.container(0, 0).setDepth(2);
+    this.layerTerrain   = this.add.container(0, 0).setDepth(0);
+    this.layerPaths     = this.add.container(0, 0).setDepth(1);
+    this.layerDecor     = this.add.container(0, 0).setDepth(2);
+    this.layerVeg       = this.add.container(0, 0).setDepth(3);
+    this.layerProps     = this.add.container(0, 0).setDepth(3);
     this.layerBuildings = this.add.container(0, 0).setDepth(3);
-    this.layerPikmin = this.add.container(0, 0).setDepth(4);
-    this.layerEffects = this.add.container(0, 0).setDepth(5);
-    this.layerPlacement = this.add.container(0, 0).setDepth(6);
+    this.layerPikmin    = this.add.container(0, 0).setDepth(3);
+    this.layerEffects   = this.add.container(0, 0).setDepth(50);
+    this.layerPlacement = this.add.container(0, 0).setDepth(99);
 
     this.setupInput();
     this.fitCamera();
-
     this.scale.on("resize", () => this.fitCamera());
 
-    // tick AI pikmin
     this.events.on(Phaser.Scenes.Events.UPDATE, this.tickPikmin, this);
 
     if (this.state) {
-      this.rebuildTerrain();
+      this.rebuildWorld();
       this.ensureBuildingTextures();
       this.ensurePikminTextures();
       this.diffBuildings();
@@ -114,11 +116,8 @@ export class VillageScene extends Phaser.Scene {
 
   private fitCamera() {
     const cam = this.cameras.main;
-    const w = this.scale.width;
-    const h = this.scale.height;
-    const minZoomX = w / WORLD_W;
-    const minZoomY = h / WORLD_H;
-    const minZoom = Math.max(minZoomX, minZoomY) * 1.05; // un filo oltre, nessun bordo
+    const w = this.scale.width, h = this.scale.height;
+    const minZoom = Math.max(w / WORLD_W, h / WORLD_H) * 1.05;
     cam.setZoom(Math.max(cam.zoom || minZoom, minZoom));
     (cam as any).__minZoom = minZoom;
     cam.centerOn(WORLD_W / 2, WORLD_H / 2);
@@ -137,13 +136,11 @@ export class VillageScene extends Phaser.Scene {
       if (!p.isDown) return;
       const pointers = this.input.manager.pointers.filter((pp: any) => pp.isDown);
       if (pointers.length >= 2) {
-        // pinch
         const [a, b] = pointers;
         const dist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
         if (this.pinchPrevDist > 0) {
           const minZoom = (cam as any).__minZoom ?? 0.4;
-          const factor = dist / this.pinchPrevDist;
-          cam.setZoom(Phaser.Math.Clamp(cam.zoom * factor, minZoom, 2));
+          cam.setZoom(Phaser.Math.Clamp(cam.zoom * (dist / this.pinchPrevDist), minZoom, 2));
         }
         this.pinchPrevDist = dist;
         return;
@@ -162,7 +159,6 @@ export class VillageScene extends Phaser.Scene {
     this.input.on("pointerup", (p: Phaser.Input.Pointer) => {
       this.pinchPrevDist = 0;
       if (this.isPanning) return;
-      // tap
       const world = cam.getWorldPoint(p.x, p.y);
       if (this.state?.placement) {
         if (this.placementValid) {
@@ -171,112 +167,256 @@ export class VillageScene extends Phaser.Scene {
         }
         return;
       }
-      // hit test building
       const hit = this.findBuildingAt(world.x, world.y);
-      if (hit) {
-        this.events.emit("selectBuilding", hit.data.id);
-      } else {
-        this.events.emit("tapGround");
-      }
+      if (hit) this.events.emit("selectBuilding", hit.data.id);
+      else this.events.emit("tapGround");
     });
 
-    // wheel zoom
     this.input.on("wheel", (_p: any, _o: any, _dx: number, dy: number) => {
       const minZoom = (cam as any).__minZoom ?? 0.4;
-      const factor = dy > 0 ? 0.9 : 1.1;
-      cam.setZoom(Phaser.Math.Clamp(cam.zoom * factor, minZoom, 2));
+      cam.setZoom(Phaser.Math.Clamp(cam.zoom * (dy > 0 ? 0.9 : 1.1), minZoom, 2));
     });
   }
 
-  // ─────────── TERRENO ───────────
-  private rebuildTerrain() {
+  // ─────────── WORLD BUILD ───────────
+  private rebuildWorld() {
     this.layerTerrain.removeAll(true);
+    this.layerPaths.removeAll(true);
     this.layerDecor.removeAll(true);
+    this.layerVeg.removeAll(true);
+    this.layerProps.removeAll(true);
+    this.layerEffects.removeAll(true);
     if (!this.state) return;
     const palette = BIOME_COLORS[this.state.biome];
+    const seed = hash((this.state.seed ?? "v") + ":" + this.state.biome);
+    const rnd = mulberry32(seed);
 
-    // background pieno
-    const bg = this.add.rectangle(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H, palette.ground);
-    this.layerTerrain.add(bg);
+    // 1) base
+    this.layerTerrain.add(this.add.rectangle(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H, palette.ground));
 
-    // macchie ondulate di "erba" più chiara
-    const rnd = mulberry32(hash(this.state.seed + ":terrain"));
-    const patchCount = 60;
-    for (let i = 0; i < patchCount; i++) {
+    // 2) macchie organiche di erba (blob morbidi)
+    for (let i = 0; i < 90; i++) {
       const x = rnd() * WORLD_W;
       const y = rnd() * WORLD_H;
-      const rx = 120 + rnd() * 180;
-      const ry = 80 + rnd() * 140;
-      const e = this.add.ellipse(x, y, rx * 2, ry * 2, palette.grass, 0.55);
-      this.layerTerrain.add(e);
+      const rx = 140 + rnd() * 240;
+      const ry = 90 + rnd() * 180;
+      const tint = Phaser.Display.Color.IntegerToColor(palette.grass);
+      // 2-3 ellissi sovrapposte per look soffice
+      this.layerTerrain.add(this.add.ellipse(x, y, rx * 2, ry * 2, palette.grass, 0.45));
+      this.layerTerrain.add(this.add.ellipse(x + (rnd() - 0.5) * 80, y + (rnd() - 0.5) * 60,
+        rx * 1.4, ry * 1.3,
+        Phaser.Display.Color.GetColor(Math.max(0, tint.red - 20), Math.max(0, tint.green - 10), Math.max(0, tint.blue - 10)),
+        0.4));
     }
 
-    // decorazioni (fiori, sassi, ciuffi)
-    const decoCount = 420;
-    for (let i = 0; i < decoCount; i++) {
-      const x = rnd() * WORLD_W;
-      const y = rnd() * WORLD_H;
+    // 3) chiazze di "dirt" più scure tra le macchie
+    for (let i = 0; i < 30; i++) {
+      const x = rnd() * WORLD_W, y = rnd() * WORLD_H;
+      this.layerTerrain.add(this.add.ellipse(x, y, 200 + rnd() * 180, 130 + rnd() * 100,
+        palette.ground, 0.35));
+    }
+
+    // 4) sentieri curvi che convergono al centro (Bezier)
+    const cx = WORLD_W / 2, cy = WORLD_H / 2;
+    const pathColor = Phaser.Display.Color.IntegerToColor(palette.ground);
+    const pathHex = Phaser.Display.Color.GetColor(
+      Math.min(255, pathColor.red + 30),
+      Math.min(255, pathColor.green + 24),
+      Math.min(255, pathColor.blue + 18),
+    );
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 + rnd() * 0.4;
+      const endX = cx + Math.cos(a) * (WORLD_W * 0.42);
+      const endY = cy + Math.sin(a) * (WORLD_H * 0.42);
+      const c1x = cx + Math.cos(a) * 280 + (rnd() - 0.5) * 200;
+      const c1y = cy + Math.sin(a) * 280 + (rnd() - 0.5) * 200;
+      const c2x = cx + Math.cos(a) * 600 + (rnd() - 0.5) * 240;
+      const c2y = cy + Math.sin(a) * 600 + (rnd() - 0.5) * 240;
+      const curve = new Phaser.Curves.CubicBezier(
+        new Phaser.Math.Vector2(cx, cy),
+        new Phaser.Math.Vector2(c1x, c1y),
+        new Phaser.Math.Vector2(c2x, c2y),
+        new Phaser.Math.Vector2(endX, endY),
+      );
+      const pts = curve.getPoints(40);
+      const g = this.add.graphics();
+      g.lineStyle(28, pathHex, 0.55);
+      g.beginPath();
+      g.moveTo(pts[0].x, pts[0].y);
+      for (let k = 1; k < pts.length; k++) g.lineTo(pts[k].x, pts[k].y);
+      g.strokePath();
+      g.lineStyle(14, pathHex, 0.85);
+      g.beginPath();
+      g.moveTo(pts[0].x, pts[0].y);
+      for (let k = 1; k < pts.length; k++) g.lineTo(pts[k].x, pts[k].y);
+      g.strokePath();
+      this.layerPaths.add(g);
+    }
+
+    // 5) micro decor: ciuffi, fiori, sassi (flat)
+    for (let i = 0; i < 700; i++) {
+      const x = rnd() * WORLD_W, y = rnd() * WORLD_H;
       const v = rnd();
-      if (v < 0.5) {
-        // ciuffo erba (mini ellisse scura)
-        const e = this.add.ellipse(x, y, 8, 4, 0x254a2a, 0.7);
-        this.layerDecor.add(e);
+      if (v < 0.55) {
+        this.layerDecor.add(this.add.ellipse(x, y, 8, 4, 0x1f3b22, 0.7));
       } else if (v < 0.85) {
-        // fiore
-        const c = this.add.circle(x, y, 3, palette.flower);
-        this.layerDecor.add(c);
-        const core = this.add.circle(x, y, 1.2, 0xfff7d6);
-        this.layerDecor.add(core);
+        this.layerDecor.add(this.add.circle(x, y, 3, palette.flower));
+        this.layerDecor.add(this.add.circle(x, y, 1.2, 0xfff7d6));
       } else {
-        // sasso
-        const r = this.add.ellipse(x, y, 6, 4, palette.rock, 0.7);
-        this.layerDecor.add(r);
+        this.layerDecor.add(this.add.ellipse(x, y, 7, 5, palette.rock, 0.7));
       }
     }
 
-    // anello esterno di "alberi/rocce" per nascondere bordi
-    const ringCount = 140;
-    for (let i = 0; i < ringCount; i++) {
-      const angle = (i / ringCount) * Math.PI * 2 + rnd() * 0.3;
-      const radius = Math.min(WORLD_W, WORLD_H) * (0.46 + rnd() * 0.08);
-      const x = WORLD_W / 2 + Math.cos(angle) * radius * 1.15;
-      const y = WORLD_H / 2 + Math.sin(angle) * radius * 0.85;
-      const size = 24 + rnd() * 30;
-      const t = this.add.ellipse(x, y, size, size * 0.9, palette.rock, 0.95);
-      this.layerDecor.add(t);
-      const top = this.add.circle(x, y - size * 0.35, size * 0.5, palette.grass, 0.95);
-      this.layerDecor.add(top);
+    // 6) vegetazione "3D-ish": alberi, cespugli, rocce con depth=y
+    const vegCount = 220;
+    for (let i = 0; i < vegCount; i++) {
+      const x = rnd() * WORLD_W;
+      const y = rnd() * WORLD_H;
+      // densità maggiore vicino ai bordi
+      const distFromCenter = Math.hypot(x - cx, y - cy);
+      const edgeBias = distFromCenter / Math.hypot(cx, cy); // 0..1
+      if (rnd() > 0.25 + edgeBias * 0.75) continue;
+      const kind = rnd();
+      if (kind < 0.55) this.spawnTree(x, y, palette, rnd);
+      else if (kind < 0.85) this.spawnBush(x, y, palette, rnd);
+      else this.spawnRock(x, y, palette, rnd);
     }
 
-    // fog radiale (vignette) — overlay nero con foro centrale
+    // 7) oggetti giganti quotidiani — sparsi, soprattutto fuori zona costruibile
+    const propsCount = 18;
+    for (let i = 0; i < propsCount; i++) {
+      let x = 0, y = 0, tries = 0;
+      do {
+        x = rnd() * WORLD_W; y = rnd() * WORLD_H; tries++;
+      } while (isInBuildableArea(x, y) && tries < 6);
+      const emoji = GIANT_PROPS[Math.floor(rnd() * GIANT_PROPS.length)];
+      this.spawnGiantProp(x, y, emoji, 90 + rnd() * 40);
+    }
+
+    // 8) fog vignette morbido (ai bordi)
     const fog = this.add.graphics();
-    fog.setBlendMode(Phaser.BlendModes.MULTIPLY);
-    const cx = WORLD_W / 2, cy = WORLD_H / 2;
-    const maxR = Math.max(WORLD_W, WORLD_H) * 0.7;
-    const steps = 18;
+    const maxR = Math.max(WORLD_W, WORLD_H) * 0.62;
+    const steps = 14;
     for (let i = steps; i >= 1; i--) {
       const t = i / steps;
-      const alpha = (1 - t) * 0.55;
-      const color = Phaser.Display.Color.IntegerToColor(palette.fog);
-      fog.fillStyle(Phaser.Display.Color.GetColor(color.red, color.green, color.blue), alpha);
-      fog.fillCircle(cx, cy, maxR * t);
+      const alpha = (1 - t) * 0.18;
+      fog.fillStyle(palette.fog, alpha);
+      fog.fillCircle(cx, cy, maxR * (1 + (1 - t) * 0.2));
     }
-    // overlay scuro bordi
-    fog.fillStyle(palette.fog, 0.65);
-    fog.fillRect(0, 0, WORLD_W, WORLD_H);
-    fog.fillStyle(0x000000, 0);
+    // bordi scuri
+    fog.fillStyle(palette.fog, 0.55);
+    fog.fillRect(0, 0, WORLD_W, 140);
+    fog.fillRect(0, WORLD_H - 140, WORLD_W, 140);
+    fog.fillRect(0, 0, 140, WORLD_H);
+    fog.fillRect(WORLD_W - 140, 0, 140, WORLD_H);
     this.layerEffects.add(fog);
+
+    // 9) particelle ambientali (pollen / fireflies)
+    this.spawnAmbientParticles(palette);
   }
 
-  // ─────────── TEXTURES BUILDINGS ───────────
+  private spawnTree(x: number, y: number, palette: typeof BIOME_COLORS[keyof typeof BIOME_COLORS], rnd: () => number) {
+    const size = 38 + rnd() * 36;
+    const trunkColor = 0x4a2d1a;
+    const canopyA = palette.grass;
+    const canopyB = Phaser.Display.Color.IntegerToColor(palette.grass);
+    const canopyDark = Phaser.Display.Color.GetColor(
+      Math.max(0, canopyB.red - 30), Math.max(0, canopyB.green - 30), Math.max(0, canopyB.blue - 30),
+    );
+    const c = this.add.container(x, y);
+    c.add(this.add.ellipse(0, size * 0.45, size * 1.2, size * 0.35, 0x000000, 0.32));
+    // tronco
+    c.add(this.add.rectangle(0, -size * 0.05, size * 0.22, size * 0.55, trunkColor).setOrigin(0.5, 1));
+    // chioma (3 cerchi)
+    c.add(this.add.circle(-size * 0.35, -size * 0.55, size * 0.55, canopyDark));
+    c.add(this.add.circle(size * 0.30, -size * 0.50, size * 0.50, canopyDark));
+    c.add(this.add.circle(0, -size * 0.85, size * 0.65, canopyA));
+    c.setDepth(y);
+    this.layerVeg.add(c);
+  }
+
+  private spawnBush(x: number, y: number, palette: typeof BIOME_COLORS[keyof typeof BIOME_COLORS], rnd: () => number) {
+    const size = 22 + rnd() * 18;
+    const c = this.add.container(x, y);
+    c.add(this.add.ellipse(0, size * 0.35, size * 1.1, size * 0.32, 0x000000, 0.28));
+    const col = Phaser.Display.Color.IntegerToColor(palette.grass);
+    const dark = Phaser.Display.Color.GetColor(Math.max(0, col.red - 28), Math.max(0, col.green - 28), Math.max(0, col.blue - 28));
+    c.add(this.add.circle(-size * 0.4, 0, size * 0.55, dark));
+    c.add(this.add.circle(size * 0.4, 0, size * 0.55, dark));
+    c.add(this.add.circle(0, -size * 0.2, size * 0.7, palette.grass));
+    if (rnd() < 0.5) c.add(this.add.circle(0, -size * 0.4, 3, palette.flower));
+    c.setDepth(y);
+    this.layerVeg.add(c);
+  }
+
+  private spawnRock(x: number, y: number, palette: typeof BIOME_COLORS[keyof typeof BIOME_COLORS], rnd: () => number) {
+    const size = 20 + rnd() * 28;
+    const c = this.add.container(x, y);
+    c.add(this.add.ellipse(0, size * 0.35, size * 1.2, size * 0.35, 0x000000, 0.3));
+    c.add(this.add.ellipse(0, 0, size * 1.1, size * 0.85, palette.rock));
+    const lighter = Phaser.Display.Color.IntegerToColor(palette.rock);
+    c.add(this.add.ellipse(-size * 0.2, -size * 0.2, size * 0.6, size * 0.4,
+      Phaser.Display.Color.GetColor(Math.min(255, lighter.red + 30), Math.min(255, lighter.green + 30), Math.min(255, lighter.blue + 30)),
+      0.7));
+    c.setDepth(y);
+    this.layerVeg.add(c);
+  }
+
+  private spawnGiantProp(x: number, y: number, emoji: string, size: number) {
+    const tex = this.ensureEmojiTexture(emoji, 128);
+    const c = this.add.container(x, y);
+    c.add(this.add.ellipse(0, size * 0.4, size * 1.0, size * 0.28, 0x000000, 0.4));
+    const img = this.add.image(0, 0, tex);
+    img.setDisplaySize(size, size);
+    img.setOrigin(0.5, 0.85);
+    c.add(img);
+    c.setDepth(y);
+    this.layerProps.add(c);
+  }
+
+  private spawnAmbientParticles(palette: typeof BIOME_COLORS[keyof typeof BIOME_COLORS]) {
+    // texture puntiforme
+    const key = "__dot";
+    if (!this.textures.exists(key)) {
+      const c = this.textures.createCanvas(key, 8, 8);
+      if (c) {
+        const ctx = c.getContext();
+        const grd = ctx.createRadialGradient(4, 4, 0, 4, 4, 4);
+        grd.addColorStop(0, "rgba(255,255,255,0.9)");
+        grd.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = grd; ctx.fillRect(0, 0, 8, 8);
+        c.refresh();
+      }
+    }
+    const flowerHex = "#" + palette.flower.toString(16).padStart(6, "0");
+    const emitter = this.add.particles(0, 0, key, {
+      x: { min: 0, max: WORLD_W },
+      y: { min: 0, max: WORLD_H },
+      lifespan: 6000,
+      speedX: { min: -10, max: 10 },
+      speedY: { min: -6, max: 6 },
+      scale: { start: 0.6, end: 0 },
+      alpha: { start: 0.7, end: 0 },
+      quantity: 1,
+      frequency: 220,
+      tint: [0xffffff, Phaser.Display.Color.HexStringToColor(flowerHex).color],
+      blendMode: "ADD",
+    });
+    this.layerEffects.add(emitter);
+  }
+
+  // ─────────── TEXTURES ───────────
   private ensureBuildingTextures() {
     if (!this.state) return;
     const { buildingImageByType, buildingEmojiByType, buildings } = this.state;
     for (const b of buildings) {
       const url = buildingImageByType[b.type] ?? null;
-      const key = url ? `${BUILD_TEXTURE_PREFIX}${b.type}:${url}` : `${EMOJI_TEXTURE_PREFIX}${buildingEmojiByType[b.type] ?? "🏠"}`;
-      if (url && !this.textures.exists(key)) this.loadImage(key, url);
-      if (!url) this.ensureEmojiTexture(buildingEmojiByType[b.type] ?? "🏠");
+      if (url) {
+        const key = `${BUILD_TEXTURE_PREFIX}${b.type}:${url}`;
+        if (!this.textures.exists(key)) this.loadImage(key, url);
+      } else {
+        this.ensureEmojiTexture(buildingEmojiByType[b.type] ?? "🏠");
+      }
     }
   }
 
@@ -298,15 +438,14 @@ export class VillageScene extends Phaser.Scene {
     if (!this.load.isLoading()) this.load.start();
   }
 
-  private ensureEmojiTexture(emoji: string) {
-    const key = `${EMOJI_TEXTURE_PREFIX}${emoji}`;
+  private ensureEmojiTexture(emoji: string, size = 96): string {
+    const key = `${EMOJI_TEXTURE_PREFIX}${emoji}@${size}`;
     if (this.textures.exists(key)) return key;
-    const size = 96;
     const c = this.textures.createCanvas(key, size, size);
     if (!c) return key;
     const ctx = c.getContext();
     ctx.clearRect(0, 0, size, size);
-    ctx.font = "72px serif";
+    ctx.font = `${Math.floor(size * 0.78)}px serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(emoji, size / 2, size / 2 + 4);
@@ -321,7 +460,7 @@ export class VillageScene extends Phaser.Scene {
     return map[sp.key] ?? "🌱";
   }
 
-  // ─────────── BUILDINGS DIFF ───────────
+  // ─────────── BUILDINGS ───────────
   private diffBuildings() {
     if (!this.state) return;
     const visible = this.state.buildings.filter(
@@ -331,47 +470,35 @@ export class VillageScene extends Phaser.Scene {
     for (const b of visible) {
       seen.add(b.id);
       const ex = this.buildingSprites.get(b.id);
-      if (ex) {
-        this.updateBuildingSprite(ex, b);
-      } else {
-        this.spawnBuildingSprite(b);
-      }
+      if (ex) this.updateBuildingSprite(ex, b);
+      else this.spawnBuildingSprite(b);
     }
-    // remove
     for (const [id, sp] of this.buildingSprites) {
-      if (!seen.has(id)) {
-        sp.container.destroy(true);
-        this.buildingSprites.delete(id);
-      }
+      if (!seen.has(id)) { sp.container.destroy(true); this.buildingSprites.delete(id); }
     }
   }
 
   private buildingTextureKey(b: BaseBuilding): string {
     const url = this.state?.buildingImageByType[b.type] ?? null;
     if (url) return `${BUILD_TEXTURE_PREFIX}${b.type}:${url}`;
-    return `${EMOJI_TEXTURE_PREFIX}${this.state?.buildingEmojiByType[b.type] ?? "🏠"}`;
+    return `${EMOJI_TEXTURE_PREFIX}${this.state?.buildingEmojiByType[b.type] ?? "🏠"}@96`;
   }
 
   private spawnBuildingSprite(b: BaseBuilding) {
     const { x, y } = pctToWorld(b.position_x, b.position_y);
     const container = this.add.container(x, y);
-    const shadow = this.add.ellipse(0, 38, 110, 28, 0x000000, 0.35);
+    const shadow = this.add.ellipse(0, 38, 110, 28, 0x000000, 0.4);
     const tex = this.buildingTextureKey(b);
-    let art: Phaser.GameObjects.Image;
-    const baseSize = 120;
-    if (this.textures.exists(tex)) {
-      art = this.add.image(0, 0, tex);
-    } else {
-      // attendi carico async
-      art = this.add.image(0, 0, tex);
+    const art = this.add.image(0, 0, tex);
+    art.setDisplaySize(130, 130);
+    art.setOrigin(0.5, 0.85);
+    if (!this.textures.exists(tex)) {
       this.load.once(Phaser.Loader.Events.COMPLETE, () => {
-        if (art && art.active) art.setTexture(tex);
+        if (art && art.active && this.textures.exists(tex)) art.setTexture(tex);
       });
     }
-    art.setDisplaySize(baseSize, baseSize);
-    art.setOrigin(0.5, 0.8);
     container.add([shadow, art]);
-    container.setDepth(y); // 2.5D
+    container.setDepth(y);
     this.layerBuildings.add(container);
     const sp: BuildingSprite = { container, shadow, art, data: b };
     if (b.status !== "idle") this.attachProgress(sp);
@@ -383,15 +510,11 @@ export class VillageScene extends Phaser.Scene {
     sp.container.setPosition(x, y);
     sp.container.setDepth(y);
     const tex = this.buildingTextureKey(b);
-    if (this.textures.exists(tex) && (sp.art as Phaser.GameObjects.Image).texture?.key !== tex) {
-      (sp.art as Phaser.GameObjects.Image).setTexture(tex);
-    }
+    if (this.textures.exists(tex) && sp.art.texture?.key !== tex) sp.art.setTexture(tex);
     if (b.status !== "idle") {
       if (!sp.progress) this.attachProgress(sp);
       this.updateProgress(sp, b);
-    } else if (sp.progress) {
-      sp.progress.destroy(); sp.progress = undefined;
-    }
+    } else if (sp.progress) { sp.progress.destroy(); sp.progress = undefined; }
     sp.data = b;
   }
 
@@ -410,9 +533,9 @@ export class VillageScene extends Phaser.Scene {
     const pct = Phaser.Math.Clamp(elapsed / total, 0, 1);
     sp.progress.clear();
     sp.progress.fillStyle(0x000000, 0.6);
-    sp.progress.fillRoundedRect(-50, -90, 100, 8, 4);
+    sp.progress.fillRoundedRect(-50, -100, 100, 8, 4);
     sp.progress.fillStyle(0xfacc15, 1);
-    sp.progress.fillRoundedRect(-50, -90, 100 * pct, 8, 4);
+    sp.progress.fillRoundedRect(-50, -100, 100 * pct, 8, 4);
   }
 
   private findBuildingAt(x: number, y: number): BuildingSprite | null {
@@ -421,7 +544,7 @@ export class VillageScene extends Phaser.Scene {
     for (const sp of this.buildingSprites.values()) {
       const dx = x - sp.container.x;
       const dy = y - sp.container.y;
-      if (Math.abs(dx) < 60 && dy > -100 && dy < 50 && sp.container.depth > bestDepth) {
+      if (Math.abs(dx) < 65 && dy > -110 && dy < 50 && sp.container.depth > bestDepth) {
         hit = sp; bestDepth = sp.container.depth;
       }
     }
@@ -431,17 +554,12 @@ export class VillageScene extends Phaser.Scene {
   // ─────────── PIKMIN ───────────
   private rebuildPikminPool() {
     if (!this.state) return;
-    // semplice: ricrea solo se cambia il totale o le specie
     const targetTotal = Math.min(
       this.state.pikminMaxVisible,
       Object.values(this.state.pikminBreakdown).reduce((a, b) => a + b, 0),
     );
-    if (this.pikminSprites.length === targetTotal && this.pikminSprites.every((p) => this.state!.pikminBreakdown[p.speciesKey] > 0)) {
-      return;
-    }
     for (const p of this.pikminSprites) { p.art.destroy(); p.shadow.destroy(); }
     this.pikminSprites = [];
-
     if (targetTotal === 0) return;
 
     const owned = this.state.pikminSpecies.filter((s) => (this.state!.pikminBreakdown[s.key] ?? 0) > 0);
@@ -452,13 +570,13 @@ export class VillageScene extends Phaser.Scene {
     for (const sp of owned) {
       const n = Math.max(1, Math.round((this.state.pikminBreakdown[sp.key] / totalOwned) * targetTotal));
       const url = sp.sprite_idle_url || sp.image_url || sp.icon_url || null;
-      const tex = url ? `${PIK_TEXTURE_PREFIX}${sp.key}:${url}` : `${EMOJI_TEXTURE_PREFIX}${this.pikminEmojiFor(sp)}`;
+      const tex = url ? `${PIK_TEXTURE_PREFIX}${sp.key}:${url}` : `${EMOJI_TEXTURE_PREFIX}${this.pikminEmojiFor(sp)}@96`;
       for (let i = 0; i < n; i++) {
-        const x = WORLD_W * 0.3 + rnd() * WORLD_W * 0.4;
-        const y = WORLD_H * 0.3 + rnd() * WORLD_H * 0.4;
-        const shadow = this.add.ellipse(x, y + 12, 22, 8, 0x000000, 0.35);
-        const art = this.add.image(x, y, this.textures.exists(tex) ? tex : `${EMOJI_TEXTURE_PREFIX}${this.pikminEmojiFor(sp)}`);
-        art.setDisplaySize(32, 32);
+        const x = WORLD_W * 0.35 + rnd() * WORLD_W * 0.3;
+        const y = WORLD_H * 0.35 + rnd() * WORLD_H * 0.3;
+        const shadow = this.add.ellipse(x, y + 14, 22, 8, 0x000000, 0.35);
+        const art = this.add.image(x, y, this.textures.exists(tex) ? tex : `${EMOJI_TEXTURE_PREFIX}${this.pikminEmojiFor(sp)}@96`);
+        art.setDisplaySize(36, 36);
         art.setOrigin(0.5, 0.85);
         this.layerPikmin.add(shadow); this.layerPikmin.add(art);
         if (!this.textures.exists(tex) && url) {
@@ -467,34 +585,40 @@ export class VillageScene extends Phaser.Scene {
           });
         }
         const angle = rnd() * Math.PI * 2;
-        const speed = 18 + rnd() * 14;
+        const speed = 18 + rnd() * 16;
         this.pikminSprites.push({
           art, shadow,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
           speciesKey: sp.key,
+          bob: rnd() * Math.PI * 2,
         });
       }
       if (this.pikminSprites.length >= targetTotal) break;
     }
   }
 
-  private tickPikmin(_t: number, dt: number) {
+  private tickPikmin(t: number, dt: number) {
     if (this.pikminSprites.length === 0) return;
     const sec = dt / 1000;
-    const padX = WORLD_W * 0.15, padY = WORLD_H * 0.15;
+    const padX = WORLD_W * 0.18, padY = WORLD_H * 0.18;
     for (const p of this.pikminSprites) {
-      if (Math.random() < 0.005) {
+      if (Math.random() < 0.006) {
         const a = Math.random() * Math.PI * 2;
-        const s = 14 + Math.random() * 20;
+        const s = 14 + Math.random() * 22;
         p.vx = Math.cos(a) * s; p.vy = Math.sin(a) * s;
       }
       p.art.x += p.vx * sec; p.art.y += p.vy * sec;
       if (p.art.x < padX || p.art.x > WORLD_W - padX) p.vx *= -1;
       if (p.art.y < padY || p.art.y > WORLD_H - padY) p.vy *= -1;
-      (p.art as Phaser.GameObjects.Image).flipX = p.vx < 0;
-      p.shadow.x = p.art.x; p.shadow.y = p.art.y + 12;
+      p.bob += sec * 6;
+      const bob = Math.sin(p.bob) * 1.5;
+      p.art.flipX = p.vx < 0;
+      p.art.setScale(p.art.scaleX, p.art.scaleY); // keep
+      p.art.y += bob * sec;
+      p.shadow.x = p.art.x; p.shadow.y = p.art.y + 14;
       p.art.depth = p.art.y + 0.5;
+      p.shadow.depth = p.art.y - 0.5;
     }
   }
 
@@ -503,8 +627,8 @@ export class VillageScene extends Phaser.Scene {
     if (!this.state) return;
     if (this.state.placement) {
       if (!this.placementGhost) this.createGhost(this.state.placement);
-    } else {
-      if (this.placementGhost) { this.placementGhost.destroy(true); this.placementGhost = null; }
+    } else if (this.placementGhost) {
+      this.placementGhost.destroy(true); this.placementGhost = null;
     }
   }
 
@@ -513,13 +637,13 @@ export class VillageScene extends Phaser.Scene {
     const ring = this.add.circle(0, 18, 64, 0x22c55e, 0.25);
     ring.setStrokeStyle(3, 0x22c55e, 0.9);
     const url = p.imageUrl ?? null;
-    const tex = url ? `${BUILD_TEXTURE_PREFIX}${p.key}:${url}` : `${EMOJI_TEXTURE_PREFIX}${p.emoji}`;
+    const tex = url ? `${BUILD_TEXTURE_PREFIX}${p.key}:${url}` : `${EMOJI_TEXTURE_PREFIX}${p.emoji}@96`;
     if (url && !this.textures.exists(tex)) this.loadImage(tex, url);
     if (!url) this.ensureEmojiTexture(p.emoji);
-    const art = this.add.image(0, 0, this.textures.exists(tex) ? tex : `${EMOJI_TEXTURE_PREFIX}${p.emoji}`);
-    art.setDisplaySize(120, 120);
-    art.setOrigin(0.5, 0.8);
-    art.setAlpha(0.75);
+    const art = this.add.image(0, 0, this.textures.exists(tex) ? tex : `${EMOJI_TEXTURE_PREFIX}${p.emoji}@96`);
+    art.setDisplaySize(130, 130);
+    art.setOrigin(0.5, 0.85);
+    art.setAlpha(0.78);
     this.load.once(Phaser.Loader.Events.COMPLETE, () => {
       if (art && art.active && this.textures.exists(tex)) art.setTexture(tex);
     });
