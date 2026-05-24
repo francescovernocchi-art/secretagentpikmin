@@ -1,11 +1,9 @@
-// Distanze GPS reali tra coppie di coordinate.
-// Formula Haversine — restituisce metri.
+/** GPS point in WGS84 degrees. */
+export interface GeoPoint { lat: number; lng: number; }
 
+/** Haversine distance in metres between (lat1,lng1) and (lat2,lng2). */
 export function calculateDistanceMeters(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number,
+  lat1: number, lng1: number, lat2: number, lng2: number,
 ): number {
   const R = 6371000;
   const toRad = (d: number) => (d * Math.PI) / 180;
@@ -14,18 +12,27 @@ export function calculateDistanceMeters(
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
-export type GeoPoint = { lat: number; lng: number };
-
-export function metersBetween(a: GeoPoint, b: GeoPoint): number {
+/** Object-style version for new call-sites. */
+export function haversineMeters(a: GeoPoint, b: GeoPoint): number {
   return calculateDistanceMeters(a.lat, a.lng, b.lat, b.lng);
 }
 
-/** Offset deterministico (metri) → lat/lng. Utile per disegnare strutture attorno al campo base. */
-export function offsetMeters(origin: GeoPoint, dxMeters: number, dyMeters: number): GeoPoint {
-  const dLat = dyMeters / 111320;
-  const dLng = dxMeters / (111320 * Math.cos((origin.lat * Math.PI) / 180));
-  return { lat: origin.lat + dLat, lng: origin.lng + dLng };
+export function isWithin(a: GeoPoint, b: GeoPoint, meters: number): boolean {
+  return haversineMeters(a, b) <= meters;
+}
+
+/** Sposta un punto GPS di (dx_meters East, dy_meters North). */
+export function offsetMeters(
+  origin: GeoPoint, dxMeters: number, dyMeters: number,
+): GeoPoint {
+  const R = 6371000;
+  const dLat = dyMeters / R;
+  const dLng = dxMeters / (R * Math.cos((origin.lat * Math.PI) / 180));
+  return {
+    lat: origin.lat + (dLat * 180) / Math.PI,
+    lng: origin.lng + (dLng * 180) / Math.PI,
+  };
 }

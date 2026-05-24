@@ -33,8 +33,7 @@ import { Sparkles, Hammer, Gift, ArrowUpRight, Users, ShieldPlus, Palette } from
 import { FactionSelector } from "@/components/village/FactionSelector";
 import { WallEditor } from "@/components/village/WallEditor";
 import { VillageCustomizer } from "@/components/village/VillageCustomizer";
-import { VillageCanvas } from "@/components/village/VillageCanvas";
-import { VillageZoomPan } from "@/components/village/VillageZoomPan";
+import { VillageMap } from "@/components/village/VillageMap";
 import { BiomeSelector } from "@/components/village/BiomeSelector";
 import { VillageHud } from "@/components/village/VillageHud";
 import { VillageStatsPanel } from "@/components/village/VillageStatsPanel";
@@ -47,7 +46,6 @@ import { listOpenEvents, scanThreats, type VillageEvent } from "@/lib/village/th
 import { getCosmetics, type VillageCosmetics } from "@/lib/village/cosmetics";
 import { maybeTriggerNightEvent } from "@/lib/village/night";
 import { getPikminCount } from "@/lib/pikmin";
-import { VillagePikminLayer } from "@/components/pikmin/VillagePikminLayer";
 import type { PikminType } from "@/data/pikminSprites";
 
 
@@ -296,7 +294,7 @@ function VillaggioPage() {
       {/* MINACCE: solo se reali entro raggio */}
       <ThreatAlertPanel threats={nearbyThreats} />
 
-      {/* SCENA VILLAGGIO + PIKMIN ANIMATI - zoomable */}
+      {/* MAPPA MULTILAYER VILLAGGIO */}
       <div className="flex items-center justify-between gap-2 px-1">
         <BiomeSelector
           agent={agent}
@@ -307,28 +305,19 @@ function VillaggioPage() {
           Trascina per spostare · Rotella o pizzica per zoom
         </span>
       </div>
-      <VillageZoomPan>
-        <div className="relative w-full h-full">
-          <VillageCanvas
-            faction={base.faction as FactionKey}
-            phase={phase}
-            buildings={buildings}
-            walls={walls}
-            cosmetics={cosmetics}
-            threat={nearbyThreats.length > 0}
-            onSelectBuilding={setSelected}
-            tick={tick}
-            biome={base.theme}
-            embedded
-          />
-          <VillagePikminLayer
-            buildings={buildings}
-            pikminCount={pikminCount}
-            breakdown={pikminBreakdown}
-            threat={nearbyThreats.length > 0}
-          />
-        </div>
-      </VillageZoomPan>
+      <VillageMap
+        agent={agent}
+        base={base}
+        buildings={buildings}
+        walls={walls}
+        phase={phase}
+        pikminCount={pikminCount}
+        breakdown={pikminBreakdown}
+        threats={nearbyThreats}
+        tick={tick}
+        onSelectBuilding={setSelected}
+      />
+
 
       {/* AZIONI RAPIDE */}
       <VillageActions
