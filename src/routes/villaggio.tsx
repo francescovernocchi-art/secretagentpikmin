@@ -34,6 +34,8 @@ import { FactionSelector } from "@/components/village/FactionSelector";
 import { WallEditor } from "@/components/village/WallEditor";
 import { VillageCustomizer } from "@/components/village/VillageCustomizer";
 import { VillageCanvas } from "@/components/village/VillageCanvas";
+import { VillageZoomPan } from "@/components/village/VillageZoomPan";
+import { BiomeSelector } from "@/components/village/BiomeSelector";
 import { VillageHud } from "@/components/village/VillageHud";
 import { VillageStatsPanel } from "@/components/village/VillageStatsPanel";
 import { VillageActions } from "@/components/village/VillageActions";
