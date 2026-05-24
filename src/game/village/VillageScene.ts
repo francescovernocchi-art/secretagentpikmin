@@ -49,8 +49,13 @@ export class VillageScene extends Phaser.Scene {
   private layerSlots!: Phaser.GameObjects.Container;
   private layerBuildings!: Phaser.GameObjects.Container;
   private layerPikmin!: Phaser.GameObjects.Container;
+  private layerEvents!: Phaser.GameObjects.Container;
   private layerFx!: Phaser.GameObjects.Container;
   private layerPlacement!: Phaser.GameObjects.Container;
+
+  // events
+  private eventNodes = new Map<string, Phaser.GameObjects.GameObject[]>();
+  private eventTexLoading = new Set<string>();
 
   private bgImage: Phaser.GameObjects.Image | null = null;
   private currentDioramaUrl: string | null = null;
