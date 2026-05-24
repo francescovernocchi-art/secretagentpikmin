@@ -43,8 +43,7 @@ const EMOJI_TEXTURE_PREFIX = "emoji:";
 const BUILD_TEXTURE_PREFIX = "bld:";
 const PIK_TEXTURE_PREFIX = "pik:";
 
-/** Oggetti quotidiani giganti, per dare identità al mondo. */
-const GIANT_PROPS = ["🥫", "🍾", "🧴", "🔩", "🔧", "🪤", "🔥", "☕", "🪙", "🧴", "📎", "🪫"];
+/** (deprecato: ora si usa drawGiantObject procedurale) */
 
 export class VillageScene extends Phaser.Scene {
   private state: VillageGameState | null = null;
