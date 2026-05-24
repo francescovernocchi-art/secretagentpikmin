@@ -10,6 +10,24 @@ export interface PlacementInfo {
   size?: number;
 }
 
+export interface PikminSpeciesInfo {
+  key: string;
+  name: string;
+  color: string | null;
+  imageUrl: string | null;
+}
+
+export interface PikminLayerConfig {
+  show: boolean;
+  maxCap: number;
+  speed: number;
+  night: boolean;
+  filters: Record<string, boolean>;
+  species: PikminSpeciesInfo[];
+  breakdown: Record<string, number>;
+  threat?: boolean;
+}
+
 export interface VillageGameState {
   biome: BiomeKey;
   seed: string;
@@ -21,6 +39,7 @@ export interface VillageGameState {
   /** opzionale: categoria per ogni building type, per filtro slot. */
   buildingCategoryByType?: Record<string, string>;
   placement: PlacementInfo | null;
+  pikmin?: PikminLayerConfig;
 }
 
 export interface VillageGameEvents {
