@@ -122,7 +122,11 @@ export async function updateBase(agent: string, patch: Partial<Pick<BaseRow, "na
 }
 
 /** Avvia costruzione di una nuova struttura. */
-export async function startBuilding(agent: string, catalog: BuildingCatalog, position: { x: number; y: number }) {
+export async function startBuilding(
+  agent: string,
+  catalog: BuildingCatalog,
+  position: { x: number; y: number; slotKey?: string | null; biomeKey?: string | null },
+) {
   const cost = costForLevel(catalog, 1);
   const ok = await spendCoins(agent, cost.coins, "base_build", { type: catalog.key });
   if (!ok) throw new Error(`Servono ${cost.coins} monete.`);
@@ -143,7 +147,9 @@ export async function startBuilding(agent: string, catalog: BuildingCatalog, pos
       build_end_at: end.toISOString(),
       position_x: Math.round(position.x),
       position_y: Math.round(position.y),
-    })
+      slot_key: position.slotKey ?? null,
+      biome_key: position.biomeKey ?? null,
+    } as any)
     .select("*")
     .single();
   if (error) throw error;
