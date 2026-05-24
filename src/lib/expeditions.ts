@@ -214,37 +214,38 @@ export async function fetchExpedition(id: string): Promise<{ exp: Expedition; sq
 export interface CreateExpeditionInput {
   template: MissionTemplate;
   agent: string;
-  isCoop: boolean;
+  /** @deprecated le spedizioni partono single-player; il coop si attiva via invito */
+  isCoop?: boolean;
   totalPikmin: number;
   breakdown: Record<string, number>;
 }
 
 export async function createExpedition(input: CreateExpeditionInput): Promise<Expedition> {
-  const { template, agent, isCoop, totalPikmin, breakdown } = input;
+  const { template, agent, totalPikmin, breakdown } = input;
   if (totalPikmin < 1) {
     throw new Error("Devi inviare almeno 1 Pikmin.");
   }
   if (totalPikmin > template.pikmin_max) {
     throw new Error(`Massimo ${template.pikmin_max} Pikmin per questa missione.`);
   }
-  const partner = isCoop ? PARTNER_OF[agent] ?? null : null;
-  const preview = previewExpedition({ template, totalPikmin, breakdown, coopBonus: isCoop });
-  const duration = effectiveDurationMinutes(template, totalPikmin, isCoop);
+  // Le spedizioni partono SEMPRE come single-player.
+  // La modalità coop si attiva solo se il creatore invita il partner dalla
+  // schermata attiva e questi accetta unendosi alla squadra.
+  const preview = previewExpedition({ template, totalPikmin, breakdown, coopBonus: false });
+  const duration = effectiveDurationMinutes(template, totalPikmin, false);
 
-  // spendi pikmin del creatore
   await spendPikmin(totalPikmin, "expedition_send", agent, { template: template.key });
 
-  const status = isCoop ? "waiting_partner" : "active";
-  const startedAt = isCoop ? null : new Date().toISOString();
-  const endAt = isCoop ? null : new Date(Date.now() + duration * 60_000).toISOString();
+  const startedAt = new Date().toISOString();
+  const endAt = new Date(Date.now() + duration * 60_000).toISOString();
 
   const { data, error } = await supabase
     .from("expeditions")
     .insert({
       created_by: agent,
-      is_coop: isCoop,
-      partner,
-      status,
+      is_coop: false,
+      partner: null,
+      status: "active",
       template_key: template.key,
       title: template.title,
       biome: template.biome,
@@ -268,15 +269,35 @@ export async function createExpedition(input: CreateExpeditionInput): Promise<Ex
     confirmed: true,
   });
 
-  if (isCoop && partner) {
-    await supabase.from("mission_notifications").insert({
-      agent: partner,
-      kind: "coop_invite",
-      payload: { expedition_id: data.id, title: template.title, from: agent },
-    });
-  }
-
   return data as unknown as Expedition;
+}
+
+/**
+ * Invita il partner a unirsi a una spedizione già attiva.
+ * Marca la spedizione come coop / in attesa del partner senza modificarne lo
+ * stato: il creatore continua la sua missione, il partner può aggiungersi
+ * tramite joinExpedition.
+ */
+export async function inviteToExpedition(expeditionId: string, fromAgent: string) {
+  const partner = PARTNER_OF[fromAgent];
+  if (!partner) throw new Error("Nessun partner disponibile.");
+  const { data: exp } = await supabase
+    .from("expeditions")
+    .select("status, is_coop, partner, title, created_by")
+    .eq("id", expeditionId)
+    .maybeSingle();
+  if (!exp) throw new Error("Spedizione non trovata.");
+  if (exp.created_by !== fromAgent) throw new Error("Solo il creatore può invitare.");
+  if (exp.status !== "active") throw new Error("Puoi invitare solo durante una spedizione attiva.");
+  await supabase
+    .from("expeditions")
+    .update({ is_coop: true, partner })
+    .eq("id", expeditionId);
+  await supabase.from("mission_notifications").insert({
+    agent: partner,
+    kind: "coop_invite",
+    payload: { expedition_id: expeditionId, title: exp.title, from: fromAgent },
+  });
 }
 
 export async function joinExpedition(params: {
@@ -313,18 +334,43 @@ export async function joinExpedition(params: {
     .single();
   const template = tpl as unknown as MissionTemplate;
   const preview = previewExpedition({ template, totalPikmin: totals, breakdown: merged, coopBonus: true });
-  const duration = effectiveDurationMinutes(template, totals, true);
+  const newDuration = effectiveDurationMinutes(template, totals, true);
   const now = new Date();
+
+  // Se la spedizione era già attiva (caso "invito in volo"), conserva
+  // started_at e accorcia il tempo residuo del 10% grazie al supporto del partner.
+  // Altrimenti (era in waiting_partner) parte adesso.
+  const wasActive = detail.exp.status === "active" && detail.exp.started_at && detail.exp.end_at;
+  let startedAtIso: string;
+  let endAtIso: string;
+  let durationMinutes: number;
+  if (wasActive) {
+    startedAtIso = detail.exp.started_at as string;
+    const remaining = Math.max(0, new Date(detail.exp.end_at as string).getTime() - now.getTime());
+    const shortened = Math.round(remaining * 0.9);
+    endAtIso = new Date(now.getTime() + shortened).toISOString();
+    durationMinutes = Math.max(
+      1,
+      Math.round((new Date(endAtIso).getTime() - new Date(startedAtIso).getTime()) / 60_000),
+    );
+  } else {
+    startedAtIso = now.toISOString();
+    endAtIso = new Date(now.getTime() + newDuration * 60_000).toISOString();
+    durationMinutes = newDuration;
+  }
+
   await supabase
     .from("expeditions")
     .update({
       status: "active",
+      is_coop: true,
+      partner: agent,
       power: preview.power,
       success_chance: preview.successChance,
       risk: preview.risk,
-      duration_minutes: duration,
-      started_at: now.toISOString(),
-      end_at: new Date(now.getTime() + duration * 60_000).toISOString(),
+      duration_minutes: durationMinutes,
+      started_at: startedAtIso,
+      end_at: endAtIso,
     })
     .eq("id", expeditionId);
 

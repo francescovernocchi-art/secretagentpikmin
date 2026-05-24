@@ -11,6 +11,7 @@ import {
   createExpedition,
   joinExpedition,
   cancelExpedition,
+  inviteToExpedition,
   previewExpedition,
   effectiveDurationMinutes,
   resolveExpedition,
@@ -34,6 +35,7 @@ import {
   Check,
   X,
   Zap,
+  UserPlus,
 } from "lucide-react";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -57,7 +59,6 @@ function PrepareView({ templateKey }: { templateKey: string }) {
   const [available, setAvailable] = useState(0);
   const [squadBreakdown, setSquadBreakdown] = useState<Record<string, number>>({});
   const [allBreakdown, setAllBreakdown] = useState<Record<string, number>>({});
-  const [isCoop, setIsCoop] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,11 +84,11 @@ function PrepareView({ templateKey }: { templateKey: string }) {
       template,
       totalPikmin: total,
       breakdown: squadBreakdown,
-      coopBonus: isCoop,
+      coopBonus: false,
     });
-  }, [template, total, squadBreakdown, isCoop]);
+  }, [template, total, squadBreakdown]);
 
-  const duration = template ? effectiveDurationMinutes(template, total, isCoop) : 0;
+  const duration = template ? effectiveDurationMinutes(template, total, false) : 0;
 
   if (!template) return <div className="p-6 text-sm text-muted-foreground">Caricamento…</div>;
 
@@ -109,7 +110,6 @@ function PrepareView({ templateKey }: { templateKey: string }) {
       const exp = await createExpedition({
         template,
         agent,
-        isCoop,
         totalPikmin: total,
         breakdown: squadBreakdown,
       });
@@ -157,28 +157,14 @@ function PrepareView({ templateKey }: { templateKey: string }) {
         </div>
       </div>
 
-      {/* COOP TOGGLE */}
-      <button
-        onClick={() => setIsCoop((v) => !v)}
-        className={`w-full panel p-3 flex items-center justify-between ${
-          isCoop ? "ring-1 ring-fuchsia-500/50 bg-fuchsia-500/10" : ""
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <Users className={`h-4 w-4 ${isCoop ? "text-fuchsia-300" : "text-muted-foreground"}`} />
-          <div className="text-left">
-            <p className="text-sm font-semibold">Missione cooperativa</p>
-            <p className="text-[10px] text-muted-foreground">
-              Invita {PARTNER_OF[agent] === "papa" ? "Papà" : "Lorenzo"} · +15% successo
-            </p>
-          </div>
-        </div>
-        <div className={`h-5 w-9 rounded-full ${isCoop ? "bg-fuchsia-500" : "bg-muted/40"} relative transition`}>
-          <span
-            className={`absolute top-0.5 ${isCoop ? "left-4" : "left-0.5"} h-4 w-4 rounded-full bg-white transition-all`}
-          />
-        </div>
-      </button>
+      {/* INFO COOP: dopo aver lanciato la spedizione potrai invitare il partner */}
+      <div className="panel p-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <Users className="h-4 w-4 text-primary/70 shrink-0" />
+        <span>
+          Spedizione in solo. Una volta lanciata potrai invitare {PARTNER_OF[agent] === "papa" ? "Papà" : "Lorenzo"} ad
+          unirsi (bonus +15% successo).
+        </span>
+      </div>
 
       {/* COMPOSIZIONE SQUADRA */}
       <div className="panel p-4 space-y-3">
@@ -240,7 +226,6 @@ function PrepareView({ templateKey }: { templateKey: string }) {
           </div>
           <p className="text-[10px] text-muted-foreground text-center">
             Compatibilità bioma: {Math.round(preview.recommendedMatchPct * 100)}%
-            {isCoop && " · Bonus coop attivo +15%"}
           </p>
         </div>
       )}
@@ -261,9 +246,7 @@ function PrepareView({ templateKey }: { templateKey: string }) {
           ? "Seleziona almeno 1 Pikmin"
           : total < template.pikmin_min
             ? `Lancia comunque · ${total} Pikmin (rischio alto)`
-            : isCoop
-              ? `Lancia invito coop · ${total} Pikmin`
-              : `Lancia spedizione · ${total} Pikmin`}
+            : `Lancia spedizione · ${total} Pikmin`}
       </button>
     </PageShell>
   );
@@ -343,7 +326,13 @@ function ExpeditionView({ id }: { id: string }) {
   const leftMs = exp.end_at ? new Date(exp.end_at).getTime() - Date.now() : 0;
   const pct = exp.status === "active" ? Math.max(0, Math.min(100, 100 - (leftMs / totalMs) * 100)) : 100;
   const mins = Math.max(0, Math.ceil(leftMs / 60000));
-  const isInvited = exp.partner === agent && exp.status === "waiting_partner";
+  const hasOwnSquad = squads.some((s) => s.agent === agent);
+  const isInvited =
+    exp.partner === agent &&
+    !hasOwnSquad &&
+    (exp.status === "waiting_partner" || exp.status === "active");
+  const canInvitePartner =
+    exp.created_by === agent && exp.status === "active" && !exp.is_coop && !exp.partner;
 
   return (
     <PageShell
@@ -430,6 +419,18 @@ function ExpeditionView({ id }: { id: string }) {
 
       {/* AZIONI INVITATO */}
       {isInvited && <JoinPanel exp={exp} template={template} agent={agent} onJoined={load} />}
+
+      {/* INVITA PARTNER (spedizione single in corso) */}
+      {canInvitePartner && <InvitePartnerButton expeditionId={exp.id} agent={agent} onInvited={load} />}
+
+      {/* IN ATTESA RISPOSTA PARTNER */}
+      {exp.created_by === agent && exp.is_coop && !hasOwnSquadOther(squads, exp.partner) && exp.status === "active" && (
+        <div className="panel p-3 text-[11px] text-amber-200 flex items-center gap-2">
+          <Sparkles className="h-3 w-3" />
+          Invito inviato a {exp.partner === "papa" ? "Papà" : "Lorenzo"} · in attesa che si unisca…
+        </div>
+      )}
+
 
       {/* AZIONI CREATORE */}
       {exp.created_by === agent && exp.status === "waiting_partner" && (
@@ -579,6 +580,50 @@ function JoinPanel({
       >
         <Check className="h-4 w-4" /> Conferma e parti · {sum} Pikmin
       </button>
+    </div>
+  );
+}
+
+function hasOwnSquadOther(squads: ExpeditionSquad[], agent: string | null) {
+  if (!agent) return false;
+  return squads.some((s) => s.agent === agent);
+}
+
+function InvitePartnerButton({
+  expeditionId,
+  agent,
+  onInvited,
+}: {
+  expeditionId: string;
+  agent: string;
+  onInvited: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const partner = PARTNER_OF[agent];
+  const partnerLabel = partner === "papa" ? "Papà" : "Lorenzo";
+  const invite = async () => {
+    setErr(null);
+    setBusy(true);
+    try {
+      await inviteToExpedition(expeditionId, agent);
+      onInvited();
+    } catch (e: any) {
+      setErr(e?.message ?? "Errore");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="panel p-3 space-y-2">
+      <button
+        onClick={invite}
+        disabled={busy}
+        className="w-full rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/10 px-3 py-2.5 text-sm flex items-center justify-center gap-2 text-fuchsia-100 disabled:opacity-50"
+      >
+        <UserPlus className="h-4 w-4" /> Invita {partnerLabel} ad unirsi (+15% successo)
+      </button>
+      {err && <p className="text-xs text-destructive">{err}</p>}
     </div>
   );
 }
