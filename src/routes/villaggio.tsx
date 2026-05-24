@@ -173,10 +173,10 @@ function VillaggioPage() {
   const status = { ...baseStatus, defenseRating: baseStatus.defenseRating + wallBonus };
   const threatActive = nearbyThreats.length > 0 || events.some((e) => !e.resolved_at);
 
-  const onPlace = async (pct: { x: number; y: number }) => {
+  const onPlace = async (pct: { x: number; y: number; slotKey?: string }) => {
     if (!placing) return;
     try {
-      await startBuilding(agent, placing, pct);
+      await startBuilding(agent, placing, { x: pct.x, y: pct.y, slotKey: pct.slotKey, biomeKey: base.theme });
       sfx.build();
       setPlacing(null);
       reload();
@@ -185,6 +185,8 @@ function VillaggioPage() {
       setPlacing(null);
     }
   };
+
+  const selectedBuilding = buildings.find((b) => b.id === selectedBuildingId) ?? null;
 
   return (
     <div className="fixed inset-0 z-10 overflow-hidden bg-background">
@@ -207,8 +209,11 @@ function VillaggioPage() {
           threat: threatActive,
         }}
         onPlacePosition={onPlace}
+        onSelectBuilding={(id) => { setSelectedBuildingId(id); setOpenPanel("building" as any); }}
+        onSelectSlot={() => { setOpenPanel("build"); }}
         onReady={(c) => { cameraCtrlRef.current = c; }}
       />
+
 
       {/* ─── CAMERA CONTROLS (sinistra, sopra il menu) ─── */}
       <div
