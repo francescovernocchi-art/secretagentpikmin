@@ -4,7 +4,8 @@ import { resolveBiome } from "@/lib/village/biomes";
 import { useBuildingImages } from "@/hooks/useBuildingImages";
 import { pickBuildingImage } from "@/lib/village/buildingImages";
 import { useActiveDiorama } from "@/hooks/useActiveDiorama";
-import type { PlacementInfo, VillageGameState } from "@/game/village/VillageTypes";
+import { usePikminSpecies } from "@/hooks/usePikminSpecies";
+import type { PlacementInfo, VillageGameState, PikminLayerConfig, PikminSpeciesInfo } from "@/game/village/VillageTypes";
 
 interface Props {
   agent: string;
@@ -12,6 +13,8 @@ interface Props {
   buildings: BaseBuilding[];
   catalog: BuildingCatalog[];
   placement: BuildingCatalog | null;
+  /** Configurazione layer Pikmin (mostra/cap/velocità/filtri + breakdown specie). */
+  pikminConfig?: Omit<PikminLayerConfig, "species"> | null;
   onSelectBuilding?: (id: string) => void;
   onPlacePosition?: (pct: { x: number; y: number; slotKey?: string }) => void;
   onTapGround?: () => void;
