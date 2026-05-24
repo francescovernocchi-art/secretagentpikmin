@@ -197,6 +197,15 @@ function VillaggioPage() {
         buildings={buildings}
         catalog={catalog}
         placement={placing}
+        pikminConfig={{
+          show: pikminPrefs.show,
+          maxCap: pikminPrefs.maxCap,
+          speed: pikminPrefs.speed,
+          night: pikminPrefs.night,
+          filters: pikminPrefs.filters,
+          breakdown: pikminBreakdown,
+          threat: threatActive,
+        }}
         onPlacePosition={onPlace}
         onReady={(c) => { cameraCtrlRef.current = c; }}
       />
