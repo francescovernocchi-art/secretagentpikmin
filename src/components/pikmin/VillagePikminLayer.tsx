@@ -301,12 +301,27 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
                 : "bg-transparent border-muted-foreground/30 text-muted-foreground opacity-60"
             }`}
             aria-pressed={prefs.filters[t]}
+            title={labels[t].name}
           >
             <span className="inline-block w-2 h-2 rounded-full mr-1 align-middle" style={{ background: PIKMIN_COLOR_DOT[t] }} />
             {t}
           </button>
         ))}
+        <span className="text-muted-foreground">·</span>
+        <button
+          onClick={() => setCustomizerOpen(true)}
+          className="px-2 py-0.5 rounded-full border border-primary/50 bg-primary/10 text-[10px] hover:bg-primary/20"
+          title="Rinomina Pikmin / icone"
+        >
+          ✏️ Personalizza
+        </button>
       </div>
+
+      <PikminCustomizerModal
+        open={customizerOpen}
+        onClose={() => setCustomizerOpen(false)}
+        onSaved={() => { void refreshLabels(); }}
+      />
 
       {/* Tooltip al click */}
       {selected && (
