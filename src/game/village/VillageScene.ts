@@ -665,7 +665,7 @@ export class VillageScene extends Phaser.Scene {
     if (list.length === 0) return null;
     const cats = this.state?.buildingCategoryByType ?? {};
     if (prefer && prefer.length) {
-      const filtered = list.filter((b) => prefer.includes(cats[b.building_type] ?? "utility"));
+      const filtered = list.filter((b) => prefer.includes(cats[b.type] ?? "utility"));
       if (filtered.length) return filtered[Math.floor(Math.random() * filtered.length)];
     }
     return list[Math.floor(Math.random() * list.length)];
