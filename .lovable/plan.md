@@ -1,71 +1,116 @@
-# Piano di lavoro
+## Obiettivo
 
-Lavoro grande e trasversale: lo divido in 4 fasi indipendenti. Confermami e procedo in ordine, oppure dimmi da quale partire.
+Trasformare il Villaggio da "immagine bioma zoomabile + sprite sopra" a una **vera mappa multilayer tile-based**, viva, costruibile, in stile mini-colonia Pikmin con oggetti quotidiani giganti riutilizzati come edifici.
 
-## Fase 1 — Menu raggruppato (BottomNav)
+## Cosa cambia (vs. attuale)
 
-Oggi la bottom nav ha troppe voci. Le raggruppo in:
+- Lo sfondo bioma diventa un **terreno procedurale a tile** (non più una jpg unica).
+- Edifici, Pikmin, mura, oggetti, effetti vivono in **layer separati** sopra il terreno.
+- Stato edificio reale: `locked | available | under_construction | built | upgrading` con cantiere visibile.
+- Pan/zoom agisce sulla **scena reale multilayer**, con limiti mappa e centratura su Campo Base.
+- Sprite di Pikmin/edifici/mostri/oggetti letti **sempre da DB/Storage** (mai hardcoded).
+- Minacce villaggio attive **solo** se mostro entro il raggio reale del Campo Base (GPS).
 
-- **Gioco**: Mappa, Missioni, Spedizioni, Nemici
-- **Villaggio**: Villaggio, Edifici, Scambi, Campo Base
-- **Inventario**: Inventario, Ricette, Navicella, Premi
-- **Personalizza** (nuovo gruppo): Atelier, personalizzazione villaggio, skin Pikmin, icone, temi, customizer base
-- **Profilo**: Profilo, Famiglia, Admin
+## Architettura nuova
 
-Implementazione: `BottomNav.tsx` mostra 5 icone principali; tap apre un drawer/sheet con le voci del gruppo. Niente cambi di route inutili.
+### Mondo: tile map virtuale
 
-## Fase 2 — Collegamenti
+- Coordinate mondo in tile (es. 64×64 tile, tile = 48px logico).
+- `mapProjection.ts`: world↔screen, world↔GPS (Campo Base = origin GPS).
+- `tileMap.ts`: tipi di tile per bioma (erba/sabbia/roccia/neve/lava/metallo/...), generatore deterministico seeded per agente.
 
-**Mappa ↔ Villaggio ↔ Drop**
-- Sulla mappa: tap su marker villaggio → naviga a `/villaggio`; tap su drop → apri pannello raccolta che apre `/inventario` dopo il claim.
-- Nel villaggio: pulsante "Vedi sulla mappa" che centra mappa su coordinate base.
-- I drop raccolti vanno in `inventory` (già esistente) + notifica visibile in HUD villaggio.
+### Layer (z-order)
 
-**Missioni ↔ Spedizioni**
-- Le spedizioni oggi non risolvono: aggiungo loop di risoluzione (quando `end_at < now()` e `status='active'`, calcolo rewards da `rewards_pool` del template, scrivo in `expeditions.rewards`, aggiungo a inventario/coins, status `resolved`).
-- Una missione completata può sbloccare una spedizione successiva (catena via `template_key`).
-- Notifica unica nella pagina `/missioni` con tab "Missioni" / "Spedizioni in corso" / "Concluse".
+1. `TerrainLayer` – tile bioma (canvas o griglia CSS)
+2. `PathLayer` – sentieri tra edifici
+3. `FieldsLayer` – campi/orti
+4. `BuildingsLayer` – edifici via `BuildingMarker`
+5. `WallsLayer` – mura (riusa logica esistente)
+6. `ObjectsLayer` – decor giganti del bioma (sprite_assets `category=decorazione`)
+7. `PikminLayer` – Pikmin viventi (riusa `VillagePikminLayer`)
+8. `MonsterThreatLayer` – minacce reali entro raggio Campo Base
+9. `EffectsLayer` – particelle bioma + giorno/notte
+10. `InteractionLayer` – hit-test click/tap su tile vuoti (per piazzare edifici)
+11. `HudLayer` – marker raggio Campo Base, indicatori
 
-## Fase 3 — Inventario Pikmin per tipo
+### Viewport / camera
 
-Oggi `pikmin_squad.breakdown` è un jsonb generico. Lo rendo first-class:
+- `VillageMapViewport.tsx`: pan + pinch + wheel zoom con **inerzia**, clamp ai limiti world, `centerOnBase()`.
+- Sostituisce `VillageZoomPan` per la pagina villaggio (resta utility se serve altrove).
 
-- Migrazione: tabella `pikmin_inventory` (agent, species_key, count) con RLS family-read + own-write. `pikmin_species` già esiste.
-- UI nuova in `/inventario`: tab "Pikmin" con lista per specie (rosso, blu, giallo, viola, bianco, roccia, alato…), conteggio, abilità.
-- Selettore squadra: quando invio Pikmin in missione/spedizione/spionaggio/attacco, scelgo **quanti e di quale tipo** (non più solo numero totale).
-- Refactor: `spendPikmin`/`addPikmin` accettano `species_key`; le funzioni che oggi consumano "n Pikmin generici" diventano "n Pikmin di specie X".
-- Suggerimento automatico: in base ai dati del mostro/missione, propongo la composizione ottimale ma resta libera.
+### Edifici
 
-## Fase 4 — Villaggio come scena isometrica viva
+- `BuildingMarker.tsx`: render singolo edificio in coord world, sprite da `building_catalog.image_url` o stage da `visual_stages`, badge livello, tap.
+- `ConstructionSite.tsx`: visual cantiere (impalcature + timer) per `under_construction` / `upgrading`.
+- Stato derivato:
+  - `locked`: requisiti non soddisfatti → non in scena, non in menu
+  - `available`: in menu costruzioni, non in scena
+  - `under_construction` / `upgrading`: cantiere in scena
+  - `built`: sprite finale
 
-Riscrittura `/villaggio` (non più dashboard):
+### Sprite via DB
 
-**Struttura file** (come richiesto):
-- `VillagePage.tsx` — orchestratore
-- `VillageCanvas.tsx` — scena isometrica con edifici/mura/Pikmin
-- `VillageBackground.tsx` — terreno per fazione (foresta/neon/bunker/cristalli)
-- `BuildingSprite.tsx` — sprite isometrico per tipo×livello (1→5: semplice→leggendario), con animazione idle, hover dettagli, barra costruzione
-- `VillageHud.tsx` — HUD top (agente, livello, nettare, cristalli, energia, Pikmin)
-- `VillageActions.tsx` — pulsanti rapidi (Costruisci, Pikmin, Magazzino, Mappa)
-- `VillageStatsPanel.tsx` — pannello destro (fazione, livello villaggio, difesa, raggio)
-- `VillageParticles.tsx` — foglie/scintille/fumo per fazione
-- `DayNightLayer.tsx` — overlay ciclo giorno/notte (riusa `daycycle.ts`)
-- `PikminAmbientLayer.tsx` — Pikmin che camminano tra edifici (riuso `PikminLife.tsx` come base)
-- `ThreatAlertPanel.tsx` — **solo se** mostri reali entro `base.threat_radius` (Haversine). Altrimenti "Nessuna minaccia rilevata".
+- Tutti i visual leggono `image_url` / `icon_url` / `sprite_*_url` (già aggiunti su `pikmin_species`, `enemies`, `building_catalog`, `sprite_assets`). Fallback emoji solo se URL mancante.
+- `ObjectsLayer` pesca da `sprite_assets` filtrati per `tags` che includono il bioma.
 
-**Sprite isometrici**: SVG/emoji compositi originali (no asset Nintendo). `buildingVisuals.ts` mappa `type×level → {emoji, accent, glow, size}`. Evoluzione visiva: 1 capanna → 5 struttura cristallina dorata.
+### Geo + minacce
 
-**Calcoli bonus**: `bonuses.ts` già esiste, lo estendo per coprire tutti gli edifici richiesti (Officina = velocità costruzione, Hangar = bonus spedizioni, Infermeria = recovery Pikmin, Recinto = capacità massima).
+- `lib/geo/distance.ts`: haversine.
+- `MonsterThreatLayer` mostra mostri **solo** se `distance(player_or_base, spawn) ≤ raggio` (200m attacco / `base.action_radius` per villaggio).
+- Niente eventi falsi: `ThreatAlertPanel` continua a usare `computeNearbyThreats` già reale.
 
-**Tutto testo italiano**, codice/variabili inglesi.
+## File da creare
 
-**Fallback**: se base senza coordinate → mostro overlay onboarding già esistente (`BaseSetupOverlay`). Se nessun edificio → terreno vuoto + tutorial "Costruisci il Centro Comando".
+```
+src/lib/geo/distance.ts
+src/lib/village/tileMap.ts
+src/lib/village/mapProjection.ts
+src/lib/village/villageLayers.ts
+src/components/village/VillageMap.tsx
+src/components/village/VillageMapViewport.tsx
+src/components/village/VillageMapControls.tsx
+src/components/village/BuildingMarker.tsx
+src/components/village/PikminMarker.tsx
+src/components/village/ConstructionSite.tsx
+src/components/village/layers/TerrainLayer.tsx
+src/components/village/layers/PathLayer.tsx
+src/components/village/layers/FieldsLayer.tsx
+src/components/village/layers/BuildingsLayer.tsx
+src/components/village/layers/WallsLayer.tsx
+src/components/village/layers/ObjectsLayer.tsx
+src/components/village/layers/PikminLayer.tsx
+src/components/village/layers/MonsterThreatLayer.tsx
+src/components/village/layers/EffectsLayer.tsx
+src/components/village/layers/InteractionLayer.tsx
+src/components/village/layers/HudLayer.tsx
+```
 
-## Sicurezza
-- Nessun cambio RLS, nessun `USING (true)`.
-- Migrazione solo additiva (nuova tabella `pikmin_inventory`).
-- Login/Supabase/realtime intatti.
+## File da modificare
 
----
+- `src/routes/villaggio.tsx` → sostituire blocco `<VillageZoomPan><VillageCanvas/>...</>` con `<VillageMap base={...} buildings={...} .../>`.
+- `src/components/village/VillageCanvas.tsx` → deprecato (lasciato come fallback "/villaggio/$agent" finché non migrato), oppure rimpiazzato anche lì.
 
-**Vuoi che parta da tutte e 4 in sequenza, oppure prima una fase specifica?** Consiglio l'ordine: 1 (menu) → 3 (inventario Pikmin, base per tutto) → 2 (collegamenti) → 4 (villaggio isometrico, il più grosso).
+## Stile visivo
+
+- Tile cartoon morbidi generati via CSS gradients + pattern SVG inline (no nuove jpg), così resta leggero e reattivo allo zoom.
+- Edifici = sprite caricati da admin (oggetti quotidiani giganti). Catalogo iniziale fornisce solo emoji di fallback.
+- Palette per bioma riusata da `BIOMES[*].accent`.
+
+## Cosa NON cambia ora
+
+- Modello DB (campi già sufficienti). Eventuale aggiunta `base_buildings.unlock_requirements` rimandata.
+- Logica costi/timer in `lib/base.ts`.
+- Mura, eventi notturni, cosmetics, HUD.
+
+## Verifica
+
+- Build pulita (TypeScript strict).
+- Villaggio nuovo si carica senza rompere `villaggio/$agent` (partner view).
+- Pan/zoom fluido, niente scroll della barra inferiore.
+- Edifici cliccabili, cantieri visibili durante costruzione.
+
+## Scope esplicitamente fuori da questa iterazione
+
+- Editor visuale tile-by-tile.
+- Path-finding Pikmin (resta animazione ambient esistente).
+- Generatore procedurale avanzato di villaggi cresciuti (la crescita resta data-driven dal numero di edifici/livelli).
