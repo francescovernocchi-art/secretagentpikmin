@@ -65,6 +65,11 @@ export function VillageGameCanvas({
         sceneRef.current.events.on("placePosition", (pct: any) => onPlacePositionRef.current?.(pct));
         sceneRef.current.events.on("tapGround", () => onTapGroundRef.current?.());
         if (pendingStateRef.current) sceneRef.current.applyState(pendingStateRef.current);
+        onReadyRef.current?.({
+          zoomIn: () => sceneRef.current?.cameraZoomBy(1.25),
+          zoomOut: () => sceneRef.current?.cameraZoomBy(0.8),
+          recenter: () => sceneRef.current?.cameraRecenter(),
+        });
       });
     })();
     return () => {
