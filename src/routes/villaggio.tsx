@@ -46,7 +46,6 @@ import { listOpenEvents, scanThreats, type VillageEvent } from "@/lib/village/th
 import { getCosmetics, type VillageCosmetics } from "@/lib/village/cosmetics";
 import { maybeTriggerNightEvent } from "@/lib/village/night";
 import { getPikminCount } from "@/lib/pikmin";
-import { VillagePikminLayer } from "@/components/pikmin/VillagePikminLayer";
 import type { PikminType } from "@/data/pikminSprites";
 
 
