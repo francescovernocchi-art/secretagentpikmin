@@ -246,9 +246,7 @@ function PrepareView({ templateKey }: { templateKey: string }) {
           ? "Seleziona almeno 1 Pikmin"
           : total < template.pikmin_min
             ? `Lancia comunque · ${total} Pikmin (rischio alto)`
-            : isCoop
-              ? `Lancia invito coop · ${total} Pikmin`
-              : `Lancia spedizione · ${total} Pikmin`}
+            : `Lancia spedizione · ${total} Pikmin`}
       </button>
     </PageShell>
   );
