@@ -11,44 +11,49 @@ interface Props {
   worldWidth: number;
   worldHeight: number;
   children: ReactNode;
-  minScale?: number;
   maxScale?: number;
   initialScale?: number;
-  /** Altezza visibile del viewport (px). */
-  height?: number;
+  /** Altezza visibile (px) — opzionale; se omesso il container occupa il parent. */
+  height?: number | string;
+  /** Colore di sfondo (di solito tinta del bioma) per evitare il bordo nero quando si pizzica. */
+  backgroundColor?: string;
   onScaleChange?: (s: number) => void;
+  onWorldClick?: (worldX: number, worldY: number) => void;
 }
 
 /**
- * Pan + pinch/wheel zoom su una scena world fissa. Inerzia leggera, clamp ai bordi.
- * Non interferisce con scroll esterno (touch-action: none, stopPropagation).
+ * Pan + pinch/wheel zoom. minScale calcolato dinamicamente in modo che il
+ * mondo COPRA SEMPRE il viewport (mai bordo visibile). Sfondo configurabile.
  */
 export const VillageMapViewport = forwardRef<ViewportHandle, Props>(function VillageMapViewport(
   {
     worldWidth,
     worldHeight,
     children,
-    minScale = 0.35,
-    maxScale = 2.5,
-    initialScale = 0.8,
-    height = 480,
+    maxScale = 3,
+    initialScale = 1,
+    height,
+    backgroundColor = "#0a0a0a",
     onScaleChange,
+    onWorldClick,
   },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [vp, setVp] = useState({ w: 600, h: height });
+  const [vp, setVp] = useState({ w: 600, h: 600 });
   const [tx, setTx] = useState(0);
   const [ty, setTy] = useState(0);
   const [scale, setScale] = useState(initialScale);
 
-  const dragRef = useRef<{ active: boolean; sx: number; sy: number; ox: number; oy: number; vx: number; vy: number; lastT: number }>({
-    active: false, sx: 0, sy: 0, ox: 0, oy: 0, vx: 0, vy: 0, lastT: 0,
+  // minScale dinamico: garantisce che il mondo riempia sempre il viewport.
+  const minScale = Math.max(vp.w / worldWidth, vp.h / worldHeight, 0.1);
+
+  const dragRef = useRef<{ active: boolean; sx: number; sy: number; ox: number; oy: number; vx: number; vy: number; lastT: number; moved: boolean }>({
+    active: false, sx: 0, sy: 0, ox: 0, oy: 0, vx: 0, vy: 0, lastT: 0, moved: false,
   });
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchRef = useRef<{ dist: number; scale: number; cx: number; cy: number } | null>(null);
 
-  // Misura viewport
   useEffect(() => {
     if (!containerRef.current) return;
     const ro = new ResizeObserver((e) => {
@@ -77,7 +82,6 @@ export const VillageMapViewport = forwardRef<ViewportHandle, Props>(function Vil
 
   const zoomAt = (newScale: number, cx: number, cy: number) => {
     const s = Math.max(minScale, Math.min(maxScale, newScale));
-    // mantieni punto (cx,cy) fisso
     const wx = (cx - tx) / scale;
     const wy = (cy - ty) / scale;
     const nx = cx - wx * s;
@@ -92,19 +96,32 @@ export const VillageMapViewport = forwardRef<ViewportHandle, Props>(function Vil
     setPan(nx, ny, scale);
   };
 
-  // Centra all'avvio
+  // Auto-fit iniziale + clamp quando cambia minScale
   useEffect(() => {
-    if (vp.w > 200) centerOn(worldWidth / 2, worldHeight / 2);
+    if (vp.w < 200) return;
+    const s = Math.max(minScale, initialScale);
+    setScale(s);
+    const nx = vp.w / 2 - (worldWidth / 2) * s;
+    const ny = vp.h / 2 - (worldHeight / 2) * s;
+    const c = clampPan(nx, ny, s);
+    setTx(c.x); setTy(c.y);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vp.w, vp.h]);
 
   useImperativeHandle(ref, () => ({
     zoomIn: () => zoomAt(scale * 1.25, vp.w / 2, vp.h / 2),
     zoomOut: () => zoomAt(scale / 1.25, vp.w / 2, vp.h / 2),
-    reset: () => { setScale(initialScale); centerOn(worldWidth / 2, worldHeight / 2); },
+    reset: () => {
+      const s = Math.max(minScale, initialScale);
+      setScale(s);
+      const nx = vp.w / 2 - (worldWidth / 2) * s;
+      const ny = vp.h / 2 - (worldHeight / 2) * s;
+      const c = clampPan(nx, ny, s);
+      setTx(c.x); setTy(c.y);
+    },
     centerOn,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [scale, vp.w, vp.h, tx, ty]);
+  }), [scale, vp.w, vp.h, tx, ty, minScale]);
 
   // Inerzia
   useEffect(() => {
@@ -122,7 +139,7 @@ export const VillageMapViewport = forwardRef<ViewportHandle, Props>(function Vil
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tx, ty, scale, vp.w, vp.h]);
 
-  // Wheel zoom (solo se il puntatore è sopra il container)
+  // Wheel zoom
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -153,7 +170,7 @@ export const VillageMapViewport = forwardRef<ViewportHandle, Props>(function Vil
     } else {
       dragRef.current = {
         active: true, sx: e.clientX, sy: e.clientY,
-        ox: tx, oy: ty, vx: 0, vy: 0, lastT: performance.now(),
+        ox: tx, oy: ty, vx: 0, vy: 0, lastT: performance.now(), moved: false,
       };
     }
   };
@@ -174,6 +191,7 @@ export const VillageMapViewport = forwardRef<ViewportHandle, Props>(function Vil
     if (!d.active) return;
     const dx = e.clientX - d.sx;
     const dy = e.clientY - d.sy;
+    if (Math.abs(dx) + Math.abs(dy) > 6) d.moved = true;
     const now = performance.now();
     const dt = Math.max(1, now - d.lastT);
     d.vx = (e.clientX - d.sx - (tx - d.ox)) / dt * 16;
@@ -184,16 +202,33 @@ export const VillageMapViewport = forwardRef<ViewportHandle, Props>(function Vil
   };
 
   const endPointer = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    const wasTap = d.active && !d.moved && pointers.current.size === 1;
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) pinchRef.current = null;
     if (pointers.current.size === 0) dragRef.current.active = false;
+    // tap su mondo → callback (per placement)
+    if (wasTap && onWorldClick && containerRef.current) {
+      const r = containerRef.current.getBoundingClientRect();
+      const cx = e.clientX - r.left;
+      const cy = e.clientY - r.top;
+      const wx = (cx - tx) / scale;
+      const wy = (cy - ty) / scale;
+      onWorldClick(wx, wy);
+    }
   };
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-2xl border border-primary/30 bg-black/30 select-none"
-      style={{ height, touchAction: "none", overscrollBehavior: "contain", contain: "layout paint" }}
+      className="relative w-full h-full overflow-hidden select-none"
+      style={{
+        height: height ?? "100%",
+        backgroundColor,
+        touchAction: "none",
+        overscrollBehavior: "contain",
+        contain: "layout paint",
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endPointer}

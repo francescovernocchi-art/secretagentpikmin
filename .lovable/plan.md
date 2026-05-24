@@ -1,116 +1,132 @@
-## Obiettivo
+# Villaggio fullscreen refactor
 
-Trasformare il Villaggio da "immagine bioma zoomabile + sprite sopra" a una **vera mappa multilayer tile-based**, viva, costruibile, in stile mini-colonia Pikmin con oggetti quotidiani giganti riutilizzati come edifici.
+Trasformare `/villaggio` in una **mappa fullscreen immersiva** con UI modulare a pannelli, costruzione reale e nessun mostro nella scena.
 
-## Cosa cambia (vs. attuale)
+## 1. Layout fullscreen della pagina
 
-- Lo sfondo bioma diventa un **terreno procedurale a tile** (non più una jpg unica).
-- Edifici, Pikmin, mura, oggetti, effetti vivono in **layer separati** sopra il terreno.
-- Stato edificio reale: `locked | available | under_construction | built | upgrading` con cantiere visibile.
-- Pan/zoom agisce sulla **scena reale multilayer**, con limiti mappa e centratura su Campo Base.
-- Sprite di Pikmin/edifici/mostri/oggetti letti **sempre da DB/Storage** (mai hardcoded).
-- Minacce villaggio attive **solo** se mostro entro il raggio reale del Campo Base (GPS).
-
-## Architettura nuova
-
-### Mondo: tile map virtuale
-
-- Coordinate mondo in tile (es. 64×64 tile, tile = 48px logico).
-- `mapProjection.ts`: world↔screen, world↔GPS (Campo Base = origin GPS).
-- `tileMap.ts`: tipi di tile per bioma (erba/sabbia/roccia/neve/lava/metallo/...), generatore deterministico seeded per agente.
-
-### Layer (z-order)
-
-1. `TerrainLayer` – tile bioma (canvas o griglia CSS)
-2. `PathLayer` – sentieri tra edifici
-3. `FieldsLayer` – campi/orti
-4. `BuildingsLayer` – edifici via `BuildingMarker`
-5. `WallsLayer` – mura (riusa logica esistente)
-6. `ObjectsLayer` – decor giganti del bioma (sprite_assets `category=decorazione`)
-7. `PikminLayer` – Pikmin viventi (riusa `VillagePikminLayer`)
-8. `MonsterThreatLayer` – minacce reali entro raggio Campo Base
-9. `EffectsLayer` – particelle bioma + giorno/notte
-10. `InteractionLayer` – hit-test click/tap su tile vuoti (per piazzare edifici)
-11. `HudLayer` – marker raggio Campo Base, indicatori
-
-### Viewport / camera
-
-- `VillageMapViewport.tsx`: pan + pinch + wheel zoom con **inerzia**, clamp ai limiti world, `centerOnBase()`.
-- Sostituisce `VillageZoomPan` per la pagina villaggio (resta utility se serve altrove).
-
-### Edifici
-
-- `BuildingMarker.tsx`: render singolo edificio in coord world, sprite da `building_catalog.image_url` o stage da `visual_stages`, badge livello, tap.
-- `ConstructionSite.tsx`: visual cantiere (impalcature + timer) per `under_construction` / `upgrading`.
-- Stato derivato:
-  - `locked`: requisiti non soddisfatti → non in scena, non in menu
-  - `available`: in menu costruzioni, non in scena
-  - `under_construction` / `upgrading`: cantiere in scena
-  - `built`: sprite finale
-
-### Sprite via DB
-
-- Tutti i visual leggono `image_url` / `icon_url` / `sprite_*_url` (già aggiunti su `pikmin_species`, `enemies`, `building_catalog`, `sprite_assets`). Fallback emoji solo se URL mancante.
-- `ObjectsLayer` pesca da `sprite_assets` filtrati per `tags` che includono il bioma.
-
-### Geo + minacce
-
-- `lib/geo/distance.ts`: haversine.
-- `MonsterThreatLayer` mostra mostri **solo** se `distance(player_or_base, spawn) ≤ raggio` (200m attacco / `base.action_radius` per villaggio).
-- Niente eventi falsi: `ThreatAlertPanel` continua a usare `computeNearbyThreats` già reale.
-
-## File da creare
+`src/routes/villaggio.tsx` smette di usare `PageShell` con scroll. Diventa:
 
 ```
-src/lib/geo/distance.ts
-src/lib/village/tileMap.ts
-src/lib/village/mapProjection.ts
-src/lib/village/villageLayers.ts
-src/components/village/VillageMap.tsx
-src/components/village/VillageMapViewport.tsx
-src/components/village/VillageMapControls.tsx
-src/components/village/BuildingMarker.tsx
-src/components/village/PikminMarker.tsx
-src/components/village/ConstructionSite.tsx
-src/components/village/layers/TerrainLayer.tsx
-src/components/village/layers/PathLayer.tsx
-src/components/village/layers/FieldsLayer.tsx
-src/components/village/layers/BuildingsLayer.tsx
-src/components/village/layers/WallsLayer.tsx
-src/components/village/layers/ObjectsLayer.tsx
-src/components/village/layers/PikminLayer.tsx
-src/components/village/layers/MonsterThreatLayer.tsx
-src/components/village/layers/EffectsLayer.tsx
-src/components/village/layers/InteractionLayer.tsx
-src/components/village/layers/HudLayer.tsx
+<div class="fixed inset-0">           ← occupa tutto il viewport
+  <MapViewport fullscreen />          ← canvas pan/zoom edge-to-edge
+  <FixedTopHud />                     ← chip nome base + risorse, top-left, flottante
+  <ThreatBadge />                     ← top-right, solo se ci sono minacce (notifica, no sprite)
+  <BottomMenu />                      ← 5 bottoni: Costruzione, Difese, Bonus, Estetica, Pikmin
+  <ModalPanels />                     ← sheet/drawer aperti dal menu
+</div>
 ```
 
-## File da modificare
+- `BottomNav` globale viene nascosto su questa pagina (rotta usa layout dedicato senza BottomNav, oppure flag).
+- Mappa = `100vw x 100dvh`, nessun padding, nessun bordo card.
 
-- `src/routes/villaggio.tsx` → sostituire blocco `<VillageZoomPan><VillageCanvas/>...</>` con `<VillageMap base={...} buildings={...} .../>`.
-- `src/components/village/VillageCanvas.tsx` → deprecato (lasciato come fallback "/villaggio/$agent" finché non migrato), oppure rimpiazzato anche lì.
+## 2. Mappa senza bordi neri
 
-## Stile visivo
+`VillageMapViewport`:
+- Sfondo del container settato sul colore del bioma (non più `bg-black/transparent`).
+- `WORLD_W/H` aumentati a 2400×1600 e il `TerrainLayer` esteso oltre con una **vignette/fade radiale** + cintura di decorazioni (alberi/rocce/montagne/acqua a seconda del bioma) sui bordi → nasconde i limiti.
+- Min-scale calcolato in modo che il mondo copra sempre il viewport (no "edge raggiunto").
+- Aggiunto `EdgeFogLayer` (nuovo) con gradiente radiale dal centro per dissolvere i bordi.
 
-- Tile cartoon morbidi generati via CSS gradients + pattern SVG inline (no nuove jpg), così resta leggero e reattivo allo zoom.
-- Edifici = sprite caricati da admin (oggetti quotidiani giganti). Catalogo iniziale fornisce solo emoji di fallback.
-- Palette per bioma riusata da `BIOMES[*].accent`.
+## 3. Bottom menu modulare
 
-## Cosa NON cambia ora
+Nuovo componente `src/components/village/VillageBottomMenu.tsx`:
+- 5 pulsanti grandi (44px+), icone + label, fissi in basso con safe-area.
+- Ogni click apre il pannello relativo come **Sheet** (mobile-first, slide dal basso).
 
-- Modello DB (campi già sufficienti). Eventuale aggiunta `base_buildings.unlock_requirements` rimandata.
-- Logica costi/timer in `lib/base.ts`.
-- Mura, eventi notturni, cosmetics, HUD.
+Pannelli (Sheet riusabile):
+- `BuildPanel` — catalogo costruzioni reale (vedi §4).
+- `DefensePanel` — mura, torri, raggio difesa, livello difese (sposta logica da `WallEditor` + difese aggregate).
+- `BonusPanel` — bonus aggregati con origine (vedi §6).
+- `AestheticsPanel` — sprite pikmin, layer toggle, decorazioni, skin (assorbe la **barra sprite attualmente sopra la mappa**).
+- `PikminPanel` — squadra, breakdown, link inventario.
 
-## Verifica
+## 4. Costruzione reale
 
-- Build pulita (TypeScript strict).
-- Villaggio nuovo si carica senza rompere `villaggio/$agent` (partner view).
-- Pan/zoom fluido, niente scroll della barra inferiore.
-- Edifici cliccabili, cantieri visibili durante costruzione.
+`BuildPanel`:
+1. Lista catalogo (`building_catalog`) con stato per agente:
+   - `locked` (requisiti non soddisfatti) → grigio, motivo
+   - `available` → CTA "Costruisci"
+   - `under_construction` / `built` / `upgrading` → mostrati nel pannello "Le mie strutture"
+2. Click su "Costruisci" → modalità **placement**: la mappa entra in `placementMode`, l'utente tocca un punto, vede l'ombra anteprima della struttura, conferma → insert in `base_buildings` con `status='building'`, `build_end_at`.
+3. Timer visibile sia nel pannello sia sul cantiere nella mappa.
 
-## Scope esplicitamente fuori da questa iterazione
+**Strutture sulla mappa**: `BuildingsLayer` già filtra per `idle/building/upgrading`. Confermare e rimuovere qualsiasi rendering di edifici `available/locked` (eventuali placeholder grigi spariscono — solo cose realmente costruite o in cantiere appaiono).
 
-- Editor visuale tile-by-tile.
-- Path-finding Pikmin (resta animazione ambient esistente).
-- Generatore procedurale avanzato di villaggi cresciuti (la crescita resta data-driven dal numero di edifici/livelli).
+## 5. Immagini strutture personalizzabili (admin)
+
+Il DB ha già `building_catalog.image_url` + `visual_stages jsonb` (5 slot) e l'hook `useBuildingImages`. L'editor admin `BuildingsEditor` ha già upload base; **estendere** per:
+- Upload distinto per `level_1…level_5` (slot `visual_stages[0..4]`), preview live.
+- (Opzionale fase 2: variante per bioma — fuori scope ora, si lascia hook nei dati.)
+
+`BuildingMarker` / `BuildingSprite` già usano `pickBuildingImage(set, level)` → nessuna immagine hardcoded; se manca, mostra emoji fallback con nota "Carica immagine in Admin".
+
+## 6. Bonus aggregati
+
+Nuovo `BonusPanel` che usa `computeVillageStatus` (già esistente in `lib/village/bonuses.ts`) + **breakdown per origine**:
+
+```
++30 Energia max  ← Centro Comando Lv 3, Generatore Lv 2
++15 Difesa       ← Torre Lv 2, Mura
++5/h Pikmin      ← Serra Lv 3
++50 Scan         ← Radar Lv 2
+```
+
+Estendere `computeVillageStatus` per restituire anche `sources: { bonusKey, building, level, amount }[]`, poi il pannello li raggruppa.
+
+## 7. Rimuovere mostri dalla scena villaggio
+
+- Rimuovere `<MonsterThreatLayer />` da `VillageMap.tsx`.
+- Rimuovere `EnemyLayer` se presente.
+- Mantenere solo un **badge minaccia** flottante (top-right) che apre `ThreatAlertPanel` come Sheet — nessuno sprite di mostro nel mondo villaggio.
+
+## 8. Rimuovere barra sprite/filtri sopra la mappa
+
+`VillagePikminLayer` mostra attualmente una toolbar in alto con filtri specie e slider. La toolbar viene **rimossa dal layer** e ricostruita dentro `AestheticsPanel`. Le preferenze (`prefs` in localStorage) restano condivise.
+
+## 9. Threats: solo notifica, no rendering mondo
+
+`threats` continuano a essere caricati nella pagina per popolare il badge e il pannello — ma nessun layer li disegna sulla mappa villaggio.
+
+## File interessati
+
+**Modificare**
+- `src/routes/villaggio.tsx` — layout fullscreen, rimosso PageShell scroll, nuovo HUD + BottomMenu, pannelli.
+- `src/components/village/VillageMap.tsx` — rimosso MonsterThreatLayer, rimosso HUD interno, sfondo bioma, aggiunto EdgeFogLayer.
+- `src/components/village/VillageMapViewport.tsx` — fullscreen height (`100dvh`), min-scale per coprire viewport, sfondo trasparente.
+- `src/components/village/layers/TerrainLayer.tsx` — cintura decorativa sui bordi, fade radiale.
+- `src/components/pikmin/VillagePikminLayer.tsx` — rimossa toolbar interna (resta solo il render dei pikmin); le preferenze diventano prop controllata.
+- `src/lib/village/bonuses.ts` — aggiunto `sources` array.
+- `src/lib/village/mapProjection.ts` — `WORLD_W=2400`, `WORLD_H=1600`.
+- `src/components/admin/BuildingsEditor.tsx` — upload immagini per livello (5 slot).
+- `src/components/BottomNav.tsx` o root layout — nascondere BottomNav su `/villaggio` (per fullscreen reale).
+
+**Creare**
+- `src/components/village/VillageBottomMenu.tsx`
+- `src/components/village/panels/BuildPanel.tsx`
+- `src/components/village/panels/DefensePanel.tsx`
+- `src/components/village/panels/BonusPanel.tsx`
+- `src/components/village/panels/AestheticsPanel.tsx`
+- `src/components/village/panels/PikminPanel.tsx`
+- `src/components/village/layers/EdgeFogLayer.tsx`
+- `src/components/village/PlacementOverlay.tsx` — flusso scegli-posizione per costruzione.
+
+**Rimuovere dalla scena (non i file)**
+- `MonsterThreatLayer` dall'albero `VillageMap`.
+
+## Note tecniche
+
+- Nessuna modifica DB necessaria — `visual_stages jsonb[5]`, `building_catalog`, `computeVillageStatus` sono già pronti.
+- `100dvh` per la safe-area iOS; bottom menu usa `pb-[env(safe-area-inset-bottom)]`.
+- `Sheet` di shadcn (`src/components/ui/sheet.tsx`) come contenitore dei pannelli.
+- Tutto resta frontend; nessun cambio di business logic se non l'aggregazione `sources` (additiva).
+
+## Ordine di esecuzione
+
+1. Layout fullscreen + nasconde BottomNav su `/villaggio`.
+2. Mappa edge-to-edge + EdgeFogLayer + WORLD più grande.
+3. Rimuovi MonsterThreatLayer + toolbar sprite dalla scena.
+4. BottomMenu + 5 Sheet panels (stub funzionali).
+5. BuildPanel con placement reale.
+6. BonusPanel con sources aggregati.
+7. AestheticsPanel assorbe controlli sprite.
+8. BuildingsEditor: 5 slot immagini livello.

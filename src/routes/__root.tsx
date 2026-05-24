@@ -134,6 +134,8 @@ function RootComponent() {
   const router = useRouter();
   const isLoginRoute = pathname === "/" || pathname === "/index";
   const isApp = !isLoginRoute;
+  // Il villaggio è fullscreen: niente BottomNav per non rubare spazio al menu modulare.
+  const hideBottomNav = pathname === "/villaggio";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -168,7 +170,7 @@ function RootComponent() {
             <Outlet />
             <BuzzButton />
             <GlobalAudioPlayer />
-            <BottomNav />
+            {!hideBottomNav && <BottomNav />}
           </div>
 
         </div>
