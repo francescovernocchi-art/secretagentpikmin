@@ -113,6 +113,13 @@ export function AestheticsPanel({
             <ImageIcon className="h-4 w-4" /> Gestione Diorama
           </button>
 
+          {isPapa && (
+            <button onClick={() => setBiomeAdminOpen(true)}
+              className="btn-neon w-full py-2 text-xs inline-flex items-center justify-center gap-2">
+              <Mountain className="h-4 w-4" /> Biomi Personalizzati (admin)
+            </button>
+          )}
+
           <button onClick={() => setCustomizerOpen(true)}
             className="btn-neon w-full py-2 text-xs">
             Apri Customizer Villaggio
@@ -126,6 +133,14 @@ export function AestheticsPanel({
         biome={biomeKey}
         onChanged={onRefresh}
       />
+
+      {isPapa && (
+        <BiomeAdminPanel
+          open={biomeAdminOpen}
+          onOpenChange={setBiomeAdminOpen}
+          onChanged={() => { reloadBiomes(); onRefresh(); }}
+        />
+      )}
 
       {customizerOpen && (
         <VillageCustomizer
