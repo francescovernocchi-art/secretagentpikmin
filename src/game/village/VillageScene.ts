@@ -2,10 +2,13 @@ import Phaser from "phaser";
 import type { BaseBuilding } from "@/lib/base";
 import type { VillageGameState, PlacementInfo, PikminLayerConfig } from "./VillageTypes";
 import type { DioramaSlot } from "@/hooks/useActiveDiorama";
+import type { VillageEventRow, ParticleKind } from "@/lib/village/eventTypes";
 
 const BUILD_TEX_PREFIX = "bld:";
 const DIORAMA_TEX_PREFIX = "diorama:";
 const PIKMIN_TEX_PREFIX = "pkm:";
+const EVENT_TEX_PREFIX = "evt:";
+const PARTICLE_TEX_KEY = "evt-particle-px";
 
 interface BuildingSprite {
   container: Phaser.GameObjects.Container;
