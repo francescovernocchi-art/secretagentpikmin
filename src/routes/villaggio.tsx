@@ -96,7 +96,7 @@ function VillaggioPage() {
     return () => clearInterval(id);
   }, []);
 
-  const [pikminBreakdown, setPikminBreakdown] = useState<Partial<Record<PikminType, number>>>({});
+  const [pikminBreakdown, setPikminBreakdown] = useState<Record<string, number>>({});
 
   const reload = async () => {
     const [b, bld, cat, c, g, w, ev, pc, sq] = await Promise.all([
@@ -118,20 +118,17 @@ function VillaggioPage() {
     setWalls(w);
     setEvents(ev);
     setPikminCount(pc);
-    const raw = (sq.data?.breakdown ?? {}) as Record<string, number>;
-    const map: Partial<Record<PikminType, number>> = {};
-    const norm = (k: string): PikminType | null => {
-      const v = k.toLowerCase();
-      if (["red", "rosso"].includes(v)) return "red";
-      if (["blue", "blu"].includes(v)) return "blue";
-      if (["yellow", "giallo"].includes(v)) return "yellow";
-      if (["purple", "viola"].includes(v)) return "purple";
-      if (["white", "bianco"].includes(v)) return "white";
-      return null;
+    // Conserva le chiavi originali di pikmin_species (qualsiasi key dal DB):
+    // il villaggio mostra esattamente la composizione del tuo inventario.
+    const raw = (sq.data?.breakdown ?? {}) as Record<string, unknown>;
+    const aliases: Record<string, string> = {
+      rosso: "red", blu: "blue", giallo: "yellow", viola: "purple", bianco: "white",
     };
+    const map: Record<string, number> = {};
     for (const [k, n] of Object.entries(raw)) {
-      const c2 = norm(k);
-      if (c2) map[c2] = (map[c2] ?? 0) + (Number(n) || 0);
+      const key = aliases[k.toLowerCase()] ?? k;
+      const num = Number(n) || 0;
+      if (num > 0) map[key] = (map[key] ?? 0) + num;
     }
     setPikminBreakdown(map);
     setLoading(false);
