@@ -37,7 +37,7 @@ export function VillageBottomMenu({ active, onOpen }: Props) {
                   }`}
                   aria-label={it.label}
                 >
-                  <Icon className="h-5 w-5" style={{ color: isActive ? it.color : "currentColor" }} />
+                  <Icon className="h-5 w-5" color={isActive ? it.color : "currentColor"} />
                   <span className="text-[9px] uppercase tracking-wider leading-none">{it.label}</span>
                 </button>
               </li>
