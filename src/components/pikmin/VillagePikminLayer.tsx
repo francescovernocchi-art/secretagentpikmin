@@ -6,7 +6,7 @@ import {
   ANIMATION_LABEL,
   MISSION_HINTS,
   PIKMIN_COLOR_DOT,
-  PIKMIN_LABEL,
+  PIKMIN_COLOR_DOT as _PIKMIN_COLOR_DOT_ALIAS_UNUSED,
   TYPE_NAMES,
   type PikminAnimation,
   type PikminType,
