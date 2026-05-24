@@ -221,8 +221,8 @@ export interface CreateExpeditionInput {
 
 export async function createExpedition(input: CreateExpeditionInput): Promise<Expedition> {
   const { template, agent, isCoop, totalPikmin, breakdown } = input;
-  if (totalPikmin < template.pikmin_min) {
-    throw new Error(`Servono almeno ${template.pikmin_min} Pikmin.`);
+  if (totalPikmin < 1) {
+    throw new Error("Devi inviare almeno 1 Pikmin.");
   }
   if (totalPikmin > template.pikmin_max) {
     throw new Error(`Massimo ${template.pikmin_max} Pikmin per questa missione.`);
