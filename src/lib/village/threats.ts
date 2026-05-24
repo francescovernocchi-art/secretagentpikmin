@@ -82,10 +82,16 @@ export async function scanThreats(params: {
     localStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
   }
 
-  const { data: spawns } = await supabase
+  const { data: spawnsRaw } = await supabase
     .from("map_enemy_spawns")
-    .select("id, enemy_id, lat, lng, active")
-    .eq("active", true);
+    .select("id, enemy_id, lat, lng, active, expires_at, defeated_at")
+    .eq("active", true)
+    .is("defeated_at", null);
+
+  const now = Date.now();
+  const spawns = (spawnsRaw ?? []).filter(
+    (s: any) => !s.expires_at || new Date(s.expires_at).getTime() > now,
+  );
 
   if (!spawns || spawns.length === 0) return { created: 0, auto: 0, threats: [] };
 

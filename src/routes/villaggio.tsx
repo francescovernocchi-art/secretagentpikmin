@@ -161,21 +161,25 @@ function VillaggioPage() {
     const totalDefense = computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating + wallDefenseBonus(walls);
 
     const refreshNearby = async () => {
-      // Carica solo spawn attivi e non sconfitti
+      // Carica solo spawn attivi, non sconfitti e non scaduti (allineato alla mappa)
       const { data: spawns } = await supabase
         .from("map_enemy_spawns")
-        .select("id, enemy_id, lat, lng, active, defeated_at")
+        .select("id, enemy_id, lat, lng, active, defeated_at, expires_at")
         .eq("active", true)
         .is("defeated_at", null);
-      if (!spawns || spawns.length === 0) {
+      const now = Date.now();
+      const live = (spawns ?? []).filter(
+        (s: any) => !s.expires_at || new Date(s.expires_at).getTime() > now,
+      );
+      if (live.length === 0) {
         setNearbyThreats([]);
         return;
       }
-      const ids = Array.from(new Set(spawns.map((s) => s.enemy_id)));
+      const ids = Array.from(new Set(live.map((s: any) => s.enemy_id)));
       const { data: enemies } = await supabase.from("enemies").select("id,name,emoji,danger_level").in("id", ids);
       const emap = new Map((enemies ?? []).map((e: any) => [e.id, e]));
       setNearbyThreats(
-        computeNearbyThreats({ lat: baseLat, lng: baseLng }, spawns.map((s: any) => ({
+        computeNearbyThreats({ lat: baseLat, lng: baseLng }, live.map((s: any) => ({
           id: s.id, lat: s.lat, lng: s.lng, enemy: emap.get(s.enemy_id) ?? null,
         }))),
       );
