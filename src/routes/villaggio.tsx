@@ -62,6 +62,7 @@ function VillaggioPage() {
   const [openPanel, setOpenPanel] = useState<VillageMenuKey | null>(null);
   const [placing, setPlacing] = useState<BuildingCatalog | null>(null);
   const [pikminPrefs, setPikminPrefs] = useState<PikminLayerPrefs>(() => loadPikminPrefs());
+  const cameraCtrlRef = useRef<{ zoomIn: () => void; zoomOut: () => void; recenter: () => void } | null>(null);
   const prevBuildingsRef = useRef<BaseBuilding[]>([]);
 
   useEffect(() => { const i = setInterval(() => setPhase(getDayPhase()), 60_000); return () => clearInterval(i); }, []);
