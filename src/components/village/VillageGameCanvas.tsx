@@ -17,12 +17,13 @@ interface Props {
   onSelectBuilding?: (id: string) => void;
   onPlacePosition?: (pct: { x: number; y: number }) => void;
   onTapGround?: () => void;
+  onReady?: (controls: { zoomIn: () => void; zoomOut: () => void; recenter: () => void }) => void;
 }
 
 /** Canvas Phaser RTS 2.5D del Villaggio. Tutta l'UI resta React fuori da qui. */
 export function VillageGameCanvas({
   agent, biomeKey, buildings, catalog, pikminBreakdown, pikminMaxVisible = 18,
-  placement, onSelectBuilding, onPlacePosition, onTapGround,
+  placement, onSelectBuilding, onPlacePosition, onTapGround, onReady,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
