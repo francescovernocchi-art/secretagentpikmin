@@ -253,15 +253,17 @@ function PrepareView({ templateKey }: { templateKey: string }) {
 
       <button
         onClick={launch}
-        disabled={busy || total < template.pikmin_min}
+        disabled={busy || total < 1}
         className="btn-neon w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
       >
         <Rocket className="h-4 w-4" />
-        {total < template.pikmin_min
-          ? `Servono almeno ${template.pikmin_min} Pikmin`
-          : isCoop
-            ? `Lancia invito coop · ${total} Pikmin`
-            : `Lancia spedizione · ${total} Pikmin`}
+        {total < 1
+          ? "Seleziona almeno 1 Pikmin"
+          : total < template.pikmin_min
+            ? `Lancia comunque · ${total} Pikmin (rischio alto)`
+            : isCoop
+              ? `Lancia invito coop · ${total} Pikmin`
+              : `Lancia spedizione · ${total} Pikmin`}
       </button>
     </PageShell>
   );
