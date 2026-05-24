@@ -3,7 +3,7 @@ import type { BaseBuilding, BuildingCatalog } from "@/lib/base";
 import { resolveBiome } from "@/lib/village/biomes";
 import { useBuildingImages } from "@/hooks/useBuildingImages";
 import { pickBuildingImage } from "@/lib/village/buildingImages";
-import { usePikminSpecies } from "@/hooks/usePikminSpecies";
+import { useActiveDiorama } from "@/hooks/useActiveDiorama";
 import type { PlacementInfo, VillageGameState } from "@/game/village/VillageTypes";
 
 interface Props {
@@ -11,18 +11,21 @@ interface Props {
   biomeKey: string | null | undefined;
   buildings: BaseBuilding[];
   catalog: BuildingCatalog[];
-  pikminBreakdown: Record<string, number>;
-  pikminMaxVisible?: number;
   placement: BuildingCatalog | null;
   onSelectBuilding?: (id: string) => void;
-  onPlacePosition?: (pct: { x: number; y: number }) => void;
+  onPlacePosition?: (pct: { x: number; y: number; slotKey?: string }) => void;
   onTapGround?: () => void;
-  onReady?: (controls: { zoomIn: () => void; zoomOut: () => void; recenter: () => void }) => void;
+  onReady?: (controls: {
+    zoomIn: () => void;
+    zoomOut: () => void;
+    recenter: () => void;
+    focusBuilding: (id: string) => void;
+  }) => void;
 }
 
-/** Canvas Phaser RTS 2.5D del Villaggio. Tutta l'UI resta React fuori da qui. */
+/** Canvas Phaser Diorama RTS del Villaggio. Tutta l'UI resta React fuori da qui. */
 export function VillageGameCanvas({
-  agent, biomeKey, buildings, catalog, pikminBreakdown, pikminMaxVisible = 18,
+  agent, biomeKey, buildings, catalog,
   placement, onSelectBuilding, onPlacePosition, onTapGround, onReady,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -32,8 +35,8 @@ export function VillageGameCanvas({
   const pendingStateRef = useRef<VillageGameState | null>(null);
 
   const imageMap = useBuildingImages();
-  const { species } = usePikminSpecies();
   const biome = resolveBiome(biomeKey).key;
+  const { diorama, slots } = useActiveDiorama(biome);
 
   // mount Phaser
   useEffect(() => {
@@ -69,6 +72,7 @@ export function VillageGameCanvas({
           zoomIn: () => sceneRef.current?.cameraZoomBy(1.25),
           zoomOut: () => sceneRef.current?.cameraZoomBy(0.8),
           recenter: () => sceneRef.current?.cameraRecenter(),
+          focusBuilding: (id: string) => sceneRef.current?.focusBuilding(id),
         });
       });
     })();
@@ -95,8 +99,12 @@ export function VillageGameCanvas({
     for (const b of buildings) {
       map[b.type] = pickBuildingImage(imageMap.get(b.type), b.level);
     }
+    if (placement) {
+      const owned = buildings.find((bb) => bb.type === placement.key);
+      map[placement.key] = pickBuildingImage(imageMap.get(placement.key), owned?.level ?? 1);
+    }
     return map;
-  }, [buildings, imageMap]);
+  }, [buildings, imageMap, placement]);
 
   const buildingEmojiByType = useMemo(() => {
     const map: Record<string, string> = {};
@@ -104,39 +112,45 @@ export function VillageGameCanvas({
     return map;
   }, [catalog]);
 
+  const buildingCategoryByType = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of catalog) map[c.key] = c.category ?? "utility";
+    return map;
+  }, [catalog]);
+
   const placementInfo: PlacementInfo | null = useMemo(() => {
     if (!placement) return null;
-    const owned = buildings.find((b) => b.type === placement.key);
     return {
       key: placement.key,
       emoji: placement.emoji ?? "🏠",
-      imageUrl: pickBuildingImage(imageMap.get(placement.key), owned?.level ?? 1),
+      category: placement.category ?? "utility",
+      imageUrl: pickBuildingImage(imageMap.get(placement.key), 1),
     };
-  }, [placement, imageMap, buildings]);
+  }, [placement, imageMap]);
 
   // push state
   useEffect(() => {
     const state: VillageGameState = {
       biome: biome as any,
       seed: agent,
+      diorama,
+      slots,
       buildings,
       buildingImageByType,
       buildingEmojiByType,
-      pikminBreakdown,
-      pikminSpecies: species,
-      pikminMaxVisible,
+      buildingCategoryByType,
       placement: placementInfo,
     };
     pendingStateRef.current = state;
     if (readyRef.current && sceneRef.current) sceneRef.current.applyState(state);
-  }, [agent, biome, buildings, buildingImageByType, buildingEmojiByType, pikminBreakdown, species, pikminMaxVisible, placementInfo]);
+  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo]);
 
   return (
     <div
       ref={hostRef}
       className="absolute inset-0 select-none touch-none"
       style={{ touchAction: "none" }}
-      aria-label="Villaggio - mappa di gioco"
+      aria-label="Villaggio - diorama"
     />
   );
 }

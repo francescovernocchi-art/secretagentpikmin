@@ -1545,6 +1545,89 @@ export type Database = {
         }
         Relationships: []
       }
+      village_diorama_slots: {
+        Row: {
+          allowed_categories: string[]
+          created_at: string
+          diorama_id: string
+          id: string
+          size: string
+          slot_key: string
+          x: number
+          y: number
+        }
+        Insert: {
+          allowed_categories?: string[]
+          created_at?: string
+          diorama_id: string
+          id?: string
+          size?: string
+          slot_key: string
+          x: number
+          y: number
+        }
+        Update: {
+          allowed_categories?: string[]
+          created_at?: string
+          diorama_id?: string
+          id?: string
+          size?: string
+          slot_key?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "village_diorama_slots_diorama_id_fkey"
+            columns: ["diorama_id"]
+            isOneToOne: false
+            referencedRelation: "village_dioramas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      village_dioramas: {
+        Row: {
+          biome: string
+          created_at: string
+          height: number
+          id: string
+          image_url: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          owner_id: string | null
+          updated_at: string
+          width: number
+        }
+        Insert: {
+          biome?: string
+          created_at?: string
+          height?: number
+          id?: string
+          image_url: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          owner_id?: string | null
+          updated_at?: string
+          width?: number
+        }
+        Update: {
+          biome?: string
+          created_at?: string
+          height?: number
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          owner_id?: string | null
+          updated_at?: string
+          width?: number
+        }
+        Relationships: []
+      }
       village_events: {
         Row: {
           agent: string
