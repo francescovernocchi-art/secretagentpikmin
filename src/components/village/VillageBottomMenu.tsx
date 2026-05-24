@@ -1,4 +1,4 @@
-import { Hammer, ShieldPlus, Sparkles, Palette, Users } from "lucide-react";
+import { Hammer, ShieldPlus, Sparkles, Palette, Users, type LucideIcon } from "lucide-react";
 import { hapticTap } from "@/lib/haptic";
 
 export type VillageMenuKey = "build" | "defense" | "bonus" | "aesthetic" | "pikmin";
@@ -8,7 +8,7 @@ interface Props {
   onOpen: (k: VillageMenuKey) => void;
 }
 
-const ITEMS: { key: VillageMenuKey; label: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
+const ITEMS: { key: VillageMenuKey; label: string; icon: LucideIcon; color: string }[] = [
   { key: "build",     label: "Costruzione", icon: Hammer,     color: "#f6ad55" },
   { key: "defense",   label: "Difese",      icon: ShieldPlus, color: "#7cd99a" },
   { key: "bonus",     label: "Bonus",       icon: Sparkles,   color: "#67e8f9" },
