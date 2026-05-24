@@ -1545,6 +1545,54 @@ export type Database = {
         }
         Relationships: []
       }
+      village_biomes: {
+        Row: {
+          accent: string
+          bonuses: string[]
+          created_at: string
+          created_by: string | null
+          emoji: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          key: string
+          label: string
+          sort_order: number
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent?: string
+          bonuses?: string[]
+          created_at?: string
+          created_by?: string | null
+          emoji?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent?: string
+          bonuses?: string[]
+          created_at?: string
+          created_by?: string | null
+          emoji?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       village_diorama_slots: {
         Row: {
           allowed_categories: string[]
