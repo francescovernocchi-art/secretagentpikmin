@@ -335,11 +335,19 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
           >
             <div className="flex items-center gap-3">
               <div className="panel p-1 flex items-center justify-center" style={{ width: 64, height: 80 }}>
-                <AnimatedPikmin type={selected.type} animation={selected.anim} size={48} showShadow={false} />
+                {labels[selected.type].image_url ? (
+                  <img
+                    src={labels[selected.type].image_url!}
+                    alt={labels[selected.type].name}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <AnimatedPikmin type={selected.type} animation={selected.anim} size={48} showShadow={false} />
+                )}
               </div>
               <div className="flex-1">
                 <p className="font-display text-base">{selected.name}</p>
-                <p className="text-[11px] text-muted-foreground">{PIKMIN_LABEL[selected.type]}</p>
+                <p className="text-[11px] text-muted-foreground">{labels[selected.type].name}</p>
                 <p className="text-[10px] text-primary">Lv {selected.level}</p>
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded-full"
