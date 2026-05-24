@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { AnimatedPikmin } from "./AnimatedPikmin";
-import { PikminCustomizerModal } from "./PikminCustomizerModal";
 import { usePikminSpecies, type PikminSpeciesRow } from "@/hooks/usePikminSpecies";
 import {
-  ANIMATION_LABEL,
   type PikminAnimation,
 } from "@/data/pikminSprites";
 import type { BaseBuilding } from "@/lib/base";
 
-const MAX_PIKMIN = 30;
+export const MAX_PIKMIN = 30;
 const LS_KEY = "village.pikminLayer.v3";
 
-interface Prefs {
+export interface PikminLayerPrefs {
   show: boolean;
   maxCap: number;
   speed: number;
@@ -19,7 +17,7 @@ interface Prefs {
   night: boolean;
 }
 
-const DEFAULT_PREFS: Prefs = {
+export const DEFAULT_PIKMIN_PREFS: PikminLayerPrefs = {
   show: true,
   maxCap: MAX_PIKMIN,
   speed: 1,
@@ -27,17 +25,17 @@ const DEFAULT_PREFS: Prefs = {
   night: false,
 };
 
-function loadPrefs(): Prefs {
-  if (typeof window === "undefined") return DEFAULT_PREFS;
+export function loadPikminPrefs(): PikminLayerPrefs {
+  if (typeof window === "undefined") return DEFAULT_PIKMIN_PREFS;
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return DEFAULT_PREFS;
+    if (!raw) return DEFAULT_PIKMIN_PREFS;
     const p = JSON.parse(raw);
-    return { ...DEFAULT_PREFS, ...p, filters: { ...(p.filters ?? {}) } };
-  } catch { return DEFAULT_PREFS; }
+    return { ...DEFAULT_PIKMIN_PREFS, ...p, filters: { ...(p.filters ?? {}) } };
+  } catch { return DEFAULT_PIKMIN_PREFS; }
 }
 
-function savePrefs(p: Prefs) {
+export function savePikminPrefs(p: PikminLayerPrefs) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(p)); } catch { /* noop */ }
 }
 
@@ -58,12 +56,14 @@ interface Props {
   buildings: BaseBuilding[];
   pikminCount: number;
   threat?: boolean;
-  /** Quantità reale per specie dall'inventario (chiave specie → numero). */
   breakdown?: Record<string, number>;
+  /** Preferenze controllate dall'esterno (Estetica panel). Se assenti usa localStorage. */
+  prefs?: PikminLayerPrefs;
+  onPrefsChange?: (p: PikminLayerPrefs) => void;
+  onSelect?: (a: { name: string; speciesKey: string; level: number; anim: PikminAnimation }) => void;
 }
 
 function rand(a: number, b: number) { return a + Math.random() * (b - a); }
-
 function randomAnim(): PikminAnimation {
   const r = Math.random();
   if (r < 0.18) return "idle";
@@ -75,29 +75,26 @@ function randomAnim(): PikminAnimation {
   return "sleep";
 }
 
-/** Layer Pikmin del villaggio — specie e sprite caricati dinamicamente dal DB. */
-export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }: Props) {
-  const [prefs, setPrefs] = useState<Prefs>(() => loadPrefs());
-  const [selected, setSelected] = useState<Agent | null>(null);
-  const [customizerOpen, setCustomizerOpen] = useState(false);
-  const { species, refresh: refreshSpecies } = usePikminSpecies();
+/** Layer Pikmin del villaggio — solo render. Toolbar/filtri vivono nel pannello Estetica. */
+export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown, prefs: prefsProp, onSelect }: Props) {
+  const [internalPrefs, setInternalPrefs] = useState<PikminLayerPrefs>(() => loadPikminPrefs());
+  const prefs = prefsProp ?? internalPrefs;
+  const { species } = usePikminSpecies();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 600, h: 360 });
 
-  useEffect(() => { savePrefs(prefs); }, [prefs]);
+  useEffect(() => { if (!prefsProp) savePikminPrefs(internalPrefs); }, [internalPrefs, prefsProp]);
 
-  // Inizializza filtri quando arrivano le specie
+  // Inizializza filtri default su DB
   useEffect(() => {
-    if (!species.length) return;
-    setPrefs((p) => {
+    if (!species.length || prefsProp) return;
+    setInternalPrefs((p) => {
       const next = { ...p.filters };
       let changed = false;
-      for (const s of species) {
-        if (next[s.key] === undefined) { next[s.key] = true; changed = true; }
-      }
+      for (const s of species) if (next[s.key] === undefined) { next[s.key] = true; changed = true; }
       return changed ? { ...p, filters: next } : p;
     });
-  }, [species]);
+  }, [species, prefsProp]);
 
   const speciesByKey = useMemo(() => {
     const m = new Map<string, PikminSpeciesRow>();
@@ -126,23 +123,18 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
     return pts;
   }, [buildings, size]);
 
-  // Pool: ESATTAMENTE i Pikmin posseduti per specie (filtrati + cappati).
-  // Niente padding con specie non possedute: se non ne hai, non li vedi.
   const speciesPool = useMemo<string[]>(() => {
     const owned = species
       .filter((s) => prefs.filters[s.key] !== false)
       .map((s) => ({ key: s.key, n: Math.max(0, Math.floor(breakdown?.[s.key] ?? 0)) }))
       .filter((e) => e.n > 0);
-
     const total = owned.reduce((a, e) => a + e.n, 0);
     if (total === 0) return [];
-
     const cap = Math.max(1, Math.min(MAX_PIKMIN, prefs.maxCap));
     const pool: string[] = [];
     if (total <= cap) {
       for (const e of owned) for (let i = 0; i < e.n; i++) pool.push(e.key);
     } else {
-      // Scala proporzionalmente conservando almeno 1 per specie posseduta
       const scaled = owned.map((e) => ({ key: e.key, n: Math.max(1, Math.round((e.n / total) * cap)) }));
       let sum = scaled.reduce((a, e) => a + e.n, 0);
       while (sum > cap) {
@@ -155,7 +147,6 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
       }
       for (const e of scaled) for (let i = 0; i < e.n; i++) pool.push(e.key);
     }
-    // mescola per varietà visiva
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -172,7 +163,7 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
     const next: Agent[] = speciesPool.map((key, i) => {
       const old = agentsRef.current[i];
       const sp = speciesByKey.get(key);
-      const a: Agent = {
+      return {
         id: i,
         speciesKey: key,
         name: sp?.name ? `${sp.name} #${i + 1}` : `Pikmin #${i + 1}`,
@@ -186,7 +177,6 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
         level: 1 + Math.floor(Math.random() * 5),
         nextThinkAt: performance.now() + rand(1500, 5000),
       };
-      return a;
     });
     agentsRef.current = next;
     setAgentsTick((t) => t + 1);
@@ -201,12 +191,10 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
       const dt = Math.min(100, now - last);
       last = now;
       renderAcc += dt;
-
       const speedMul = prefs.speed * (threat ? 1.6 : 1);
       const padX = 16, padY = 16;
       for (const a of agentsRef.current) {
         if (a.anim === "sleep" && now < a.nextThinkAt) continue;
-
         const dx = a.tx - a.x, dy = a.ty - a.y;
         const dist = Math.hypot(dx, dy);
         const moveStates: PikminAnimation[] = ["walk", "run", "carry"];
@@ -223,7 +211,6 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
           a.anim = Math.random() < 0.4 ? "work" : "idle";
           a.nextThinkAt = now + rand(1500, 3500);
         }
-
         if (now >= a.nextThinkAt) {
           a.anim = threat ? "run" : randomAnim();
           const target = Math.random() < 0.7 && anchors.length
@@ -234,7 +221,6 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
           a.nextThinkAt = now + rand(2500, 6500);
         }
       }
-
       if (renderAcc > 80) {
         renderAcc = 0;
         setAgentsTick((t) => (t + 1) % 1_000_000);
@@ -245,168 +231,42 @@ export function VillagePikminLayer({ buildings, pikminCount, threat, breakdown }
     return () => cancelAnimationFrame(raf);
   }, [prefs.show, prefs.speed, threat, anchors, size.w, size.h]);
 
-  const togglePikmin = useCallback(() => setPrefs((p) => ({ ...p, show: !p.show })), []);
+  const handleClick = useCallback((a: Agent) => {
+    onSelect?.({ name: a.name, speciesKey: a.speciesKey, level: a.level, anim: a.anim });
+  }, [onSelect]);
 
   return (
-    <>
-      <div ref={containerRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden={!prefs.show}>
-        {prefs.show && agentsRef.current.map((a) => {
-          void agentsTick;
-          const sp = speciesByKey.get(a.speciesKey);
-          return (
-            <AnimatedPikmin
-              key={a.id}
-              type={a.speciesKey}
-              animation={a.anim}
-              x={a.x - 18}
-              y={a.y - 36}
-              size={36}
-              flip={a.flip}
-              night={prefs.night}
-              showShadow
-              showDust={a.anim === "run"}
-              showBubbles={a.speciesKey === "blue" && (a.anim === "idle" || a.anim === "work")}
-              showParticles={a.anim === "celebrate"}
-              showZ={a.anim === "sleep"}
-              spriteUrls={sp ? {
-                idle: sp.sprite_idle_url,
-                walk: sp.sprite_walk_url,
-                sleep: sp.sprite_sleep_url,
-              } : undefined}
-              fallbackImageUrl={sp?.image_url ?? sp?.icon_url ?? null}
-              tintColor={sp?.color ?? null}
-              onClick={() => setSelected({ ...a })}
-            />
-          );
-        })}
-        <style>{`[aria-hidden="false"] > div { pointer-events: auto; }`}</style>
-      </div>
-
-      {/* Pannello controlli */}
-      <div className="panel-strong p-2 flex flex-wrap items-center gap-2 text-[11px]">
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <input type="checkbox" checked={prefs.show} onChange={togglePikmin} className="accent-primary" />
-          <span>Mostra Pikmin</span>
-        </label>
-        <span className="text-muted-foreground">·</span>
-        <label className="flex items-center gap-1" title="Limite massimo di Pikmin visibili contemporaneamente">
-          Max
-          <input
-            type="range" min={3} max={MAX_PIKMIN} value={prefs.maxCap}
-            onChange={(e) => setPrefs((p) => ({ ...p, maxCap: Number(e.target.value) }))}
-            className="w-20 accent-primary"
-          />
-          <span className="w-5 text-right">{prefs.maxCap}</span>
-        </label>
-        <label className="flex items-center gap-1">
-          Vel
-          <input
-            type="range" min={0.5} max={2} step={0.1} value={prefs.speed}
-            onChange={(e) => setPrefs((p) => ({ ...p, speed: Number(e.target.value) }))}
-            className="w-16 accent-primary"
-          />
-          <span className="w-7 text-right">{prefs.speed.toFixed(1)}x</span>
-        </label>
-        <label className="flex items-center gap-1 cursor-pointer">
-          <input
-            type="checkbox" checked={prefs.night}
-            onChange={(e) => setPrefs((p) => ({ ...p, night: e.target.checked }))}
-            className="accent-primary"
-          />
-          Notte
-        </label>
-        <span className="text-muted-foreground">·</span>
-        {species.length === 0 && (
-          <span className="text-muted-foreground italic">Nessuna specie caricata — aggiungila dalla Libreria Sprite</span>
-        )}
-        {species.map((s) => {
-          const on = prefs.filters[s.key] !== false;
-          return (
-            <button
-              key={s.key}
-              onClick={() => setPrefs((p) => ({ ...p, filters: { ...p.filters, [s.key]: !on } }))}
-              className={`px-2 py-0.5 rounded-full border text-[10px] transition ${
-                on
-                  ? "bg-primary/20 border-primary/50 text-foreground"
-                  : "bg-transparent border-muted-foreground/30 text-muted-foreground opacity-60"
-              }`}
-              aria-pressed={on}
-              title={s.name}
-            >
-              <span className="inline-block w-2 h-2 rounded-full mr-1 align-middle" style={{ background: s.color ?? "#94a3b8" }} />
-              {s.name}
-            </button>
-          );
-        })}
-        <span className="text-muted-foreground">·</span>
-        <button
-          onClick={() => setCustomizerOpen(true)}
-          className="px-2 py-0.5 rounded-full border border-primary/50 bg-primary/10 text-[10px] hover:bg-primary/20"
-          title="Rinomina Pikmin / sprite"
-        >
-          ✏️ Personalizza
-        </button>
-      </div>
-
-      <PikminCustomizerModal
-        open={customizerOpen}
-        onClose={() => setCustomizerOpen(false)}
-        onSaved={() => { void refreshSpecies(); }}
-      />
-
-      {selected && (() => {
-        const sp = speciesByKey.get(selected.speciesKey);
+    <div ref={containerRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden={!prefs.show}>
+      {prefs.show && agentsRef.current.map((a) => {
+        void agentsTick;
+        const sp = speciesByKey.get(a.speciesKey);
         return (
-          <div
-            className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-3"
-            onClick={() => setSelected(null)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="panel-strong p-4 w-full max-w-sm flex flex-col gap-3 animate-fade-in"
-            >
-              <div className="flex items-center gap-3">
-                <div className="panel p-1 flex items-center justify-center" style={{ width: 64, height: 80 }}>
-                  {sp?.image_url ? (
-                    <img src={sp.image_url} alt={sp.name} className="w-full h-full object-contain" />
-                  ) : (
-                    <AnimatedPikmin
-                      type={selected.speciesKey}
-                      animation={selected.anim}
-                      size={48}
-                      showShadow={false}
-                      fallbackImageUrl={sp?.icon_url ?? null}
-                      tintColor={sp?.color ?? null}
-                    />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-display text-base">{selected.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{sp?.name ?? selected.speciesKey}</p>
-                  <p className="text-[10px] text-primary">Lv {selected.level}</p>
-                </div>
-                <span
-                  className="text-[10px] px-2 py-0.5 rounded-full"
-                  style={{ background: sp?.color ?? "#94a3b8", color: "#0a0a1a" }}
-                >
-                  {selected.speciesKey}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="panel p-2">
-                  <p className="text-muted-foreground text-[9px] uppercase tracking-widest">Stato</p>
-                  <p>{ANIMATION_LABEL[selected.anim]}</p>
-                </div>
-                <div className="panel p-2">
-                  <p className="text-muted-foreground text-[9px] uppercase tracking-widest">Specie</p>
-                  <p>{sp?.name ?? selected.speciesKey}</p>
-                </div>
-              </div>
-              <button onClick={() => setSelected(null)} className="btn-neon p-2 text-xs">Chiudi</button>
-            </div>
-          </div>
+          <AnimatedPikmin
+            key={a.id}
+            type={a.speciesKey}
+            animation={a.anim}
+            x={a.x - 18}
+            y={a.y - 36}
+            size={36}
+            flip={a.flip}
+            night={prefs.night}
+            showShadow
+            showDust={a.anim === "run"}
+            showBubbles={a.speciesKey === "blue" && (a.anim === "idle" || a.anim === "work")}
+            showParticles={a.anim === "celebrate"}
+            showZ={a.anim === "sleep"}
+            spriteUrls={sp ? {
+              idle: sp.sprite_idle_url,
+              walk: sp.sprite_walk_url,
+              sleep: sp.sprite_sleep_url,
+            } : undefined}
+            fallbackImageUrl={sp?.image_url ?? sp?.icon_url ?? null}
+            tintColor={sp?.color ?? null}
+            onClick={() => handleClick(a)}
+          />
         );
-      })()}
-    </>
+      })}
+      <style>{`[aria-hidden="false"] > div { pointer-events: auto; }`}</style>
+    </div>
   );
 }
