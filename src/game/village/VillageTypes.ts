@@ -41,6 +41,7 @@ export interface VillageGameState {
   buildingCategoryByType?: Record<string, string>;
   placement: PlacementInfo | null;
   pikmin?: PikminLayerConfig;
+  events?: VillageEventRow[];
 }
 
 export interface VillageGameEvents {
