@@ -420,6 +420,18 @@ function ExpeditionView({ id }: { id: string }) {
       {/* AZIONI INVITATO */}
       {isInvited && <JoinPanel exp={exp} template={template} agent={agent} onJoined={load} />}
 
+      {/* INVITA PARTNER (spedizione single in corso) */}
+      {canInvitePartner && <InvitePartnerButton expeditionId={exp.id} agent={agent} onInvited={load} />}
+
+      {/* IN ATTESA RISPOSTA PARTNER */}
+      {exp.created_by === agent && exp.is_coop && !hasOwnSquadOther(squads, exp.partner) && exp.status === "active" && (
+        <div className="panel p-3 text-[11px] text-amber-200 flex items-center gap-2">
+          <Sparkles className="h-3 w-3" />
+          Invito inviato a {exp.partner === "papa" ? "Papà" : "Lorenzo"} · in attesa che si unisca…
+        </div>
+      )}
+
+
       {/* AZIONI CREATORE */}
       {exp.created_by === agent && exp.status === "waiting_partner" && (
         <button
