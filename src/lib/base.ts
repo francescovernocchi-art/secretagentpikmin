@@ -139,8 +139,8 @@ export async function startBuilding(agent: string, catalog: BuildingCatalog, pos
       status: "building",
       started_at: now.toISOString(),
       build_end_at: end.toISOString(),
-      position_x: position.x,
-      position_y: position.y,
+      position_x: Math.round(position.x),
+      position_y: Math.round(position.y),
     })
     .select("*")
     .single();
