@@ -72,6 +72,7 @@ export function VillageGameCanvas({
         sceneRef.current = game.scene.getScene("village");
         readyRef.current = true;
         sceneRef.current.events.on("selectBuilding", (id: string) => onSelectBuildingRef.current?.(id));
+        sceneRef.current.events.on("selectSlot", (info: any) => onSelectSlotRef.current?.(info));
         sceneRef.current.events.on("placePosition", (pct: any) => onPlacePositionRef.current?.(pct));
         sceneRef.current.events.on("tapGround", () => onTapGroundRef.current?.());
         if (pendingStateRef.current) sceneRef.current.applyState(pendingStateRef.current);
