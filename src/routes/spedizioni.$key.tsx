@@ -84,11 +84,11 @@ function PrepareView({ templateKey }: { templateKey: string }) {
       template,
       totalPikmin: total,
       breakdown: squadBreakdown,
-      coopBonus: isCoop,
+      coopBonus: false,
     });
-  }, [template, total, squadBreakdown, isCoop]);
+  }, [template, total, squadBreakdown]);
 
-  const duration = template ? effectiveDurationMinutes(template, total, isCoop) : 0;
+  const duration = template ? effectiveDurationMinutes(template, total, false) : 0;
 
   if (!template) return <div className="p-6 text-sm text-muted-foreground">Caricamento…</div>;
 
