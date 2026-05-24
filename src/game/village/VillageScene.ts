@@ -468,4 +468,191 @@ export class VillageScene extends Phaser.Scene {
       cam.setZoom(Phaser.Math.Clamp(cam.zoom * factor, this.minZoom, this.maxZoom));
     });
   }
+
+  // ───────── pikmin ─────────
+
+  private ensurePikminTexture(speciesKey: string, url: string | null) {
+    if (!url) return;
+    const key = PIKMIN_TEX_PREFIX + speciesKey;
+    if (this.textures.exists(key) || this.pikminTexLoading.has(key)) return;
+    this.pikminTexLoading.add(key);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      if (!this.textures.exists(key)) this.textures.addImage(key, img);
+      this.pikminTexLoading.delete(key);
+      // upgrade existing fallback arcs of this species to textured sprites
+      for (const a of this.pikminAgents) {
+        if (a.speciesKey === speciesKey && !(a.body instanceof Phaser.GameObjects.Image)) {
+          this.replacePikminBody(a);
+        }
+      }
+    };
+    img.onerror = () => this.pikminTexLoading.delete(key);
+    img.src = url;
+  }
+
+  private replacePikminBody(a: PikminAgent) {
+    const key = PIKMIN_TEX_PREFIX + a.speciesKey;
+    if (!this.textures.exists(key)) return;
+    a.body.destroy();
+    const img = this.add.image(0, -18, key).setOrigin(0.5, 0.5);
+    const targetH = 48;
+    const s = targetH / (img.height || targetH);
+    img.setScale(s);
+    a.body = img;
+    a.container.add(img);
+  }
+
+  private computePikminPool(): string[] {
+    const cfg = this.pikminCfg;
+    if (!cfg || !cfg.show) return [];
+    const owned = cfg.species
+      .filter((s) => cfg.filters[s.key] !== false)
+      .map((s) => ({ key: s.key, n: Math.max(0, Math.floor(cfg.breakdown[s.key] ?? 0)) }))
+      .filter((e) => e.n > 0);
+    const total = owned.reduce((a, e) => a + e.n, 0);
+    if (total === 0) return [];
+    const cap = Math.max(1, Math.min(60, cfg.maxCap));
+    const pool: string[] = [];
+    if (total <= cap) {
+      for (const e of owned) for (let i = 0; i < e.n; i++) pool.push(e.key);
+    } else {
+      const scaled = owned.map((e) => ({ key: e.key, n: Math.max(1, Math.round((e.n / total) * cap)) }));
+      let sum = scaled.reduce((a, e) => a + e.n, 0);
+      while (sum > cap) {
+        const idx = scaled.reduce((mi, e, i, arr) => (e.n > arr[mi].n ? i : mi), 0);
+        scaled[idx].n--; sum--;
+      }
+      while (sum < cap) {
+        const idx = scaled.reduce((mi, e, i, arr) => (e.n < arr[mi].n ? i : mi), 0);
+        scaled[idx].n++; sum++;
+      }
+      for (const e of scaled) for (let i = 0; i < e.n; i++) pool.push(e.key);
+    }
+    return pool;
+  }
+
+  private anchorPoints(): { x: number; y: number }[] {
+    if (!this.state) return [{ x: this.worldW / 2, y: this.worldH / 2 }];
+    const pts = this.state.buildings.map((b) => ({
+      x: (b.position_x / 100) * this.worldW,
+      y: (b.position_y / 100) * this.worldH,
+    }));
+    if (pts.length === 0) pts.push({ x: this.worldW / 2, y: this.worldH / 2 });
+    return pts;
+  }
+
+  private syncPikmin() {
+    const cfg = this.state?.pikmin ?? null;
+    this.pikminCfg = cfg;
+    if (!cfg || !cfg.show) {
+      this.clearPikmin();
+      return;
+    }
+    // preload textures
+    for (const s of cfg.species) this.ensurePikminTexture(s.key, s.imageUrl);
+
+    const pool = this.computePikminPool();
+    const anchors = this.anchorPoints();
+
+    // shrink
+    while (this.pikminAgents.length > pool.length) {
+      const a = this.pikminAgents.pop();
+      a?.container.destroy();
+    }
+    // adjust existing species mismatch
+    for (let i = 0; i < this.pikminAgents.length; i++) {
+      const a = this.pikminAgents[i];
+      const desired = pool[i];
+      if (a.speciesKey !== desired) {
+        a.container.destroy();
+        this.pikminAgents[i] = this.spawnPikmin(desired, cfg, anchors);
+      }
+    }
+    // grow
+    while (this.pikminAgents.length < pool.length) {
+      const i = this.pikminAgents.length;
+      this.pikminAgents.push(this.spawnPikmin(pool[i], cfg, anchors));
+    }
+  }
+
+  private clearPikmin() {
+    for (const a of this.pikminAgents) a.container.destroy();
+    this.pikminAgents = [];
+  }
+
+  private spawnPikmin(speciesKey: string, cfg: PikminLayerConfig, anchors: { x: number; y: number }[]): PikminAgent {
+    const sp = cfg.species.find((s) => s.key === speciesKey);
+    const tint = sp?.color ? Phaser.Display.Color.HexStringToColor(sp.color).color : 0xa3e635;
+    const anchor = anchors[Math.floor(Math.random() * anchors.length)];
+    const x = anchor.x + (Math.random() - 0.5) * 180;
+    const y = anchor.y + (Math.random() - 0.5) * 180;
+
+    const shadow = this.add.ellipse(0, 4, 28, 9, 0x000000, 0.35);
+    const key = PIKMIN_TEX_PREFIX + speciesKey;
+    const body: Phaser.GameObjects.Image | Phaser.GameObjects.Arc = this.textures.exists(key)
+      ? (() => {
+          const im = this.add.image(0, -18, key).setOrigin(0.5, 0.5);
+          const s = 48 / (im.height || 48);
+          im.setScale(s);
+          return im;
+        })()
+      : this.add.circle(0, -16, 14, tint, 1).setStrokeStyle(2, 0x000000, 0.45);
+
+    const container = this.add.container(x, y, [shadow, body]);
+    container.setDepth(y);
+    this.layerPikmin.add(container);
+
+    return {
+      container, body, shadow,
+      speciesKey,
+      x, y,
+      tx: x, ty: y,
+      speed: 60 + Math.random() * 40,
+      state: "walk",
+      nextThinkAt: performance.now() + 500 + Math.random() * 2000,
+    };
+  }
+
+  private tickPikmin(deltaMs: number) {
+    const cfg = this.pikminCfg;
+    if (!cfg || !cfg.show || this.pikminAgents.length === 0) return;
+    const now = performance.now();
+    const speedMul = cfg.speed * (cfg.threat ? 1.6 : 1);
+    const anchors = this.anchorPoints();
+
+    for (const a of this.pikminAgents) {
+      const dx = a.tx - a.x;
+      const dy = a.ty - a.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (a.state !== "idle" && dist > 2) {
+        const v = (a.state === "run" ? a.speed * 1.6 : a.speed) * speedMul;
+        const step = (v * deltaMs) / 1000;
+        a.x += (dx / dist) * step;
+        a.y += (dy / dist) * step;
+        // flip
+        if (a.body instanceof Phaser.GameObjects.Image) {
+          a.body.setFlipX(dx < 0);
+        }
+        a.container.x = a.x;
+        a.container.y = a.y;
+        a.container.setDepth(a.y);
+      } else if (dist <= 2 && a.state !== "idle") {
+        a.state = "idle";
+        a.nextThinkAt = now + 800 + Math.random() * 2200;
+      }
+
+      if (now >= a.nextThinkAt) {
+        a.state = cfg.threat ? "run" : Math.random() < 0.75 ? "walk" : "idle";
+        const target = Math.random() < 0.7 && anchors.length
+          ? anchors[Math.floor(Math.random() * anchors.length)]
+          : { x: Math.random() * this.worldW, y: Math.random() * this.worldH };
+        a.tx = Phaser.Math.Clamp(target.x + (Math.random() - 0.5) * 120, 20, this.worldW - 20);
+        a.ty = Phaser.Math.Clamp(target.y + (Math.random() - 0.5) * 120, 20, this.worldH - 20);
+        a.nextThinkAt = now + 2500 + Math.random() * 4000;
+      }
+    }
+  }
 }
