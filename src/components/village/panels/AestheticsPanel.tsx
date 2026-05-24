@@ -122,6 +122,13 @@ export function AestheticsPanel({
             </button>
           )}
 
+          {isPapa && (
+            <button onClick={() => setEventsAdminOpen(true)}
+              className="btn-neon w-full py-2 text-xs inline-flex items-center justify-center gap-2">
+              <Sparkles className="h-4 w-4" /> Eventi del Villaggio (admin)
+            </button>
+          )}
+
           <button onClick={() => setCustomizerOpen(true)}
             className="btn-neon w-full py-2 text-xs">
             Apri Customizer Villaggio
