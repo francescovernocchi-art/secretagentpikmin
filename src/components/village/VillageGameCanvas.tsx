@@ -5,6 +5,7 @@ import { useBuildingImages } from "@/hooks/useBuildingImages";
 import { pickBuildingImage } from "@/lib/village/buildingImages";
 import { useActiveDiorama } from "@/hooks/useActiveDiorama";
 import { usePikminSpecies } from "@/hooks/usePikminSpecies";
+import { useActiveVillageEvents } from "@/hooks/useVillageEvents";
 import type { PlacementInfo, VillageGameState, PikminLayerConfig, PikminSpeciesInfo } from "@/game/village/VillageTypes";
 
 interface Props {
