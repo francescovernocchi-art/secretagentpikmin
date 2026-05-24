@@ -1,9 +1,10 @@
-import { Palette, Image as ImageIcon, Mountain } from "lucide-react";
+import { Palette, Image as ImageIcon, Mountain, Sparkles } from "lucide-react";
 import { VillagePanelSheet } from "./VillagePanelSheet";
 import { BiomeSelector } from "../BiomeSelector";
 import { VillageCustomizer } from "../VillageCustomizer";
 import { DioramaPanel } from "./DioramaPanel";
 import { BiomeAdminPanel } from "./BiomeAdminPanel";
+import { EventsAdminPanel } from "./EventsAdminPanel";
 import { useState, useEffect } from "react";
 import { usePikminSpecies } from "@/hooks/usePikminSpecies";
 import {
