@@ -5,6 +5,7 @@ import type { DayPhase } from "@/lib/daycycle";
 import type { VillageCosmetics } from "@/lib/village/cosmetics";
 import type { WallSegment } from "@/lib/village/walls";
 import { VillageBackground } from "./VillageBackground";
+import { BiomeBackground } from "./BiomeBackground";
 import { BuildingSprite } from "./BuildingSprite";
 import { WallLayer } from "./WallLayer";
 import { DefenseRangeLayer } from "./DefenseRangeLayer";
@@ -21,6 +22,10 @@ interface Props {
   threat: boolean;
   onSelectBuilding?: (b: BaseBuilding) => void;
   tick: number;
+  /** Se passato, usa lo sfondo bioma "oggetti giganti" invece del fallback gradient. */
+  biome?: string | null;
+  /** Se true il canvas non gestisce le proprie dimensioni (lasciate al wrapper zoom/pan). */
+  embedded?: boolean;
 }
 
 /** Scena viva del villaggio: background + sprites + Pikmin + particelle + giorno/notte. */
@@ -33,17 +38,23 @@ export function VillageCanvas({
   threat,
   onSelectBuilding,
   tick,
+  biome,
+  embedded,
 }: Props) {
+  const Wrapper: any = embedded ? "div" : motion.div;
+  const wrapperProps = embedded
+    ? { className: "relative w-full h-full overflow-hidden" }
+    : {
+        key: faction + phase,
+        initial: { opacity: 0, scale: 0.98 },
+        animate: { opacity: 1, scale: 1 },
+        transition: { duration: 0.5, ease: "easeOut" },
+        className: "relative w-full overflow-hidden rounded-2xl border border-primary/30",
+        style: { aspectRatio: "16/11", minHeight: 320 },
+      };
   return (
-    <motion.div
-      key={faction + phase}
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="relative w-full overflow-hidden rounded-2xl border border-primary/30"
-      style={{ aspectRatio: "16/11", minHeight: 320 }}
-    >
-      <VillageBackground faction={faction} phase={phase} />
+    <Wrapper {...wrapperProps}>
+      {biome ? <BiomeBackground theme={biome} phase={phase} /> : <VillageBackground faction={faction} phase={phase} />}
       <DayNightLayer phase={phase} />
 
       {/* edifici */}
@@ -97,6 +108,6 @@ export function VillageCanvas({
           </div>
         </div>
       )}
-    </motion.div>
+    </Wrapper>
   );
 }
