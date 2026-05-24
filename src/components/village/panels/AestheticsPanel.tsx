@@ -151,6 +151,14 @@ export function AestheticsPanel({
         />
       )}
 
+      {isPapa && (
+        <EventsAdminPanel
+          open={eventsAdminOpen}
+          onOpenChange={setEventsAdminOpen}
+          onChanged={onRefresh}
+        />
+      )}
+
       {customizerOpen && (
         <VillageCustomizer
           agent={agent}
