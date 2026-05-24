@@ -1,6 +1,7 @@
 import type { BaseBuilding } from "@/lib/base";
 import type { BiomeKey } from "@/lib/village/biomes";
 import type { DioramaRow, DioramaSlot } from "@/hooks/useActiveDiorama";
+import type { VillageEventRow } from "@/lib/village/eventTypes";
 
 export interface PlacementInfo {
   key: string;
