@@ -30,7 +30,7 @@ export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
       toast.error("Impossibile cambiare bioma: " + error.message);
       return;
     }
-    toast.success(`Bioma cambiato in ${BIOME_LIST.find((b) => b.key === key)?.label}`);
+    toast.success(`Bioma cambiato in ${allBiomes.find((b) => b.key === key)?.label}`);
     onChanged?.(key);
     setOpen(false);
   };
