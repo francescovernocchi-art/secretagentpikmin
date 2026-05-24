@@ -17,6 +17,7 @@ interface Props {
   /** Configurazione layer Pikmin (mostra/cap/velocità/filtri + breakdown specie). */
   pikminConfig?: Omit<PikminLayerConfig, "species"> | null;
   onSelectBuilding?: (id: string) => void;
+  onSelectSlot?: (info: { slotKey: string; x: number; y: number; allowedCategories: string[] }) => void;
   onPlacePosition?: (pct: { x: number; y: number; slotKey?: string }) => void;
   onTapGround?: () => void;
   onReady?: (controls: {
