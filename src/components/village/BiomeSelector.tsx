@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Mountain, Loader2 } from "lucide-react";
-import { BIOME_LIST, resolveBiome, type BiomeKey } from "@/lib/village/biomes";
+import { resolveBiome, type BiomeKey } from "@/lib/village/biomes";
+import { useCustomBiomes } from "@/hooks/useCustomBiomes";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -14,6 +15,7 @@ interface Props {
 export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState<BiomeKey | null>(null);
+  const { allBiomes } = useCustomBiomes();
   const current = resolveBiome(currentTheme);
 
   const pick = async (key: BiomeKey) => {
@@ -28,7 +30,7 @@ export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
       toast.error("Impossibile cambiare bioma: " + error.message);
       return;
     }
-    toast.success(`Bioma cambiato in ${BIOME_LIST.find((b) => b.key === key)?.label}`);
+    toast.success(`Bioma cambiato in ${allBiomes.find((b) => b.key === key)?.label}`);
     onChanged?.(key);
     setOpen(false);
   };
@@ -45,7 +47,7 @@ export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
           <DialogTitle>Scegli il bioma del villaggio</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {BIOME_LIST.map((b) => {
+          {allBiomes.map((b) => {
             const active = b.key === current.key;
             return (
               <button
