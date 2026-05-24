@@ -26,13 +26,13 @@ function hash(s: string) {
 interface BuildingSprite {
   container: Phaser.GameObjects.Container;
   shadow: Phaser.GameObjects.Ellipse;
-  art: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+  art: Phaser.GameObjects.Image;
   progress?: Phaser.GameObjects.Graphics;
   data: BaseBuilding;
 }
 
 interface PikminSprite {
-  art: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+  art: Phaser.GameObjects.Image;
   shadow: Phaser.GameObjects.Ellipse;
   vx: number;
   vy: number;
