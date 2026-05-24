@@ -15,7 +15,7 @@ import {
 } from "@/lib/base";
 import { Sparkles, AlertTriangle, ShieldAlert, Gift } from "lucide-react";
 import { FactionSelector } from "@/components/village/FactionSelector";
-import { VillageMap } from "@/components/village/VillageMap";
+import { VillageGameCanvas } from "@/components/village/VillageGameCanvas";
 import { computeVillageStatus } from "@/lib/village/bonuses";
 import type { FactionKey } from "@/lib/village/factions";
 import { listWalls, wallDefenseBonus, type WallSegment } from "@/lib/village/walls";
@@ -189,20 +189,16 @@ function VillaggioPage() {
     <div className="fixed inset-0 z-10 overflow-hidden bg-background">
       <CelebrationOverlay show={!!festa} label={festa ?? ""} onDone={() => setFesta(null)} />
 
-      {/* ─── MAPPA FULLSCREEN ─── */}
-      <VillageMap
+      {/* ─── MAPPA FULLSCREEN (Phaser RTS 2.5D) ─── */}
+      <VillageGameCanvas
         agent={agent}
-        base={base}
+        biomeKey={base.theme}
         buildings={buildings}
-        walls={walls}
-        phase={phase}
-        pikminCount={pikminCount}
-        breakdown={pikminBreakdown}
-        threat={threatActive}
-        tick={tick}
-        pikminPrefs={pikminPrefs}
-        placementActive={!!placing}
-        onPlace={onPlace}
+        catalog={catalog}
+        pikminBreakdown={pikminBreakdown}
+        pikminMaxVisible={pikminPrefs?.maxCap ?? 18}
+        placement={placing}
+        onPlacePosition={onPlace}
       />
 
       {/* ─── FIXED TOP HUD ─── */}
