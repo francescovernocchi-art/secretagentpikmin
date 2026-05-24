@@ -1,16 +1,29 @@
 import Phaser from "phaser";
 import type { BaseBuilding } from "@/lib/base";
-import type { VillageGameState, PlacementInfo } from "./VillageTypes";
+import type { VillageGameState, PlacementInfo, PikminLayerConfig } from "./VillageTypes";
 import type { DioramaSlot } from "@/hooks/useActiveDiorama";
 
 const BUILD_TEX_PREFIX = "bld:";
 const DIORAMA_TEX_PREFIX = "diorama:";
+const PIKMIN_TEX_PREFIX = "pkm:";
 
 interface BuildingSprite {
   container: Phaser.GameObjects.Container;
   shadow: Phaser.GameObjects.Ellipse;
   art: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
   data: BaseBuilding;
+}
+
+interface PikminAgent {
+  container: Phaser.GameObjects.Container;
+  body: Phaser.GameObjects.Image | Phaser.GameObjects.Arc;
+  shadow: Phaser.GameObjects.Ellipse;
+  speciesKey: string;
+  x: number; y: number;
+  tx: number; ty: number;
+  speed: number;
+  state: "walk" | "idle" | "run";
+  nextThinkAt: number;
 }
 
 /**
