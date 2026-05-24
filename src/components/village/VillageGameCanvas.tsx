@@ -158,10 +158,11 @@ export function VillageGameCanvas({
       buildingCategoryByType,
       placement: placementInfo,
       pikmin: pikminFull ?? undefined,
+      events,
     };
     pendingStateRef.current = state;
     if (readyRef.current && sceneRef.current) sceneRef.current.applyState(state);
-  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo, pikminFull]);
+  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo, pikminFull, events]);
 
   return (
     <div
