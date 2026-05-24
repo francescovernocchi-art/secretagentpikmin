@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useBuildingImages } from "@/hooks/useBuildingImages";
 import { pickBuildingImage } from "@/lib/village/buildingImages";
-import { visualFor } from "@/lib/village/buildingVisuals";
+import { visualFor, spriteFor } from "@/lib/village/buildingVisuals";
 import { pctToWorld } from "@/lib/village/mapProjection";
 import { ConstructionSite } from "./ConstructionSite";
 import { formatRemaining } from "@/lib/base";
@@ -63,7 +63,7 @@ export function BuildingMarker({ building, onTap, tick }: Props) {
                 className="w-full h-full object-contain pointer-events-none select-none"
                 draggable={false} />
             ) : (
-              v.iconEmoji
+              spriteFor(building.type, level)
             )}
           </motion.span>
           <span className="mt-0.5 text-[9px] font-bold px-1.5 rounded-full"
