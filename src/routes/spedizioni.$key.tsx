@@ -110,7 +110,6 @@ function PrepareView({ templateKey }: { templateKey: string }) {
       const exp = await createExpedition({
         template,
         agent,
-        isCoop,
         totalPikmin: total,
         breakdown: squadBreakdown,
       });
