@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Mountain, Loader2 } from "lucide-react";
-import { BIOME_LIST, resolveBiome, type BiomeKey } from "@/lib/village/biomes";
+import { resolveBiome, type BiomeKey } from "@/lib/village/biomes";
+import { useCustomBiomes } from "@/hooks/useCustomBiomes";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -14,6 +15,7 @@ interface Props {
 export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState<BiomeKey | null>(null);
+  const { allBiomes } = useCustomBiomes();
   const current = resolveBiome(currentTheme);
 
   const pick = async (key: BiomeKey) => {
