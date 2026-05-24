@@ -208,6 +208,7 @@ export class VillageScene extends Phaser.Scene {
     this.rebuildSlotLayer();
     this.updatePlacementGhost();
     this.syncPikmin();
+    this.syncEvents();
   }
 
   // ───────── slots ─────────
