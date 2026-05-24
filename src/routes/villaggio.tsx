@@ -13,7 +13,7 @@ import {
   fetchCatalog, getBase, listBuildings, createBase, startBuilding, completeBuilding,
   listGifts, claimGift, type BaseGift,
 } from "@/lib/base";
-import { Sparkles, AlertTriangle, ShieldAlert, Gift } from "lucide-react";
+import { Sparkles, AlertTriangle, ShieldAlert, Gift, Plus, Minus, Crosshair } from "lucide-react";
 import { FactionSelector } from "@/components/village/FactionSelector";
 import { VillageGameCanvas } from "@/components/village/VillageGameCanvas";
 import { computeVillageStatus } from "@/lib/village/bonuses";
