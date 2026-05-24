@@ -1593,6 +1593,72 @@ export type Database = {
         }
         Relationships: []
       }
+      village_diorama_events: {
+        Row: {
+          biome_key: string | null
+          bonuses: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_minutes: number
+          effects: Json
+          ends_at: string | null
+          event_type: string
+          icon: string
+          id: string
+          is_active: boolean
+          key: string
+          maluses: Json
+          name: string
+          overlay_image_url: string | null
+          priority: number
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          biome_key?: string | null
+          bonuses?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number
+          effects?: Json
+          ends_at?: string | null
+          event_type?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          maluses?: Json
+          name: string
+          overlay_image_url?: string | null
+          priority?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          biome_key?: string | null
+          bonuses?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number
+          effects?: Json
+          ends_at?: string | null
+          event_type?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          maluses?: Json
+          name?: string
+          overlay_image_url?: string | null
+          priority?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       village_diorama_slots: {
         Row: {
           allowed_categories: string[]
