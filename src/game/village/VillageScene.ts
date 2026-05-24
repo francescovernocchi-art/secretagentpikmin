@@ -121,11 +121,16 @@ export class VillageScene extends Phaser.Scene {
     this.layerBg        = this.add.container(0, 0).setDepth(0);
     this.layerSlots     = this.add.container(0, 0).setDepth(2);
     this.layerBuildings = this.add.container(0, 0).setDepth(3);
+    this.layerPikmin    = this.add.container(0, 0).setDepth(10);
     this.layerFx        = this.add.container(0, 0).setDepth(50);
     this.layerPlacement = this.add.container(0, 0).setDepth(99);
 
     this.setupInput();
     this.scale.on("resize", () => this.refitOnResize());
+  }
+
+  update(_time: number, delta: number) {
+    this.tickPikmin(delta);
   }
 
   // ───────── diorama loading ─────────
