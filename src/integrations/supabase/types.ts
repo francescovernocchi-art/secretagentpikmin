@@ -1670,9 +1670,12 @@ export type Database = {
           allowed_categories: string[]
           created_at: string
           diorama_id: string
+          height: number
           id: string
+          rotation: number
           size: string
           slot_key: string
+          width: number
           x: number
           y: number
         }
@@ -1680,9 +1683,12 @@ export type Database = {
           allowed_categories?: string[]
           created_at?: string
           diorama_id: string
+          height?: number
           id?: string
+          rotation?: number
           size?: string
           slot_key: string
+          width?: number
           x: number
           y: number
         }
@@ -1690,9 +1696,12 @@ export type Database = {
           allowed_categories?: string[]
           created_at?: string
           diorama_id?: string
+          height?: number
           id?: string
+          rotation?: number
           size?: string
           slot_key?: string
+          width?: number
           x?: number
           y?: number
         }
@@ -1781,6 +1790,48 @@ export type Database = {
           resolved_at?: string | null
           severity?: string
           title?: string
+        }
+        Relationships: []
+      }
+      village_structure_assets: {
+        Row: {
+          asset_url: string
+          biome_key: string
+          building_type: string
+          created_at: string
+          created_by: string | null
+          glow_url: string | null
+          id: string
+          level: number
+          shadow_url: string | null
+          updated_at: string
+          variant: string
+        }
+        Insert: {
+          asset_url: string
+          biome_key: string
+          building_type: string
+          created_at?: string
+          created_by?: string | null
+          glow_url?: string | null
+          id?: string
+          level?: number
+          shadow_url?: string | null
+          updated_at?: string
+          variant?: string
+        }
+        Update: {
+          asset_url?: string
+          biome_key?: string
+          building_type?: string
+          created_at?: string
+          created_by?: string | null
+          glow_url?: string | null
+          id?: string
+          level?: number
+          shadow_url?: string | null
+          updated_at?: string
+          variant?: string
         }
         Relationships: []
       }

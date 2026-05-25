@@ -15,7 +15,15 @@ export function VillagePanelSheet({ open, onOpenChange, title, icon, children }:
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[85vh] overflow-y-auto rounded-t-3xl border-primary/30 !z-[100] !bg-background/98 backdrop-blur-2xl shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
+        className="
+          flex flex-col
+          max-h-[88dvh] h-[88dvh]
+          rounded-t-3xl border-primary/30
+          !z-[200]
+          !bg-background/98 backdrop-blur-2xl
+          shadow-[0_-12px_40px_rgba(0,0,0,0.6)]
+          p-0
+        "
         style={{
           backgroundColor: "oklch(0.16 0.04 250 / 0.98)",
           backgroundImage:
@@ -23,13 +31,25 @@ export function VillagePanelSheet({ open, onOpenChange, title, icon, children }:
         }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <SheetHeader>
+        <SheetHeader className="px-5 pt-5 pb-3 shrink-0 border-b border-border/30">
           <SheetTitle className="flex items-center gap-2 text-base">
             {icon}
             {title}
           </SheetTitle>
         </SheetHeader>
-        <div className="mt-3 pb-6">{children}</div>
+        <div
+          className="
+            flex-1 min-h-0
+            overflow-y-auto overscroll-contain
+            px-5 pt-4
+            [-webkit-overflow-scrolling:touch]
+          "
+          style={{
+            paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)",
+          }}
+        >
+          {children}
+        </div>
       </SheetContent>
     </Sheet>
   );
