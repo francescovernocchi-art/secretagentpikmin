@@ -6,6 +6,7 @@ import { Shield, Loader2, X, ArrowLeft, Pencil, Check } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
+import { FamilyPanel } from "@/components/FamilyPanel";
 
 export const Route = createFileRoute("/agenti")({
   component: AgentiPage,
