@@ -21,7 +21,9 @@ export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
   const { allBiomes } = useCustomBiomes();
   const current = resolveBiome(currentTheme);
 
-  useEffect(() => { setIsPapa(getSession()?.role === "papa"); }, []);
+  useEffect(() => {
+    setIsPapa(getSession()?.role === "papa");
+  }, []);
 
   const pick = async (key: BiomeKey) => {
     if (key === current.key) {
@@ -55,14 +57,18 @@ export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="flex flex-col max-h-[90dvh] h-[90dvh] rounded-t-3xl border-primary/40 !z-[300] p-0"
+          className="flex flex-col max-h-[86dvh] h-[86dvh] rounded-t-2xl border-primary/40 !z-50 p-0"
           style={{
             backgroundColor: "oklch(0.14 0.04 250 / 0.98)",
-            backgroundImage: "linear-gradient(180deg, oklch(0.20 0.05 250 / 0.98), oklch(0.12 0.04 250 / 0.98))",
+            backgroundImage:
+              "linear-gradient(180deg, oklch(0.20 0.05 250 / 0.98), oklch(0.12 0.04 250 / 0.98))",
           }}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <SheetHeader className="px-5 pt-5 pb-3 shrink-0 border-b border-border/30">
+          <SheetHeader
+            className="px-5 pb-3 shrink-0 border-b border-border/30"
+            style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}
+          >
             <SheetTitle className="text-base">Scegli il bioma del villaggio</SheetTitle>
           </SheetHeader>
 
@@ -79,7 +85,9 @@ export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
                       disabled={saving !== null}
                       onClick={() => pick(b.key)}
                       className={`relative overflow-hidden rounded-xl border text-left transition group w-full min-h-[120px] ${
-                        active ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/60"
+                        active
+                          ? "border-primary ring-2 ring-primary"
+                          : "border-border hover:border-primary/60"
                       }`}
                     >
                       <img
@@ -92,7 +100,9 @@ export function BiomeSelector({ agent, currentTheme, onChanged }: Props) {
                         <div className="text-xs font-display flex items-center gap-1 text-white">
                           {b.emoji} {b.label}
                         </div>
-                        <div className="text-[9px] text-white/70 leading-tight line-clamp-1">{b.tagline}</div>
+                        <div className="text-[9px] text-white/70 leading-tight line-clamp-1">
+                          {b.tagline}
+                        </div>
                       </div>
                       {saving === b.key && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">

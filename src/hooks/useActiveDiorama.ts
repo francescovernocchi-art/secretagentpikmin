@@ -17,10 +17,14 @@ export interface DioramaRow {
 export interface DioramaSlot {
   id: string;
   diorama_id: string;
+  biome_key: string | null;
   slot_key: string;
   x: number;
   y: number;
-  size: "small" | "medium" | "large";
+  width: number;
+  height: number;
+  rotation: number;
+  size?: "small" | "medium" | "large";
   allowed_categories: string[];
 }
 
@@ -70,7 +74,9 @@ export function useActiveDiorama(biome: string | null | undefined) {
     setLoading(false);
   }, [biome]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return { diorama, slots, loading, reload: load };
 }
@@ -93,6 +99,8 @@ export function useDioramaLibrary(biome: string | null | undefined) {
     setLoading(false);
   }, [biome]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
   return { items, loading, reload: load };
 }

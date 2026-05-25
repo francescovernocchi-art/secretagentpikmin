@@ -1,8 +1,18 @@
 -- Estensione slot per editor visuale
 ALTER TABLE public.village_diorama_slots
+  ADD COLUMN IF NOT EXISTS biome_key text,
   ADD COLUMN IF NOT EXISTS width integer NOT NULL DEFAULT 96,
   ADD COLUMN IF NOT EXISTS height integer NOT NULL DEFAULT 96,
   ADD COLUMN IF NOT EXISTS rotation integer NOT NULL DEFAULT 0;
+
+UPDATE public.village_diorama_slots s
+SET biome_key = d.biome
+FROM public.village_dioramas d
+WHERE s.diorama_id = d.id
+  AND s.biome_key IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_diorama_slots_biome
+  ON public.village_diorama_slots (biome_key);
 
 -- Tabella asset strutture per bioma/livello/variante
 CREATE TABLE IF NOT EXISTS public.village_structure_assets (

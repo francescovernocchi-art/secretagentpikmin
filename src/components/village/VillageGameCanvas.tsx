@@ -6,7 +6,12 @@ import { pickBuildingImage } from "@/lib/village/buildingImages";
 import { useActiveDiorama } from "@/hooks/useActiveDiorama";
 import { usePikminSpecies } from "@/hooks/usePikminSpecies";
 import { useActiveVillageEvents } from "@/hooks/useVillageEvents";
-import type { PlacementInfo, VillageGameState, PikminLayerConfig, PikminSpeciesInfo } from "@/game/village/VillageTypes";
+import type {
+  PlacementInfo,
+  VillageGameState,
+  PikminLayerConfig,
+  PikminSpeciesInfo,
+} from "@/game/village/VillageTypes";
 
 interface Props {
   agent: string;
@@ -17,9 +22,15 @@ interface Props {
   /** Configurazione layer Pikmin (mostra/cap/velocità/filtri + breakdown specie). */
   pikminConfig?: Omit<PikminLayerConfig, "species"> | null;
   onSelectBuilding?: (id: string) => void;
-  onSelectSlot?: (info: { slotKey: string; x: number; y: number; allowedCategories: string[] }) => void;
+  onSelectSlot?: (info: {
+    slotKey: string;
+    x: number;
+    y: number;
+    allowedCategories: string[];
+  }) => void;
   onPlacePosition?: (pct: { x: number; y: number; slotKey?: string }) => void;
   onTapGround?: () => void;
+  slotRenderMode?: "normal" | "build" | "editor";
   onReady?: (controls: {
     zoomIn: () => void;
     zoomOut: () => void;
@@ -30,8 +41,18 @@ interface Props {
 
 /** Canvas Phaser Diorama RTS del Villaggio. Tutta l'UI resta React fuori da qui. */
 export function VillageGameCanvas({
-  agent, biomeKey, buildings, catalog,
-  placement, pikminConfig, onSelectBuilding, onSelectSlot, onPlacePosition, onTapGround, onReady,
+  agent,
+  biomeKey,
+  buildings,
+  catalog,
+  placement,
+  pikminConfig,
+  onSelectBuilding,
+  onSelectSlot,
+  onPlacePosition,
+  onTapGround,
+  slotRenderMode,
+  onReady,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
@@ -71,9 +92,13 @@ export function VillageGameCanvas({
       game.events.once(Phaser.Core.Events.READY, () => {
         sceneRef.current = game.scene.getScene("village");
         readyRef.current = true;
-        sceneRef.current.events.on("selectBuilding", (id: string) => onSelectBuildingRef.current?.(id));
+        sceneRef.current.events.on("selectBuilding", (id: string) =>
+          onSelectBuildingRef.current?.(id),
+        );
         sceneRef.current.events.on("selectSlot", (info: any) => onSelectSlotRef.current?.(info));
-        sceneRef.current.events.on("placePosition", (pct: any) => onPlacePositionRef.current?.(pct));
+        sceneRef.current.events.on("placePosition", (pct: any) =>
+          onPlacePositionRef.current?.(pct),
+        );
         sceneRef.current.events.on("tapGround", () => onTapGroundRef.current?.());
         if (pendingStateRef.current) sceneRef.current.applyState(pendingStateRef.current);
         onReadyRef.current?.({
@@ -89,7 +114,11 @@ export function VillageGameCanvas({
       readyRef.current = false;
       sceneRef.current = null;
       if (gameRef.current) {
-        try { gameRef.current.destroy(true); } catch { /* ignore */ }
+        try {
+          gameRef.current.destroy(true);
+        } catch {
+          /* ignore */
+        }
         gameRef.current = null;
       }
     };
@@ -97,11 +126,16 @@ export function VillageGameCanvas({
   }, []);
 
   // keep latest callbacks
-  const onSelectBuildingRef = useRef(onSelectBuilding); onSelectBuildingRef.current = onSelectBuilding;
-  const onSelectSlotRef = useRef(onSelectSlot); onSelectSlotRef.current = onSelectSlot;
-  const onPlacePositionRef = useRef(onPlacePosition); onPlacePositionRef.current = onPlacePosition;
-  const onTapGroundRef = useRef(onTapGround); onTapGroundRef.current = onTapGround;
-  const onReadyRef = useRef(onReady); onReadyRef.current = onReady;
+  const onSelectBuildingRef = useRef(onSelectBuilding);
+  onSelectBuildingRef.current = onSelectBuilding;
+  const onSelectSlotRef = useRef(onSelectSlot);
+  onSelectSlotRef.current = onSelectSlot;
+  const onPlacePositionRef = useRef(onPlacePosition);
+  onPlacePositionRef.current = onPlacePosition;
+  const onTapGroundRef = useRef(onTapGround);
+  onTapGroundRef.current = onTapGround;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
 
   const buildingImageByType = useMemo(() => {
     const map: Record<string, string | null> = {};
@@ -162,10 +196,24 @@ export function VillageGameCanvas({
       placement: placementInfo,
       pikmin: pikminFull ?? undefined,
       events,
+      slotRenderMode,
     };
     pendingStateRef.current = state;
     if (readyRef.current && sceneRef.current) sceneRef.current.applyState(state);
-  }, [agent, biome, diorama, slots, buildings, buildingImageByType, buildingEmojiByType, buildingCategoryByType, placementInfo, pikminFull, events]);
+  }, [
+    agent,
+    biome,
+    diorama,
+    slots,
+    buildings,
+    buildingImageByType,
+    buildingEmojiByType,
+    buildingCategoryByType,
+    placementInfo,
+    pikminFull,
+    events,
+    slotRenderMode,
+  ]);
 
   return (
     <div

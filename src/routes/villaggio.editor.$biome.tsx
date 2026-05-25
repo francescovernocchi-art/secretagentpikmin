@@ -6,13 +6,17 @@ import { resolveBiome } from "@/lib/village/biomes";
 import { useCustomBiomes } from "@/hooks/useCustomBiomes";
 import { BiomeEditorTabs, type EditorTab } from "@/components/village/editor/BiomeEditorTabs";
 import { DioramaTab } from "@/components/village/editor/DioramaTab";
+import { SlotEditorTab } from "@/components/village/editor/SlotEditorTab";
 
 export const Route = createFileRoute("/villaggio/editor/$biome")({
   component: BiomeEditorPage,
   head: () => ({
     meta: [
       { title: "Editor Bioma · Villaggio" },
-      { name: "description", content: "Gestisci diorama, slot, asset, varianti, bonus ed eventi di un bioma." },
+      {
+        name: "description",
+        content: "Gestisci diorama, slot, asset, varianti, bonus ed eventi di un bioma.",
+      },
     ],
   }),
 });
@@ -35,7 +39,9 @@ function BiomeEditorPage() {
       <div className="min-h-[100dvh] flex flex-col items-center justify-center p-6 text-center">
         <Lock className="h-10 w-10 text-muted-foreground mb-3" />
         <p className="text-sm">Solo i Comandanti possono accedere all'Editor Bioma.</p>
-        <Link to="/villaggio" className="btn-neon mt-4 px-4 py-2 text-xs">Torna al villaggio</Link>
+        <Link to="/villaggio" className="btn-neon mt-4 px-4 py-2 text-xs">
+          Torna al villaggio
+        </Link>
       </div>
     );
   }
@@ -65,11 +71,31 @@ function BiomeEditorPage() {
 
         <div className="pt-4">
           {tab === "diorama" && <DioramaTab biomeKey={biome} />}
-          {tab === "slots" && <ComingSoon title="Spawn Slot Editor" desc="Tap sul diorama per creare slot, drag per spostarli, handle per ridimensionarli. Arriva nella Fase 2." />}
-          {tab === "structures" && <ComingSoon title="Asset Strutture" desc="Upload asset per livello (lv1-lv5) separati per bioma. Arriva nella Fase 3." />}
-          {tab === "variants" && <ComingSoon title="Varianti visive" desc="Più asset per stesso livello, scelta random o forzata. Arriva nella Fase 4." />}
-          {tab === "bonus" && <ComingSoon title="Bonus bioma" desc="Bonus bioma, struttura, stack, eventi. Arriva nella Fase 4." />}
-          {tab === "events" && <ComingSoon title="Eventi del bioma" desc="Overlay, particelle, atmosfera. Arriva nella Fase 5." />}
+          {tab === "slots" && <SlotEditorTab biomeKey={biome} />}
+          {tab === "structures" && (
+            <ComingSoon
+              title="Asset Strutture"
+              desc="Upload asset per livello (lv1-lv5) separati per bioma. Arriva nella Fase 3."
+            />
+          )}
+          {tab === "variants" && (
+            <ComingSoon
+              title="Varianti visive"
+              desc="Più asset per stesso livello, scelta random o forzata. Arriva nella Fase 4."
+            />
+          )}
+          {tab === "bonus" && (
+            <ComingSoon
+              title="Bonus bioma"
+              desc="Bonus bioma, struttura, stack, eventi. Arriva nella Fase 4."
+            />
+          )}
+          {tab === "events" && (
+            <ComingSoon
+              title="Eventi del bioma"
+              desc="Overlay, particelle, atmosfera. Arriva nella Fase 5."
+            />
+          )}
         </div>
       </main>
     </div>

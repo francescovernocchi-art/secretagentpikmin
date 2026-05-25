@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CelebrationOverlay } from "@/components/CelebrationOverlay";
@@ -9,11 +9,30 @@ import { getCoins } from "@/lib/coins";
 import { sfx } from "@/lib/sfx";
 import { getDayPhase, type DayPhase } from "@/lib/daycycle";
 import {
-  type BaseRow, type BaseBuilding, type BuildingCatalog, THEMES,
-  fetchCatalog, getBase, listBuildings, createBase, startBuilding, completeBuilding,
-  listGifts, claimGift, type BaseGift,
+  type BaseRow,
+  type BaseBuilding,
+  type BuildingCatalog,
+  THEMES,
+  fetchCatalog,
+  getBase,
+  listBuildings,
+  createBase,
+  startBuilding,
+  completeBuilding,
+  listGifts,
+  claimGift,
+  type BaseGift,
 } from "@/lib/base";
-import { Sparkles, AlertTriangle, ShieldAlert, Gift, Plus, Minus, Crosshair } from "lucide-react";
+import {
+  Sparkles,
+  AlertTriangle,
+  ShieldAlert,
+  Gift,
+  Plus,
+  Minus,
+  Crosshair,
+  Home,
+} from "lucide-react";
 import { FactionSelector } from "@/components/village/FactionSelector";
 import { VillageGameCanvas } from "@/components/village/VillageGameCanvas";
 import { computeVillageStatus } from "@/lib/village/bonuses";
@@ -64,23 +83,50 @@ function VillaggioPage() {
   const [placing, setPlacing] = useState<BuildingCatalog | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [pikminPrefs, setPikminPrefs] = useState<PikminLayerPrefs>(() => loadPikminPrefs());
-  const cameraCtrlRef = useRef<{ zoomIn: () => void; zoomOut: () => void; recenter: () => void } | null>(null);
+  const cameraCtrlRef = useRef<{
+    zoomIn: () => void;
+    zoomOut: () => void;
+    recenter: () => void;
+  } | null>(null);
   const prevBuildingsRef = useRef<BaseBuilding[]>([]);
 
-  useEffect(() => { const i = setInterval(() => setPhase(getDayPhase()), 60_000); return () => clearInterval(i); }, []);
-  useEffect(() => { const id = setInterval(() => setTick((t) => t + 1), 1000); return () => clearInterval(id); }, []);
+  useEffect(() => {
+    const i = setInterval(() => setPhase(getDayPhase()), 60_000);
+    return () => clearInterval(i);
+  }, []);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const reload = async () => {
     const [b, bld, cat, c, g, w, ev, pc, sq] = await Promise.all([
-      getBase(agent), listBuildings(agent), fetchCatalog(), getCoins(agent),
-      listGifts(agent), listWalls(agent), listOpenEvents(agent),
+      getBase(agent),
+      listBuildings(agent),
+      fetchCatalog(),
+      getCoins(agent),
+      listGifts(agent),
+      listWalls(agent),
+      listOpenEvents(agent),
       getPikminCount().catch(() => 0),
       supabase.from("pikmin_squad").select("breakdown").eq("id", "team").maybeSingle(),
     ]);
-    setBase(b); setBuildings(bld); setCatalog(cat); setCoins(c); setGifts(g);
-    setWalls(w); setEvents(ev); setPikminCount(pc);
+    setBase(b);
+    setBuildings(bld);
+    setCatalog(cat);
+    setCoins(c);
+    setGifts(g);
+    setWalls(w);
+    setEvents(ev);
+    setPikminCount(pc);
     const raw = (sq.data?.breakdown ?? {}) as Record<string, unknown>;
-    const aliases: Record<string, string> = { rosso: "red", blu: "blue", giallo: "yellow", viola: "purple", bianco: "white" };
+    const aliases: Record<string, string> = {
+      rosso: "red",
+      blu: "blue",
+      giallo: "yellow",
+      viola: "purple",
+      bianco: "white",
+    };
     const map: Record<string, number> = {};
     for (const [k, n] of Object.entries(raw)) {
       const key = aliases[k.toLowerCase()] ?? k;
@@ -95,38 +141,83 @@ function VillaggioPage() {
     reload();
     const ch = supabase
       .channel("villaggio:" + agent)
-      .on("postgres_changes", { event: "*", schema: "public", table: "base_buildings", filter: `agent=eq.${agent}` }, reload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "bases", filter: `agent=eq.${agent}` }, reload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "base_gifts", filter: `to_agent=eq.${agent}` }, reload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "village_events", filter: `agent=eq.${agent}` }, reload)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "base_buildings", filter: `agent=eq.${agent}` },
+        reload,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bases", filter: `agent=eq.${agent}` },
+        reload,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "base_gifts", filter: `to_agent=eq.${agent}` },
+        reload,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "village_events", filter: `agent=eq.${agent}` },
+        reload,
+      )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent]);
 
   useEffect(() => {
     if (!base?.faction || base.lat == null || base.lng == null) return;
-    const baseLat = base.lat, baseLng = base.lng;
-    const totalDefense = computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating + wallDefenseBonus(walls);
+    const baseLat = base.lat,
+      baseLng = base.lng;
+    const totalDefense =
+      computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating +
+      wallDefenseBonus(walls);
     const refreshNearby = async () => {
       const { data: spawns } = await supabase
         .from("map_enemy_spawns")
         .select("id, enemy_id, lat, lng, active, defeated_at, expires_at")
-        .eq("active", true).is("defeated_at", null);
+        .eq("active", true)
+        .is("defeated_at", null);
       const now = Date.now();
-      const live = (spawns ?? []).filter((s: any) => !s.expires_at || new Date(s.expires_at).getTime() > now);
-      if (live.length === 0) { setNearbyThreats([]); return; }
+      const live = (spawns ?? []).filter(
+        (s: any) => !s.expires_at || new Date(s.expires_at).getTime() > now,
+      );
+      if (live.length === 0) {
+        setNearbyThreats([]);
+        return;
+      }
       const ids = Array.from(new Set(live.map((s: any) => s.enemy_id)));
-      const { data: enemies } = await supabase.from("enemies").select("id,name,emoji,danger_level").in("id", ids);
+      const { data: enemies } = await supabase
+        .from("enemies")
+        .select("id,name,emoji,danger_level")
+        .in("id", ids);
       const emap = new Map((enemies ?? []).map((e: any) => [e.id, e]));
-      setNearbyThreats(computeNearbyThreats({ lat: baseLat, lng: baseLng },
-        live.map((s: any) => ({ id: s.id, lat: s.lat, lng: s.lng, enemy: emap.get(s.enemy_id) ?? null }))));
+      setNearbyThreats(
+        computeNearbyThreats(
+          { lat: baseLat, lng: baseLng },
+          live.map((s: any) => ({
+            id: s.id,
+            lat: s.lat,
+            lng: s.lng,
+            enemy: emap.get(s.enemy_id) ?? null,
+          })),
+        ),
+      );
     };
     refreshNearby();
-    scanThreats({ agent, baseLat, baseLng, totalDefense, force: true }).then(({ created, auto }) => { if (created || auto) reload(); });
+    scanThreats({ agent, baseLat, baseLng, totalDefense, force: true }).then(
+      ({ created, auto }) => {
+        if (created || auto) reload();
+      },
+    );
     const id = setInterval(() => {
       refreshNearby();
-      scanThreats({ agent, baseLat, baseLng, totalDefense }).then(({ created, auto }) => { if (created || auto) reload(); });
+      scanThreats({ agent, baseLat, baseLng, totalDefense }).then(({ created, auto }) => {
+        if (created || auto) reload();
+      });
     }, 60_000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -134,8 +225,13 @@ function VillaggioPage() {
 
   useEffect(() => {
     if (!base || phase !== "notte") return;
-    const totalDefense = computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating + wallDefenseBonus(walls);
-    const run = () => maybeTriggerNightEvent({ agent, isNight: true, totalDefense }).then((ev) => { if (ev) reload(); });
+    const totalDefense =
+      computeVillageStatus(base.faction as FactionKey, buildings, catalog).defenseRating +
+      wallDefenseBonus(walls);
+    const run = () =>
+      maybeTriggerNightEvent({ agent, isNight: true, totalDefense }).then((ev) => {
+        if (ev) reload();
+      });
     run();
     const id = setInterval(run, 60_000);
     return () => clearInterval(id);
@@ -153,9 +249,15 @@ function VillaggioPage() {
       }
     }
     prevBuildingsRef.current = buildings;
-    const due = buildings.filter((b) => b.status !== "idle" && b.build_end_at && new Date(b.build_end_at).getTime() <= Date.now());
+    const due = buildings.filter(
+      (b) =>
+        b.status !== "idle" && b.build_end_at && new Date(b.build_end_at).getTime() <= Date.now(),
+    );
     if (due.length) {
-      (async () => { for (const b of due) await completeBuilding(b); reload(); })();
+      (async () => {
+        for (const b of due) await completeBuilding(b);
+        reload();
+      })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick, buildings]);
@@ -178,7 +280,12 @@ function VillaggioPage() {
   const onPlace = async (pct: { x: number; y: number; slotKey?: string }) => {
     if (!placing) return;
     try {
-      await startBuilding(agent, placing, { x: pct.x, y: pct.y, slotKey: pct.slotKey, biomeKey: base.theme });
+      await startBuilding(agent, placing, {
+        x: pct.x,
+        y: pct.y,
+        slotKey: pct.slotKey,
+        biomeKey: base.theme,
+      });
       sfx.build();
       setPlacing(null);
       reload();
@@ -211,11 +318,17 @@ function VillaggioPage() {
           threat: threatActive,
         }}
         onPlacePosition={onPlace}
-        onSelectBuilding={(id) => { setSelectedBuildingId(id); setOpenPanel("building" as any); }}
-        onSelectSlot={() => { setOpenPanel("build"); }}
-        onReady={(c) => { cameraCtrlRef.current = c; }}
+        onSelectBuilding={(id) => {
+          setSelectedBuildingId(id);
+          setOpenPanel("building" as any);
+        }}
+        onSelectSlot={() => {
+          setOpenPanel("build");
+        }}
+        onReady={(c) => {
+          cameraCtrlRef.current = c;
+        }}
       />
-
 
       {/* ─── CAMERA CONTROLS (sinistra, sopra il menu) ─── */}
       <div
@@ -224,19 +337,34 @@ function VillaggioPage() {
       >
         <button
           aria-label="Zoom in"
-          onClick={() => { hapticTap(); cameraCtrlRef.current?.zoomIn(); }}
+          onClick={() => {
+            hapticTap();
+            cameraCtrlRef.current?.zoomIn();
+          }}
           className="panel-strong w-10 h-10 grid place-items-center backdrop-blur-md active:scale-95"
-        ><Plus className="h-4 w-4" /></button>
+        >
+          <Plus className="h-4 w-4" />
+        </button>
         <button
           aria-label="Zoom out"
-          onClick={() => { hapticTap(); cameraCtrlRef.current?.zoomOut(); }}
+          onClick={() => {
+            hapticTap();
+            cameraCtrlRef.current?.zoomOut();
+          }}
           className="panel-strong w-10 h-10 grid place-items-center backdrop-blur-md active:scale-95"
-        ><Minus className="h-4 w-4" /></button>
+        >
+          <Minus className="h-4 w-4" />
+        </button>
         <button
           aria-label="Centra Campo Base"
-          onClick={() => { hapticTap(); cameraCtrlRef.current?.recenter(); }}
+          onClick={() => {
+            hapticTap();
+            cameraCtrlRef.current?.recenter();
+          }}
           className="panel-strong w-10 h-10 grid place-items-center backdrop-blur-md active:scale-95 text-primary"
-        ><Crosshair className="h-4 w-4" /></button>
+        >
+          <Crosshair className="h-4 w-4" />
+        </button>
       </div>
 
       {/* ─── FIXED TOP HUD ─── */}
@@ -245,15 +373,25 @@ function VillaggioPage() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)" }}
       >
         <div className="flex items-start justify-between gap-2">
-          <div className="panel-strong px-3 py-1.5 backdrop-blur-md flex items-center gap-2 pointer-events-auto">
-            <span className="text-base">🚩</span>
-            <div className="leading-tight">
-              <p className="text-[11px] font-display text-glow truncate max-w-[150px]">
-                {base.base_name ?? base.name}
-              </p>
-              <p className="text-[9px] uppercase tracking-widest text-muted-foreground">
-                Lv {base.level} · {buildings.filter((b) => b.status === "idle").length} strutture
-              </p>
+          <div className="flex items-start gap-2 pointer-events-auto">
+            <Link
+              to="/"
+              aria-label="Torna alla home"
+              onClick={() => hapticTap()}
+              className="panel-strong w-10 h-10 grid place-items-center backdrop-blur-md active:scale-95"
+            >
+              <Home className="h-4 w-4" />
+            </Link>
+            <div className="panel-strong px-3 py-1.5 backdrop-blur-md flex items-center gap-2">
+              <span className="text-base">🚩</span>
+              <div className="leading-tight">
+                <p className="text-[11px] font-display text-glow truncate max-w-[150px]">
+                  {base.base_name ?? base.name}
+                </p>
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground">
+                  Lv {base.level} · {buildings.filter((b) => b.status === "idle").length} strutture
+                </p>
+              </div>
             </div>
           </div>
 
@@ -283,12 +421,23 @@ function VillaggioPage() {
       {gifts.length > 0 && (
         <div className="absolute top-20 right-2 z-30 max-w-[240px] space-y-1">
           {gifts.slice(0, 2).map((g) => (
-            <div key={g.id} className="panel-strong p-2 flex items-center gap-2 text-[10px] backdrop-blur-md">
+            <div
+              key={g.id}
+              className="panel-strong p-2 flex items-center gap-2 text-[10px] backdrop-blur-md"
+            >
               <Gift className="h-3 w-3 text-primary shrink-0" />
-              <span className="flex-1 truncate">Da <b>{g.from_agent}</b></span>
+              <span className="flex-1 truncate">
+                Da <b>{g.from_agent}</b>
+              </span>
               <button
-                onClick={async () => { hapticTap(); sfx.gift(); await claimGift(agent, g); reload(); }}
-                className="btn-neon px-2 py-0.5 text-[9px]">
+                onClick={async () => {
+                  hapticTap();
+                  sfx.gift();
+                  await claimGift(agent, g);
+                  reload();
+                }}
+                className="btn-neon px-2 py-0.5 text-[9px]"
+              >
                 Ritira
               </button>
             </div>
@@ -355,7 +504,12 @@ function VillaggioPage() {
       />
       <BuildingPanel
         open={openPanel === ("building" as any)}
-        onOpenChange={(o: boolean) => { if (!o) { setOpenPanel(null); setSelectedBuildingId(null); } }}
+        onOpenChange={(o: boolean) => {
+          if (!o) {
+            setOpenPanel(null);
+            setSelectedBuildingId(null);
+          }
+        }}
         agent={agent}
         coins={coins}
         building={selectedBuilding}
@@ -374,49 +528,80 @@ function Onboarding({ agent, onCreated }: { agent: string; onCreated: () => void
 
   return (
     <div className="fixed inset-0 z-10 overflow-y-auto bg-background p-4">
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-        className="max-w-md mx-auto pt-6 space-y-4">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md mx-auto pt-6 space-y-4"
+      >
         <header>
-          <p className="text-[11px] uppercase tracking-[0.3em] text-primary/80">// Nuovo villaggio</p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-primary/80">
+            // Nuovo villaggio
+          </p>
           <h1 className="font-display text-2xl text-glow mt-1">Fonda la tua colonia</h1>
         </header>
         <div className="panel-strong p-4 space-y-4">
           <div>
             <label className="text-[11px] uppercase tracking-widest text-primary">Nome base</label>
-            <input value={name} onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full bg-night/60 border border-primary/30 rounded-lg px-3 py-2 text-sm" />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1 w-full bg-night/60 border border-primary/30 rounded-lg px-3 py-2 text-sm"
+            />
           </div>
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-primary mb-2">Bioma di partenza</p>
+            <p className="text-[11px] uppercase tracking-widest text-primary mb-2">
+              Bioma di partenza
+            </p>
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(THEMES).map(([key, t]) => (
-                <button key={key}
-                  onClick={() => { hapticTap(); setTheme(key); }}
-                  className={`panel p-3 text-left ${theme === key ? "ring-2 ring-primary" : ""}`}>
-                  <div className="h-14 rounded-md mb-2"
-                    style={{ background: `linear-gradient(180deg, ${t.sky}, ${t.ground})` }} />
+                <button
+                  key={key}
+                  onClick={() => {
+                    hapticTap();
+                    setTheme(key);
+                  }}
+                  className={`panel p-3 text-left ${theme === key ? "ring-2 ring-primary" : ""}`}
+                >
+                  <div
+                    className="h-14 rounded-md mb-2"
+                    style={{ background: `linear-gradient(180deg, ${t.sky}, ${t.ground})` }}
+                  />
                   <p className="text-sm font-semibold">{t.label}</p>
                 </button>
               ))}
             </div>
           </div>
-          <button disabled={busy || !name.trim()}
+          <button
+            disabled={busy || !name.trim()}
             onClick={async () => {
-              hapticTap(); setBusy(true);
+              hapticTap();
+              setBusy(true);
               try {
-                let lat: number | null = null, lng: number | null = null;
+                let lat: number | null = null,
+                  lng: number | null = null;
                 if (navigator.geolocation) {
                   await new Promise<void>((res) => {
                     navigator.geolocation.getCurrentPosition(
-                      (p) => { lat = p.coords.latitude; lng = p.coords.longitude; res(); },
-                      () => res(), { timeout: 5000 });
+                      (p) => {
+                        lat = p.coords.latitude;
+                        lng = p.coords.longitude;
+                        res();
+                      },
+                      () => res(),
+                      { timeout: 5000 },
+                    );
                   });
                 }
                 await createBase(agent, { name: name.trim(), theme, lat, lng });
                 onCreated();
-              } catch (e: any) { alert(e.message); } finally { setBusy(false); }
+              } catch (e: any) {
+                alert(e.message);
+              } finally {
+                setBusy(false);
+              }
             }}
-            className="btn-neon w-full py-3 text-sm">
+            className="btn-neon w-full py-3 text-sm"
+          >
             {busy ? "Sto piantando la prima radice…" : "Fonda il villaggio"}
           </button>
         </div>

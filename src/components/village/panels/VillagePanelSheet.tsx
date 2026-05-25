@@ -17,9 +17,9 @@ export function VillagePanelSheet({ open, onOpenChange, title, icon, children }:
         side="bottom"
         className="
           flex flex-col
-          max-h-[88dvh] h-[88dvh]
-          rounded-t-3xl border-primary/30
-          !z-[200]
+          max-h-[86dvh] h-[86dvh]
+          rounded-t-2xl border-primary/30
+          !z-50
           !bg-background/98 backdrop-blur-2xl
           shadow-[0_-12px_40px_rgba(0,0,0,0.6)]
           p-0
@@ -31,7 +31,10 @@ export function VillagePanelSheet({ open, onOpenChange, title, icon, children }:
         }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <SheetHeader className="px-5 pt-5 pb-3 shrink-0 border-b border-border/30">
+        <SheetHeader
+          className="px-5 pb-3 shrink-0 border-b border-border/30"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}
+        >
           <SheetTitle className="flex items-center gap-2 text-base">
             {icon}
             {title}

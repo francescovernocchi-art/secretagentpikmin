@@ -36,13 +36,16 @@ interface PikminAgent {
   shadow: Phaser.GameObjects.Ellipse;
   carry?: Phaser.GameObjects.Arc;
   speciesKey: string;
-  x: number; y: number;
-  tx: number; ty: number;
+  x: number;
+  y: number;
+  tx: number;
+  ty: number;
   speed: number;
   state: PikminMotion;
   role: PikminRole;
   /** home anchor (es. edificio assegnato) */
-  homeX: number; homeY: number;
+  homeX: number;
+  homeY: number;
   /** id edificio assegnato (per interazioni) */
   homeBuildingId: string | null;
   /** stato carry: 0=vuoto andata, 1=carico ritorno */
@@ -100,7 +103,9 @@ export class VillageScene extends Phaser.Scene {
   private maxZoom = 2.5;
   private dragMoved = false;
 
-  constructor() { super("village"); }
+  constructor() {
+    super("village");
+  }
 
   // ───────── public API ─────────
 
@@ -127,7 +132,8 @@ export class VillageScene extends Phaser.Scene {
       zoom: fit,
       scrollX: this.worldW / 2 - cam.width / 2 / fit,
       scrollY: this.worldH / 2 - cam.height / 2 / fit,
-      duration: 350, ease: "Sine.Out",
+      duration: 350,
+      ease: "Sine.Out",
     });
   }
 
@@ -137,10 +143,12 @@ export class VillageScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const z = Math.max(cam.zoom, 1.0);
     this.tweens.add({
-      targets: cam, zoom: z,
+      targets: cam,
+      zoom: z,
       scrollX: sp.container.x - cam.width / 2 / z,
       scrollY: sp.container.y - cam.height / 2 / z,
-      duration: 400, ease: "Sine.Out",
+      duration: 400,
+      ease: "Sine.Out",
     });
   }
 
@@ -150,12 +158,12 @@ export class VillageScene extends Phaser.Scene {
     const cam = this.cameras.main;
     cam.setBackgroundColor(0x0a0f0a);
 
-    this.layerBg        = this.add.container(0, 0).setDepth(0);
-    this.layerSlots     = this.add.container(0, 0).setDepth(2);
+    this.layerBg = this.add.container(0, 0).setDepth(0);
+    this.layerSlots = this.add.container(0, 0).setDepth(2);
     this.layerBuildings = this.add.container(0, 0).setDepth(3);
-    this.layerPikmin    = this.add.container(0, 0).setDepth(10);
-    this.layerEvents    = this.add.container(0, 0).setDepth(40);
-    this.layerFx        = this.add.container(0, 0).setDepth(50);
+    this.layerPikmin = this.add.container(0, 0).setDepth(10);
+    this.layerEvents = this.add.container(0, 0).setDepth(40);
+    this.layerFx = this.add.container(0, 0).setDepth(50);
     this.layerPlacement = this.add.container(0, 0).setDepth(99);
 
     this.ensureParticleTexture();
@@ -177,7 +185,10 @@ export class VillageScene extends Phaser.Scene {
     const key = DIORAMA_TEX_PREFIX + url;
 
     const apply = () => {
-      if (this.bgImage) { this.bgImage.destroy(); this.bgImage = null; }
+      if (this.bgImage) {
+        this.bgImage.destroy();
+        this.bgImage = null;
+      }
       const img = this.add.image(0, 0, key).setOrigin(0, 0);
       // se l'immagine ha dimensioni diverse, scaliamola sul world dichiarato
       const tex = this.textures.get(key).getSourceImage() as HTMLImageElement;
@@ -198,7 +209,10 @@ export class VillageScene extends Phaser.Scene {
       this.refreshAll();
     };
 
-    if (this.textures.exists(key)) { apply(); return; }
+    if (this.textures.exists(key)) {
+      apply();
+      return;
+    }
     this.load.image(key, url);
     this.load.once(`filecomplete-image-${key}`, apply);
     this.load.once("loaderror", (file: any) => {
@@ -244,11 +258,17 @@ export class VillageScene extends Phaser.Scene {
     this.slotMarkers.clear();
     this.layerSlots.removeAll(true);
 
-    const inBuildMode = !!this.state.placement;
+    const mode = this.state.slotRenderMode ?? (this.state.placement ? "build" : "normal");
+    if (mode === "normal") return;
+    const inBuildMode = mode === "build" || !!this.state.placement;
+    const inEditorMode = mode === "editor";
     const placement = this.state.placement;
     const usedSlotKeys = new Set<string>();
     for (const b of this.state.buildings) {
-      if (b.slot_key) { usedSlotKeys.add(b.slot_key); continue; }
+      if (b.slot_key) {
+        usedSlotKeys.add(b.slot_key);
+        continue;
+      }
       const slot = this.findNearestSlot(
         (b.position_x / 100) * this.worldW,
         (b.position_y / 100) * this.worldH,
@@ -258,49 +278,73 @@ export class VillageScene extends Phaser.Scene {
 
     for (const slot of this.state.slots) {
       const occupied = usedSlotKeys.has(slot.slot_key);
-      const compatible = !placement
-        || slot.allowed_categories.length === 0
-        || !placement.category
-        || slot.allowed_categories.includes(placement.category);
-      this.createSlotMarker(slot, !occupied, compatible, inBuildMode);
+      const compatible =
+        !placement ||
+        slot.allowed_categories.length === 0 ||
+        !placement.category ||
+        slot.allowed_categories.includes(placement.category);
+      if (inBuildMode && (!compatible || occupied)) continue;
+      this.createSlotMarker(slot, !occupied, compatible, inBuildMode, inEditorMode);
     }
   }
 
-  private createSlotMarker(slot: DioramaSlot, available: boolean, compatible: boolean, inBuildMode: boolean) {
-    const radius = slot.size === "large" ? 64 : slot.size === "medium" ? 50 : 38;
+  private createSlotMarker(
+    slot: DioramaSlot,
+    available: boolean,
+    compatible: boolean,
+    inBuildMode: boolean,
+    inEditorMode: boolean,
+  ) {
+    const w = Math.max(
+      24,
+      slot.width ?? (slot.size === "large" ? 128 : slot.size === "small" ? 76 : 96),
+    );
+    const h = Math.max(
+      24,
+      slot.height ?? (slot.size === "large" ? 128 : slot.size === "small" ? 76 : 96),
+    );
+    const center = this.slotCenter(slot);
     const usable = available && compatible;
     // In build mode → verde acceso se compatibile, grigio se no/occupato
     // In modalità normale → ring discreto solo per slot liberi
-    const color = usable ? 0x6ee7a8 : 0x9ca3af;
-    const baseAlpha = inBuildMode ? 0.95 : (available ? 0.55 : 0);
-    const ring = this.add.circle(0, 0, radius, color, 0);
-    ring.setStrokeStyle(inBuildMode ? 4 : 2, color, baseAlpha);
-    const fill = this.add.circle(0, 0, radius - 8, color, inBuildMode && usable ? 0.25 : (available ? 0.08 : 0));
-    const pulse = this.add.circle(0, 0, radius, color, inBuildMode && usable ? 0.18 : 0);
+    const color = inEditorMode ? 0x60a5fa : usable ? 0x6ee7a8 : 0x9ca3af;
+    const fillAlpha = inEditorMode ? 0.16 : 0.25;
+    const rect = this.add.rectangle(0, 0, w, h, color, fillAlpha);
+    rect.setStrokeStyle(inBuildMode ? 4 : 2, color, inEditorMode ? 0.9 : 0.95);
+    const label = inEditorMode
+      ? this.add
+          .text(-w / 2 + 6, -h / 2 + 4, slot.slot_key, {
+            fontSize: "12px",
+            color: "#ffffff",
+            backgroundColor: "rgba(0,0,0,0.55)",
+          })
+          .setOrigin(0, 0)
+      : null;
 
-    const c = this.add.container(slot.x, slot.y, [pulse, fill, ring]);
-    c.setSize(radius * 2, radius * 2);
-    c.setDepth(slot.y);
+    const c = this.add.container(center.x, center.y, label ? [rect, label] : [rect]);
+    c.setSize(w, h);
+    c.setAngle(slot.rotation ?? 0);
+    c.setDepth(center.y);
 
-    if (available) {
+    if (available || inEditorMode) {
       c.setInteractive(
-        new Phaser.Geom.Circle(0, 0, radius),
-        Phaser.Geom.Circle.Contains,
+        new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h),
+        Phaser.Geom.Rectangle.Contains,
       );
       c.on("pointerup", (p: Phaser.Input.Pointer) => {
         if (this.dragMoved) return;
         if (p.event && (p.event as any).stopPropagation) (p.event as any).stopPropagation();
         if (inBuildMode && compatible) {
           this.events.emit("placePosition", {
-            x: (slot.x / this.worldW) * 100,
-            y: (slot.y / this.worldH) * 100,
+            x: (center.x / this.worldW) * 100,
+            y: (center.y / this.worldH) * 100,
             slotKey: slot.slot_key,
           });
-        } else if (!inBuildMode) {
+        } else if (inEditorMode) {
           this.events.emit("selectSlot", {
             slotKey: slot.slot_key,
-            x: (slot.x / this.worldW) * 100,
-            y: (slot.y / this.worldH) * 100,
+            x: (center.x / this.worldW) * 100,
+            y: (center.y / this.worldH) * 100,
             allowedCategories: slot.allowed_categories,
           });
         }
@@ -308,8 +352,12 @@ export class VillageScene extends Phaser.Scene {
 
       if (inBuildMode && usable) {
         this.tweens.add({
-          targets: pulse, scale: { from: 0.9, to: 1.2 }, alpha: { from: 0.4, to: 0 },
-          duration: 1400, repeat: -1, ease: "Sine.Out",
+          targets: rect,
+          scale: { from: 1, to: 1.08 },
+          alpha: { from: fillAlpha, to: 0.08 },
+          duration: 1400,
+          repeat: -1,
+          ease: "Sine.Out",
         });
       }
     }
@@ -323,10 +371,20 @@ export class VillageScene extends Phaser.Scene {
     let best: DioramaSlot | null = null;
     let bd = Infinity;
     for (const s of this.state.slots) {
-      const d = Math.hypot(s.x - wx, s.y - wy);
-      if (d < bd) { bd = d; best = s; }
+      const center = this.slotCenter(s);
+      const d = Math.hypot(center.x - wx, center.y - wy);
+      if (d < bd) {
+        bd = d;
+        best = s;
+      }
     }
     return bd <= maxDist ? best : null;
+  }
+
+  private slotCenter(slot: DioramaSlot) {
+    const w = slot.width ?? (slot.size === "large" ? 128 : slot.size === "small" ? 76 : 96);
+    const h = slot.height ?? (slot.size === "large" ? 128 : slot.size === "small" ? 76 : 96);
+    return { x: slot.x + w / 2, y: slot.y + h / 2 };
   }
 
   // ───────── buildings ─────────
@@ -355,7 +413,10 @@ export class VillageScene extends Phaser.Scene {
     if (!this.state) return;
     const liveIds = new Set(this.state.buildings.map((b) => b.id));
     for (const [id, sp] of this.buildingSprites) {
-      if (!liveIds.has(id)) { sp.container.destroy(); this.buildingSprites.delete(id); }
+      if (!liveIds.has(id)) {
+        sp.container.destroy();
+        this.buildingSprites.delete(id);
+      }
     }
     for (const b of this.state.buildings) {
       const existing = this.buildingSprites.get(b.id);
@@ -376,8 +437,9 @@ export class VillageScene extends Phaser.Scene {
     const hasTexture = this.textures.exists(key);
     const art: Phaser.GameObjects.Image | Phaser.GameObjects.Text = hasTexture
       ? this.add.image(0, 0, key).setOrigin(0.5, 0.85)
-      : this.add.text(0, 0, this.state.buildingEmojiByType[b.type] ?? "🏠",
-          { fontSize: "72px" }).setOrigin(0.5, 0.85);
+      : this.add
+          .text(0, 0, this.state.buildingEmojiByType[b.type] ?? "🏠", { fontSize: "72px" })
+          .setOrigin(0.5, 0.85);
     if (art instanceof Phaser.GameObjects.Image) {
       const targetH = 130;
       const s = targetH / (art.height || 130);
@@ -398,9 +460,12 @@ export class VillageScene extends Phaser.Scene {
 
     // bobbing leggero
     this.tweens.add({
-      targets: art, y: { from: 0, to: -4 },
+      targets: art,
+      y: { from: 0, to: -4 },
       duration: 1800 + Math.random() * 600,
-      yoyo: true, repeat: -1, ease: "Sine.InOut",
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut",
     });
 
     const sp: BuildingSprite = { container, shadow, art, data: b, hasTexture };
@@ -414,7 +479,8 @@ export class VillageScene extends Phaser.Scene {
     const nowHasTexture = this.textures.exists(typeKey);
     sp.data = b;
     const pos = this.worldPosForBuilding(b);
-    sp.container.x = pos.x; sp.container.y = pos.y;
+    sp.container.x = pos.x;
+    sp.container.y = pos.y;
     sp.container.setDepth(pos.y);
     // Se è cambiato il livello (o è apparsa una texture), rigenera lo sprite per cambiare immagine
     if (levelChanged || (!sp.hasTexture && nowHasTexture)) {
@@ -445,19 +511,30 @@ export class VillageScene extends Phaser.Scene {
       return;
     }
     if (sp.cs) return; // già attivo: aggiornato dal tick
-    const W = 90, H = 8;
+    const W = 90,
+      H = 8;
     const root = this.add.container(0, 18);
     const ring = this.add.circle(0, -60, 22, 0xfacc15, 0).setStrokeStyle(3, 0xfacc15, 0.85);
-    const spin = this.add.arc(0, -60, 26, 0, 270, false, 0xfacc15, 0).setStrokeStyle(3, 0xfacc15, 0.95);
+    const spin = this.add
+      .arc(0, -60, 26, 0, 270, false, 0xfacc15, 0)
+      .setStrokeStyle(3, 0xfacc15, 0.95);
     const barBg = this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setStrokeStyle(1, 0xfacc15, 0.7);
     const barFill = this.add.rectangle(-W / 2, 0, 1, H - 2, 0xfacc15, 1).setOrigin(0, 0.5);
-    const label = this.add.text(0, 14, sp.data.status === "upgrading" ? "Upgrade…" : "Costruzione…", {
-      fontSize: "10px", color: "#facc15", fontStyle: "bold",
-    }).setOrigin(0.5, 0);
+    const label = this.add
+      .text(0, 14, sp.data.status === "upgrading" ? "Upgrade…" : "Costruzione…", {
+        fontSize: "10px",
+        color: "#facc15",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5, 0);
     root.add([ring, spin, barBg, barFill, label]);
     sp.container.add(root);
     const tween = this.tweens.add({
-      targets: spin, angle: 360, duration: 1400, repeat: -1, ease: "Linear",
+      targets: spin,
+      angle: 360,
+      duration: 1400,
+      repeat: -1,
+      ease: "Linear",
     });
     sp.cs = { root, barBg, barFill, label, spin, tween };
   }
@@ -483,7 +560,6 @@ export class VillageScene extends Phaser.Scene {
       sp.cs.label.setText(remaining > 0 ? `${prefix}${mm}:${ss}` : "Pronto!");
     }
   }
-
 
   // ───────── placement ghost ─────────
 
@@ -515,8 +591,10 @@ export class VillageScene extends Phaser.Scene {
       this.dragMoved = false;
       if (input.pointer1?.isDown && input.pointer2?.isDown) {
         this.pinchPrevDist = Phaser.Math.Distance.Between(
-          input.pointer1.x, input.pointer1.y,
-          input.pointer2.x, input.pointer2.y,
+          input.pointer1.x,
+          input.pointer1.y,
+          input.pointer2.x,
+          input.pointer2.y,
         );
         this.isPanning = false;
         return;
@@ -529,8 +607,10 @@ export class VillageScene extends Phaser.Scene {
       // pinch
       if (input.pointer1?.isDown && input.pointer2?.isDown) {
         const d = Phaser.Math.Distance.Between(
-          input.pointer1.x, input.pointer1.y,
-          input.pointer2.x, input.pointer2.y,
+          input.pointer1.x,
+          input.pointer1.y,
+          input.pointer2.x,
+          input.pointer2.y,
         );
         if (this.pinchPrevDist > 0) {
           const factor = d / this.pinchPrevDist;
@@ -568,8 +648,8 @@ export class VillageScene extends Phaser.Scene {
           const slot = this.findNearestSlot(w.x, w.y, 120);
           if (slot) {
             this.events.emit("placePosition", {
-              x: (slot.x / this.worldW) * 100,
-              y: (slot.y / this.worldH) * 100,
+              x: (this.slotCenter(slot).x / this.worldW) * 100,
+              y: (this.slotCenter(slot).y / this.worldH) * 100,
               slotKey: slot.slot_key,
             });
           }
@@ -634,15 +714,20 @@ export class VillageScene extends Phaser.Scene {
     if (total <= cap) {
       for (const e of owned) for (let i = 0; i < e.n; i++) pool.push(e.key);
     } else {
-      const scaled = owned.map((e) => ({ key: e.key, n: Math.max(1, Math.round((e.n / total) * cap)) }));
+      const scaled = owned.map((e) => ({
+        key: e.key,
+        n: Math.max(1, Math.round((e.n / total) * cap)),
+      }));
       let sum = scaled.reduce((a, e) => a + e.n, 0);
       while (sum > cap) {
         const idx = scaled.reduce((mi, e, i, arr) => (e.n > arr[mi].n ? i : mi), 0);
-        scaled[idx].n--; sum--;
+        scaled[idx].n--;
+        sum--;
       }
       while (sum < cap) {
         const idx = scaled.reduce((mi, e, i, arr) => (e.n < arr[mi].n ? i : mi), 0);
-        scaled[idx].n++; sum++;
+        scaled[idx].n++;
+        sum++;
       }
       for (const e of scaled) for (let i = 0; i < e.n; i++) pool.push(e.key);
     }
@@ -733,20 +818,26 @@ export class VillageScene extends Phaser.Scene {
     this.pikminAgents = [];
   }
 
-  private spawnPikmin(speciesKey: string, cfg: PikminLayerConfig, anchors: { x: number; y: number }[]): PikminAgent {
+  private spawnPikmin(
+    speciesKey: string,
+    cfg: PikminLayerConfig,
+    anchors: { x: number; y: number }[],
+  ): PikminAgent {
     const sp = cfg.species.find((s) => s.key === speciesKey);
     const tint = sp?.color ? Phaser.Display.Color.HexStringToColor(sp.color).color : 0xa3e635;
 
     const role: PikminRole = this.assignRole();
     const preferByRole: Record<PikminRole, string[]> = {
       patrol: ["defense"],
-      carry:  ["production", "energy", "science"],
+      carry: ["production", "energy", "science"],
       gather: ["social", "coop", "pikmin"],
       wander: [],
-      sleep:  [],
+      sleep: [],
     };
     const home = this.pickHomeBuilding(preferByRole[role]);
-    const homePos = home ? this.buildingWorldPos(home) : anchors[Math.floor(Math.random() * anchors.length)];
+    const homePos = home
+      ? this.buildingWorldPos(home)
+      : anchors[Math.floor(Math.random() * anchors.length)];
 
     const x = homePos.x + (Math.random() - 0.5) * 140;
     const y = homePos.y + (Math.random() - 0.5) * 140;
@@ -767,14 +858,19 @@ export class VillageScene extends Phaser.Scene {
     this.layerPikmin.add(container);
 
     return {
-      container, body, shadow,
+      container,
+      body,
+      shadow,
       speciesKey,
-      x, y,
-      tx: x, ty: y,
+      x,
+      y,
+      tx: x,
+      ty: y,
       speed: 55 + Math.random() * 35,
       state: "walk",
       role,
-      homeX: homePos.x, homeY: homePos.y,
+      homeX: homePos.x,
+      homeY: homePos.y,
       homeBuildingId: home?.id ?? null,
       carrying: false,
       bobPhase: Math.random() * Math.PI * 2,
@@ -794,7 +890,10 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  private pickRoleTarget(a: PikminAgent, anchors: { x: number; y: number }[]): { x: number; y: number } {
+  private pickRoleTarget(
+    a: PikminAgent,
+    anchors: { x: number; y: number }[],
+  ): { x: number; y: number } {
     const jitter = (n: number) => (Math.random() - 0.5) * n;
     switch (a.role) {
       case "patrol": {
@@ -837,8 +936,10 @@ export class VillageScene extends Phaser.Scene {
     const margin = 120;
     const view = cam.worldView;
     const inView = (x: number, y: number) =>
-      x >= view.x - margin && x <= view.x + view.width + margin &&
-      y >= view.y - margin && y <= view.y + view.height + margin;
+      x >= view.x - margin &&
+      x <= view.x + view.width + margin &&
+      y >= view.y - margin &&
+      y <= view.y + view.height + margin;
 
     for (const a of this.pikminAgents) {
       // Sleep fuori camera: salta motion, mantieni pos
@@ -873,10 +974,14 @@ export class VillageScene extends Phaser.Scene {
           a.carrying = !a.carrying;
           this.setCarryVisual(a, a.carrying);
         }
-        const idleMs = mode === "alarm" ? 300 + Math.random() * 400
-          : mode === "shelter" ? 4000 + Math.random() * 3000
-          : night ? 5000 + Math.random() * 5000
-          : 800 + Math.random() * 2200;
+        const idleMs =
+          mode === "alarm"
+            ? 300 + Math.random() * 400
+            : mode === "shelter"
+              ? 4000 + Math.random() * 3000
+              : night
+                ? 5000 + Math.random() * 5000
+                : 800 + Math.random() * 2200;
         a.nextThinkAt = now + idleMs;
       }
 
@@ -885,7 +990,9 @@ export class VillageScene extends Phaser.Scene {
         if (mode === "alarm") {
           // corre al centro comando / defense più vicino
           const home = this.pickHomeBuilding(["defense", "pikmin"]);
-          const target = home ? this.buildingWorldPos(home) : { x: this.worldW / 2, y: this.worldH / 2 };
+          const target = home
+            ? this.buildingWorldPos(home)
+            : { x: this.worldW / 2, y: this.worldH / 2 };
           a.tx = target.x + (Math.random() - 0.5) * 60;
           a.ty = target.y + (Math.random() - 0.5) * 60;
           a.state = "run";
@@ -902,7 +1009,8 @@ export class VillageScene extends Phaser.Scene {
           a.state = "walk";
         } else if (night && Math.random() < 0.6) {
           a.state = "sleep";
-          a.tx = a.x; a.ty = a.y;
+          a.tx = a.x;
+          a.ty = a.y;
         } else {
           const t = this.pickRoleTarget(a, anchors);
           a.tx = Phaser.Math.Clamp(t.x, 20, this.worldW - 20);
@@ -914,7 +1022,6 @@ export class VillageScene extends Phaser.Scene {
       }
     }
   }
-
 
   // ───────── events (overlay diorama) ─────────
 
@@ -929,7 +1036,10 @@ export class VillageScene extends Phaser.Scene {
 
   private ensureEventTexture(url: string, onReady: () => void) {
     const key = EVENT_TEX_PREFIX + url;
-    if (this.textures.exists(key)) { onReady(); return; }
+    if (this.textures.exists(key)) {
+      onReady();
+      return;
+    }
     if (this.eventTexLoading.has(key)) return;
     this.eventTexLoading.add(key);
     const img = new Image();
@@ -950,7 +1060,13 @@ export class VillageScene extends Phaser.Scene {
     // remove old
     for (const [id, nodes] of this.eventNodes) {
       if (!wanted.has(id)) {
-        nodes.forEach((n) => { try { n.destroy(); } catch { /* ignore */ } });
+        nodes.forEach((n) => {
+          try {
+            n.destroy();
+          } catch {
+            /* ignore */
+          }
+        });
         this.eventNodes.delete(id);
       }
     }
@@ -963,7 +1079,8 @@ export class VillageScene extends Phaser.Scene {
   private spawnEvent(evt: VillageEventRow) {
     const nodes: Phaser.GameObjects.GameObject[] = [];
     const fx = evt.effects ?? {};
-    const w = this.worldW, h = this.worldH;
+    const w = this.worldW,
+      h = this.worldH;
 
     // overlay tint full-world
     if (fx.overlay?.tint) {
@@ -990,17 +1107,26 @@ export class VillageScene extends Phaser.Scene {
     if (fx.glow) {
       const c = Phaser.Display.Color.HexStringToColor(fx.glow.color).color;
       const radius = Math.min(w, h) * 0.6;
-      const glow = this.add.circle(w / 2, h / 2, radius, c, (fx.glow.intensity ?? 0.3));
+      const glow = this.add.circle(w / 2, h / 2, radius, c, fx.glow.intensity ?? 0.3);
       glow.setBlendMode(Phaser.BlendModes.ADD);
       this.layerEvents.add(glow);
-      this.tweens.add({ targets: glow, alpha: { from: glow.alpha * 0.6, to: glow.alpha }, duration: 1800, yoyo: true, repeat: -1 });
+      this.tweens.add({
+        targets: glow,
+        alpha: { from: glow.alpha * 0.6, to: glow.alpha },
+        duration: 1800,
+        yoyo: true,
+        repeat: -1,
+      });
       nodes.push(glow);
     }
 
     // particelle
     if (fx.particles) {
       const p = this.spawnParticles(fx.particles.kind, fx.particles.color, fx.particles.count);
-      if (p) { this.layerEvents.add(p); nodes.push(p); }
+      if (p) {
+        this.layerEvents.add(p);
+        nodes.push(p);
+      }
     }
 
     this.eventNodes.set(evt.id, nodes);
@@ -1008,41 +1134,110 @@ export class VillageScene extends Phaser.Scene {
 
   private spawnParticles(kind: ParticleKind, color: string | undefined, count: number | undefined) {
     if (!this.textures.exists(PARTICLE_TEX_KEY)) this.ensureParticleTexture();
-    const w = this.worldW, h = this.worldH;
+    const w = this.worldW,
+      h = this.worldH;
     const tint = color ? Phaser.Display.Color.HexStringToColor(color).color : 0xffffff;
     const qty = Math.max(4, Math.min(200, count ?? 40));
 
     const cfg: Phaser.Types.GameObjects.Particles.ParticleEmitterConfig = (() => {
       switch (kind) {
         case "snow":
-          return { x: { min: 0, max: w }, y: -20, lifespan: 8000, speedY: { min: 30, max: 70 },
-            speedX: { min: -20, max: 20 }, scale: { start: 0.6, end: 0.4 }, alpha: { start: 0.9, end: 0.5 },
-            quantity: 1, frequency: 4000 / qty, tint };
+          return {
+            x: { min: 0, max: w },
+            y: -20,
+            lifespan: 8000,
+            speedY: { min: 30, max: 70 },
+            speedX: { min: -20, max: 20 },
+            scale: { start: 0.6, end: 0.4 },
+            alpha: { start: 0.9, end: 0.5 },
+            quantity: 1,
+            frequency: 4000 / qty,
+            tint,
+          };
         case "rain":
-          return { x: { min: 0, max: w }, y: -20, lifespan: 1800, speedY: { min: 400, max: 700 },
-            speedX: { min: -40, max: -10 }, scaleX: 0.4, scaleY: 1.8, alpha: { start: 0.8, end: 0.2 },
-            quantity: 2, frequency: 1500 / qty, tint };
+          return {
+            x: { min: 0, max: w },
+            y: -20,
+            lifespan: 1800,
+            speedY: { min: 400, max: 700 },
+            speedX: { min: -40, max: -10 },
+            scaleX: 0.4,
+            scaleY: 1.8,
+            alpha: { start: 0.8, end: 0.2 },
+            quantity: 2,
+            frequency: 1500 / qty,
+            tint,
+          };
         case "leaves":
-          return { x: { min: 0, max: w }, y: -20, lifespan: 7000, speedY: { min: 40, max: 90 },
-            speedX: { min: -60, max: 60 }, rotate: { min: 0, max: 360 }, scale: { start: 0.8, end: 0.6 },
-            alpha: { start: 1, end: 0.7 }, quantity: 1, frequency: 5000 / qty, tint };
+          return {
+            x: { min: 0, max: w },
+            y: -20,
+            lifespan: 7000,
+            speedY: { min: 40, max: 90 },
+            speedX: { min: -60, max: 60 },
+            rotate: { min: 0, max: 360 },
+            scale: { start: 0.8, end: 0.6 },
+            alpha: { start: 1, end: 0.7 },
+            quantity: 1,
+            frequency: 5000 / qty,
+            tint,
+          };
         case "embers":
-          return { x: { min: 0, max: w }, y: h + 20, lifespan: 4500, speedY: { min: -120, max: -40 },
-            speedX: { min: -25, max: 25 }, scale: { start: 0.8, end: 0 }, alpha: { start: 1, end: 0 },
-            blendMode: Phaser.BlendModes.ADD, quantity: 1, frequency: 3500 / qty, tint };
+          return {
+            x: { min: 0, max: w },
+            y: h + 20,
+            lifespan: 4500,
+            speedY: { min: -120, max: -40 },
+            speedX: { min: -25, max: 25 },
+            scale: { start: 0.8, end: 0 },
+            alpha: { start: 1, end: 0 },
+            blendMode: Phaser.BlendModes.ADD,
+            quantity: 1,
+            frequency: 3500 / qty,
+            tint,
+          };
         case "meteor":
-          return { x: { min: 0, max: w }, y: -50, lifespan: 1400, speedY: { min: 700, max: 1100 },
-            speedX: { min: -300, max: -150 }, scaleX: 0.6, scaleY: 3, alpha: { start: 1, end: 0 },
-            blendMode: Phaser.BlendModes.ADD, quantity: 1, frequency: 9000 / qty, tint };
+          return {
+            x: { min: 0, max: w },
+            y: -50,
+            lifespan: 1400,
+            speedY: { min: 700, max: 1100 },
+            speedX: { min: -300, max: -150 },
+            scaleX: 0.6,
+            scaleY: 3,
+            alpha: { start: 1, end: 0 },
+            blendMode: Phaser.BlendModes.ADD,
+            quantity: 1,
+            frequency: 9000 / qty,
+            tint,
+          };
         case "nectar":
-          return { x: { min: 0, max: w }, y: -20, lifespan: 6000, speedY: { min: 60, max: 130 },
-            speedX: { min: -10, max: 10 }, scale: { start: 0.7, end: 0.5 }, alpha: { start: 0.95, end: 0.6 },
-            blendMode: Phaser.BlendModes.ADD, quantity: 1, frequency: 4000 / qty, tint };
+          return {
+            x: { min: 0, max: w },
+            y: -20,
+            lifespan: 6000,
+            speedY: { min: 60, max: 130 },
+            speedX: { min: -10, max: 10 },
+            scale: { start: 0.7, end: 0.5 },
+            alpha: { start: 0.95, end: 0.6 },
+            blendMode: Phaser.BlendModes.ADD,
+            quantity: 1,
+            frequency: 4000 / qty,
+            tint,
+          };
         case "sparkle":
         default:
-          return { x: { min: 0, max: w }, y: { min: 0, max: h }, lifespan: 1600,
-            scale: { start: 0.8, end: 0 }, alpha: { start: 1, end: 0 },
-            blendMode: Phaser.BlendModes.ADD, quantity: 1, frequency: 200, tint };
+          return {
+            x: { min: 0, max: w },
+            y: { min: 0, max: h },
+            lifespan: 1600,
+            scale: { start: 0.8, end: 0 },
+            alpha: { start: 1, end: 0 },
+            blendMode: Phaser.BlendModes.ADD,
+            quantity: 1,
+            frequency: 200,
+            tint,
+          };
       }
     })();
 
