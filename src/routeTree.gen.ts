@@ -35,6 +35,7 @@ import { Route as VillaggioScambiRouteImport } from './routes/villaggio.scambi'
 import { Route as VillaggioEdificiRouteImport } from './routes/villaggio.edifici'
 import { Route as VillaggioAgentRouteImport } from './routes/villaggio.$agent'
 import { Route as SpedizioniKeyRouteImport } from './routes/spedizioni.$key'
+import { Route as VillaggioEditorBiomeRouteImport } from './routes/villaggio.editor.$biome'
 
 const Char91indexChar93Route = Char91indexChar93RouteImport.update({
   id: '/index',
@@ -166,6 +167,11 @@ const SpedizioniKeyRoute = SpedizioniKeyRouteImport.update({
   path: '/$key',
   getParentRoute: () => SpedizioniRoute,
 } as any)
+const VillaggioEditorBiomeRoute = VillaggioEditorBiomeRouteImport.update({
+  id: '/editor/$biome',
+  path: '/editor/$biome',
+  getParentRoute: () => VillaggioRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/villaggio/$agent': typeof VillaggioAgentRoute
   '/villaggio/edifici': typeof VillaggioEdificiRoute
   '/villaggio/scambi': typeof VillaggioScambiRoute
+  '/villaggio/editor/$biome': typeof VillaggioEditorBiomeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/villaggio/$agent': typeof VillaggioAgentRoute
   '/villaggio/edifici': typeof VillaggioEdificiRoute
   '/villaggio/scambi': typeof VillaggioScambiRoute
+  '/villaggio/editor/$biome': typeof VillaggioEditorBiomeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -251,6 +259,7 @@ export interface FileRoutesById {
   '/villaggio/$agent': typeof VillaggioAgentRoute
   '/villaggio/edifici': typeof VillaggioEdificiRoute
   '/villaggio/scambi': typeof VillaggioScambiRoute
+  '/villaggio/editor/$biome': typeof VillaggioEditorBiomeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -281,6 +290,7 @@ export interface FileRouteTypes {
     | '/villaggio/$agent'
     | '/villaggio/edifici'
     | '/villaggio/scambi'
+    | '/villaggio/editor/$biome'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/villaggio/$agent'
     | '/villaggio/edifici'
     | '/villaggio/scambi'
+    | '/villaggio/editor/$biome'
   id:
     | '__root__'
     | '/'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/villaggio/$agent'
     | '/villaggio/edifici'
     | '/villaggio/scambi'
+    | '/villaggio/editor/$biome'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -548,6 +560,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SpedizioniKeyRouteImport
       parentRoute: typeof SpedizioniRoute
     }
+    '/villaggio/editor/$biome': {
+      id: '/villaggio/editor/$biome'
+      path: '/editor/$biome'
+      fullPath: '/villaggio/editor/$biome'
+      preLoaderRoute: typeof VillaggioEditorBiomeRouteImport
+      parentRoute: typeof VillaggioRoute
+    }
   }
 }
 
@@ -567,12 +586,14 @@ interface VillaggioRouteChildren {
   VillaggioAgentRoute: typeof VillaggioAgentRoute
   VillaggioEdificiRoute: typeof VillaggioEdificiRoute
   VillaggioScambiRoute: typeof VillaggioScambiRoute
+  VillaggioEditorBiomeRoute: typeof VillaggioEditorBiomeRoute
 }
 
 const VillaggioRouteChildren: VillaggioRouteChildren = {
   VillaggioAgentRoute: VillaggioAgentRoute,
   VillaggioEdificiRoute: VillaggioEdificiRoute,
   VillaggioScambiRoute: VillaggioScambiRoute,
+  VillaggioEditorBiomeRoute: VillaggioEditorBiomeRoute,
 }
 
 const VillaggioRouteWithChildren = VillaggioRoute._addFileChildren(
@@ -606,3 +627,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
