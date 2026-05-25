@@ -210,8 +210,10 @@ function AgentiPage() {
           })}
         </div>
 
+        <FamilyPanel />
+
         <p className="text-[10px] text-muted-foreground text-center px-4">
-          Nuovi agenti si registrano dalla schermata di login con email e password.
+          Crea nuovi agenti con nome utente e password dal pannello qui sopra.
         </p>
       </div>
     </PageShell>
