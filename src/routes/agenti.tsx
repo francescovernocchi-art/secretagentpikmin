@@ -6,6 +6,7 @@ import { Shield, Loader2, X, ArrowLeft, Pencil, Check } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
+import { FamilyPanel } from "@/components/FamilyPanel";
 
 export const Route = createFileRoute("/agenti")({
   component: AgentiPage,
@@ -209,8 +210,10 @@ function AgentiPage() {
           })}
         </div>
 
+        <FamilyPanel />
+
         <p className="text-[10px] text-muted-foreground text-center px-4">
-          Nuovi agenti si registrano dalla schermata di login con email e password.
+          Crea nuovi agenti con nome utente e password dal pannello qui sopra.
         </p>
       </div>
     </PageShell>
