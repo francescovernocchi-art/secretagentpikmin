@@ -497,12 +497,11 @@ export function SlotEditorTab({ biomeKey }: Props) {
 
 function normalizeSlot(row: SlotRow): SlotDraft {
   const raw = row as SlotRow & { width?: number | null; height?: number | null };
-  const legacy = raw.width == null || raw.height == null || row.biome_key == null;
+  const legacy = raw.width == null || raw.height == null;
   const fallback = row.size === "large" ? 128 : row.size === "small" ? 76 : 96;
   return {
     id: row.id,
     diorama_id: row.diorama_id,
-    biome_key: row.biome_key ?? null,
     slot_key: row.slot_key,
     x: Number(row.x) || 0,
     y: Number(row.y) || 0,
@@ -513,6 +512,7 @@ function normalizeSlot(row: SlotRow): SlotDraft {
     legacy,
   };
 }
+
 
 function slotStyle(slot: SlotDraft, diorama: DioramaRow): CSSProperties {
   return {
