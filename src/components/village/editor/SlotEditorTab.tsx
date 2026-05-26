@@ -89,7 +89,6 @@ export function SlotEditorTab({ biomeKey }: Props) {
   const persistSlot = async (slot: SlotDraft, successMessage = "Slot salvato") => {
     setSavingId(slot.id);
     const payload: SlotUpdate = {
-      biome_key: biomeKey,
       slot_key: slot.slot_key.trim() || slot.id.slice(0, 8),
       x: Math.round(slot.x),
       y: Math.round(slot.y),
@@ -98,6 +97,7 @@ export function SlotEditorTab({ biomeKey }: Props) {
       rotation: Math.round(slot.rotation || 0),
       allowed_categories: slot.allowed_categories,
     };
+
     const { error } = await supabase
       .from("village_diorama_slots")
       .update(payload)
@@ -122,7 +122,6 @@ export function SlotEditorTab({ biomeKey }: Props) {
     const slotKey = nextSlotKey(slots, biomeKey, n);
     const payload: SlotInsert = {
       diorama_id: diorama.id,
-      biome_key: biomeKey,
       slot_key: slotKey,
       x: clamp(p.x - 48, 0, diorama.width - 96),
       y: clamp(p.y - 48, 0, diorama.height - 96),
@@ -131,6 +130,7 @@ export function SlotEditorTab({ biomeKey }: Props) {
       rotation: 0,
       allowed_categories: ["base"],
     };
+
     const { data, error } = await supabase
       .from("village_diorama_slots")
       .insert(payload)
@@ -163,12 +163,12 @@ export function SlotEditorTab({ biomeKey }: Props) {
         supabase
           .from("village_diorama_slots")
           .update({
-            biome_key: biomeKey,
             width: Math.round(slot.width || 96),
             height: Math.round(slot.height || 96),
             rotation: Math.round(slot.rotation || 0),
           } satisfies SlotUpdate)
           .eq("id", slot.id),
+
       ),
     );
     setBusy(false);
@@ -182,12 +182,12 @@ export function SlotEditorTab({ biomeKey }: Props) {
         slot.legacy
           ? {
               ...slot,
-              biome_key: biomeKey,
               width: slot.width || 96,
               height: slot.height || 96,
               legacy: false,
             }
           : slot,
+
       ),
     );
     toast.success("Slot legacy normalizzati");
@@ -497,12 +497,11 @@ export function SlotEditorTab({ biomeKey }: Props) {
 
 function normalizeSlot(row: SlotRow): SlotDraft {
   const raw = row as SlotRow & { width?: number | null; height?: number | null };
-  const legacy = raw.width == null || raw.height == null || row.biome_key == null;
+  const legacy = raw.width == null || raw.height == null;
   const fallback = row.size === "large" ? 128 : row.size === "small" ? 76 : 96;
   return {
     id: row.id,
     diorama_id: row.diorama_id,
-    biome_key: row.biome_key ?? null,
     slot_key: row.slot_key,
     x: Number(row.x) || 0,
     y: Number(row.y) || 0,
@@ -513,6 +512,7 @@ function normalizeSlot(row: SlotRow): SlotDraft {
     legacy,
   };
 }
+
 
 function slotStyle(slot: SlotDraft, diorama: DioramaRow): CSSProperties {
   return {

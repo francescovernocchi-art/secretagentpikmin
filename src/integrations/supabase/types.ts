@@ -1795,6 +1795,8 @@ export type Database = {
       }
       village_structure_assets: {
         Row: {
+          anchor_x: number
+          anchor_y: number
           asset_url: string
           biome_key: string
           building_type: string
@@ -1802,12 +1804,18 @@ export type Database = {
           created_by: string | null
           glow_url: string | null
           id: string
+          idle_anim: string
           level: number
+          offset_x: number
+          offset_y: number
           shadow_url: string | null
+          slot_fit_scale: number
           updated_at: string
           variant: string
         }
         Insert: {
+          anchor_x?: number
+          anchor_y?: number
           asset_url: string
           biome_key: string
           building_type: string
@@ -1815,12 +1823,18 @@ export type Database = {
           created_by?: string | null
           glow_url?: string | null
           id?: string
+          idle_anim?: string
           level?: number
+          offset_x?: number
+          offset_y?: number
           shadow_url?: string | null
+          slot_fit_scale?: number
           updated_at?: string
           variant?: string
         }
         Update: {
+          anchor_x?: number
+          anchor_y?: number
           asset_url?: string
           biome_key?: string
           building_type?: string
@@ -1828,8 +1842,12 @@ export type Database = {
           created_by?: string | null
           glow_url?: string | null
           id?: string
+          idle_anim?: string
           level?: number
+          offset_x?: number
+          offset_y?: number
           shadow_url?: string | null
+          slot_fit_scale?: number
           updated_at?: string
           variant?: string
         }

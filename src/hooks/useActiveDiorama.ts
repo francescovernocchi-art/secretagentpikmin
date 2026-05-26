@@ -17,7 +17,7 @@ export interface DioramaRow {
 export interface DioramaSlot {
   id: string;
   diorama_id: string;
-  biome_key: string | null;
+  biome_key?: string | null;
   slot_key: string;
   x: number;
   y: number;

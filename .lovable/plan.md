@@ -1,136 +1,104 @@
-# 🎨 Biome Editor — Piano di implementazione
+# 🏛️ Sistema Scala Edifici + Integrazione Diorama
 
-Trasformiamo il sistema bioma in un editor completo, mobile-friendly, senza rompere diorama / Phaser / eventi / build system.
-
-Lavoro grosso → lo spezzo in **5 fasi** indipendenti. Ti chiedo di confermare la fase 1 (fix UI + fondamenta DB), poi procediamo step-by-step. Così ogni step è verificabile.
+Obiettivo: gli edifici sembrano parte naturale del diorama, non PNG incollati. Lavoro additivo, niente di rotto.
 
 ---
 
-## FASE 1 — Fix UI menu bioma + fondamenta DB (PRIMA COSA)
+## FASE A — Schema DB (parametri visivi per edificio/bioma/livello)
 
-**Fix UI esistente (problema attuale)**
-- Riscrivo `VillagePanelSheet` / `BiomeSelector` / `AestheticsPanel`:
-  - z-index ordinato (sheet > overlay > canvas)
-  - scroll container interno con `overflow-y-auto` + `overscroll-contain`
-  - safe-area Android (`env(safe-area-inset-bottom)`)
-  - tap targets ≥ 44px
-  - chiusura tap-outside corretta
-  - sheet sempre cliccabile sopra Phaser canvas
+Estendo `village_structure_assets` con i campi di fit/anchor/offset:
 
-**Nuove tabelle DB**
-- `village_structure_assets` (building_type, biome_key, level, asset_url, shadow_url, glow_url)
-- Estensione `village_diorama_slots` con `width`, `height`, `rotation`, `allowed_categories[]` (se mancanti)
-- RLS: lettura family, scrittura solo `papa`
-
-**Nuova pagina admin: `/villaggio/editor/:biomeKey`**
-- Layout a tab: Diorama · Slot · Strutture · Varianti · Bonus · Eventi
-- Solo i tab Diorama + lista vuota; il resto arriva nelle fasi successive
-
----
-
-## FASE 2 — Diorama Tab + Spawn Slot Editor visuale
-
-**Diorama Tab**
-- Upload immagine bioma (bucket `village-dioramas`)
-- Preview con zoom
-- Bounds camera (drag rect)
-
-**Spawn Slot Editor (modalità editor Phaser)**
-- Toggle "Modifica Spawn" → la `VillageScene` entra in `editorMode`:
-  - gameplay in pausa (Pikmin idle, eventi sospesi)
-  - tutti gli slot visibili con contorno glow + handle
-- Interazioni:
-  - tap su diorama → crea slot
-  - drag → sposta
-  - handle angoli → resize
-  - tap slot → menu (categoria, elimina, rotazione)
-- Persistenza live su `village_diorama_slots`
-
----
-
-## FASE 3 — Structure Asset Manager + varianti per bioma
-
-**Tab Strutture**
-- Per ogni `building_catalog`:
-  - griglia 5 slot upload (lv1 → lv5) per il bioma corrente
-  - upload separato per shadow / glow opzionali
-  - preview sovrapposta
-- Hook `useStructureAssets(biome, type, level)`
-
-**Phaser auto-selection**
-- `VillageScene.spawnBuilding` legge `village_structure_assets` e sceglie l'asset corretto in base a `(biome, type, level)`
-- Fallback: asset generico esistente
-
----
-
-## FASE 4 — Tab Varianti + Bonus
-
-**Varianti**
-- Tag visivi per bioma (es. foresta: legno/foglie/muschio)
-- Permettono N asset per stesso level (variante random/forzata)
-
-**Bonus Tab**
-- UI esistente `BonusPanel` integrata come tab
-- Bonus bioma + struttura + stack + eventi
-
----
-
-## FASE 5 — Tab Eventi
-
-- Riuso `EventsAdminPanel` come tab
-- Filtraggio per bioma corrente
-- Preview overlay live
-
----
-
-## 📐 Dettagli tecnici
-
-**Tabelle nuove/modificate**
 ```sql
-village_structure_assets (
-  id uuid pk,
-  building_type text,
-  biome_key text,
-  level int,
-  variant text default 'default',
-  asset_url text,
-  shadow_url text,
-  glow_url text,
-  created_at timestamptz
-)
-
-ALTER village_diorama_slots
-  ADD COLUMN width int default 96,
-  ADD COLUMN height int default 96,
-  ADD COLUMN rotation int default 0,
-  ADD COLUMN allowed_categories text[] default '{}';
+ALTER TABLE village_structure_assets
+  ADD COLUMN slot_fit_scale numeric default 0.9,   -- 0.5..1.2 (target % dello slot)
+  ADD COLUMN anchor_x numeric default 0.5,         -- 0..1 (default bottom-center)
+  ADD COLUMN anchor_y numeric default 1.0,
+  ADD COLUMN offset_x int default 0,               -- px in coord world
+  ADD COLUMN offset_y int default 0,
+  ADD COLUMN idle_anim text default 'none';        -- 'none' | 'bob' | 'sway'
 ```
 
-**Route**: `src/routes/villaggio.editor.$biome.tsx` (solo per `papa`)
+`shadow_url` / `glow_url` già esistono. RLS già a posto (lettura family, scrittura `papa`).
 
-**File nuovi (fase 1)**
-- `src/routes/villaggio.editor.$biome.tsx`
-- `src/components/village/editor/BiomeEditorTabs.tsx`
-- `src/components/village/editor/DioramaTab.tsx` (placeholder)
-- `src/hooks/useStructureAssets.ts`
+---
 
-**File modificati (fase 1)**
-- `src/components/village/panels/VillagePanelSheet.tsx` (fix mobile)
-- `src/components/village/BiomeSelector.tsx` (fix mobile + link "Editor")
+## FASE B — Editor admin "Structures Tab"
+
+Sostituisco il placeholder `structures` nel `BiomeEditorTabs` con `StructuresTab.tsx`:
+
+- Lista `building_catalog` (filtrabile)
+- Per ogni edificio × livello (lv1..lv5):
+  - upload PNG struttura (bucket `building-images`)
+  - upload PNG ombra (opz.)
+  - upload PNG glow (opz.)
+  - slider `slot_fit_scale` 0.5..1.2 step 0.05
+  - slider `offset_x` / `offset_y` -64..64
+  - select `idle_anim` (none/bob/sway)
+  - mini-preview LIVE: l'asset renderizzato dentro un finto slot con bordo glow, alla scala/offset correnti, su sfondo diorama del bioma
+- Pulsante "Salva" per livello → upsert su `village_structure_assets`
+
+Hook esistente `useStructureAssets(biome)` già caricato → aggiungo `.upsert()` helper.
+
+---
+
+## FASE C — Phaser rendering coerente con slot
+
+Modifico `VillageScene.spawnBuilding` (e simili):
+
+```text
+slotW, slotH = slot.width, slot.height           (dai dati slot)
+asset = useStructureAssets.pick(type, level)     (con fallback)
+baseScale = min(slotW/imgW, slotH/imgH) * asset.slot_fit_scale
+sprite.setOrigin(asset.anchor_x, asset.anchor_y)
+sprite.setPosition(slot.x + offset_x, slot.y + offset_y)
+sprite.setScale(baseScale)
+sprite.setDepth(sprite.y)                        (depth = y per ordinamento naturale)
+
+if asset.shadow_url → shadow sprite SOTTO (depth = sprite.depth - 1, alpha 0.5, scale leggermente più ampio)
+if asset.glow_url   → glow sprite SOPRA (additive blend, depth = sprite.depth + 1)
+if asset.idle_anim != 'none' → tween morbido (bob = ±2px Y, sway = ±1° rotation)
+```
+
+Nessuna modifica al sistema slot, camera, build, eventi, Pikmin, overlay.
+
+---
+
+## FASE D — Coerenza visiva diorama
+
+Linee guida documentate in `StructuresTab` (testo informativo per admin):
+- stessa direzione luce del diorama (suggerimento testuale)
+- ombra morbida separata, non hard
+- bottom-center per anchor di default
+- niente bordi neri/margini inutili nel PNG
+- struttura grande nel canvas (no whitespace)
+
+Non posso forzare in codice la coerenza artistica, ma il preview live mostra
+subito se l'asset stona col diorama, così l'admin può correggere prima di salvare.
+
+---
+
+## 📁 File
+
+**Nuovi**
+- `src/components/village/editor/StructuresTab.tsx`
+- `src/components/village/editor/StructurePreview.tsx` (preview live su diorama)
+
+**Modificati**
+- `src/components/village/editor/BiomeEditorTabs.tsx` (rimuovo placeholder structures)
+- `src/routes/villaggio.editor.$biome.tsx` (monta StructuresTab)
+- `src/hooks/useStructureAssets.ts` (aggiungo `upsertAsset()`)
+- `src/game/village/VillageScene.ts` (rendering con fit/offset/anchor/depth/shadow/glow/idle)
+
+**Migration**
+- ALTER `village_structure_assets` (5 colonne nuove con default)
 
 ---
 
 ## ⚠️ Cosa NON tocco
-
-Diorama engine · camera RTS · eventi · build system · Pikmin · overlay · upgrade system. Tutte aggiunte sono additive.
+Diorama engine · camera RTS · build system · eventi · Pikmin · overlay · upgrade system · slot editor (Fase 2 già pronta).
 
 ---
 
-## 🎯 Procedo con la FASE 1?
+## 🎯 Procedo?
 
-Confermi e parto con:
-1. fix UI menu bioma (mobile)
-2. migration DB
-3. shell della route `/villaggio/editor/:biome` con i 6 tab (vuoti tranne intestazione)
-
-Le fasi 2-5 le faremo una alla volta dopo aver visto la fase 1 funzionante. Va bene così?
+Confermo e parto con migration + StructuresTab + rendering Phaser in un unico round. Test su un edificio campione (es. `command_center`) per validare il fit visivo.

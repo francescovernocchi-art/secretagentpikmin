@@ -10,6 +10,28 @@ export interface StructureAsset {
   asset_url: string;
   shadow_url: string | null;
   glow_url: string | null;
+  slot_fit_scale: number;
+  anchor_x: number;
+  anchor_y: number;
+  offset_x: number;
+  offset_y: number;
+  idle_anim: string;
+}
+
+export interface StructureAssetUpsert {
+  building_type: string;
+  biome_key: string;
+  level: number;
+  variant?: string;
+  asset_url: string;
+  shadow_url?: string | null;
+  glow_url?: string | null;
+  slot_fit_scale?: number;
+  anchor_x?: number;
+  anchor_y?: number;
+  offset_x?: number;
+  offset_y?: number;
+  idle_anim?: string;
 }
 
 /** Carica gli asset strutture per un bioma specifico (o tutti). */
@@ -19,14 +41,20 @@ export function useStructureAssets(biomeKey?: string) {
 
   const reload = useCallback(async () => {
     setLoading(true);
-    let q = supabase.from("village_structure_assets").select("*").order("building_type").order("level");
+    let q = supabase
+      .from("village_structure_assets")
+      .select("*")
+      .order("building_type")
+      .order("level");
     if (biomeKey) q = q.eq("biome_key", biomeKey);
     const { data, error } = await q;
-    if (!error) setAssets((data ?? []) as StructureAsset[]);
+    if (!error) setAssets((data ?? []) as unknown as StructureAsset[]);
     setLoading(false);
   }, [biomeKey]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   /** Restituisce l'asset migliore per (type, level), con fallback al livello inferiore. */
   const pick = useCallback(
@@ -45,5 +73,56 @@ export function useStructureAssets(biomeKey?: string) {
     [assets, biomeKey],
   );
 
-  return { assets, loading, reload, pick };
+  /** Upsert manuale per (building_type, biome_key, level, variant). */
+  const upsertAsset = useCallback(async (input: StructureAssetUpsert) => {
+    const variant = input.variant ?? "default";
+    const payload = {
+      building_type: input.building_type,
+      biome_key: input.biome_key,
+      level: input.level,
+      variant,
+      asset_url: input.asset_url,
+      shadow_url: input.shadow_url ?? null,
+      glow_url: input.glow_url ?? null,
+      slot_fit_scale: input.slot_fit_scale ?? 0.9,
+      anchor_x: input.anchor_x ?? 0.5,
+      anchor_y: input.anchor_y ?? 1.0,
+      offset_x: input.offset_x ?? 0,
+      offset_y: input.offset_y ?? 0,
+      idle_anim: input.idle_anim ?? "none",
+    };
+    const { data: existing } = await supabase
+      .from("village_structure_assets")
+      .select("id")
+      .eq("building_type", input.building_type)
+      .eq("biome_key", input.biome_key)
+      .eq("level", input.level)
+      .eq("variant", variant)
+      .maybeSingle();
+    if (existing?.id) {
+      const { data, error } = await supabase
+        .from("village_structure_assets")
+        .update(payload)
+        .eq("id", existing.id)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as unknown as StructureAsset;
+    }
+    const { data, error } = await supabase
+      .from("village_structure_assets")
+      .insert(payload)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data as unknown as StructureAsset;
+  }, []);
+
+
+  const deleteAsset = useCallback(async (id: string) => {
+    const { error } = await supabase.from("village_structure_assets").delete().eq("id", id);
+    if (error) throw error;
+  }, []);
+
+  return { assets, loading, reload, pick, upsertAsset, deleteAsset };
 }
