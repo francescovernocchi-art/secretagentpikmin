@@ -7,6 +7,8 @@ import { useCustomBiomes } from "@/hooks/useCustomBiomes";
 import { BiomeEditorTabs, type EditorTab } from "@/components/village/editor/BiomeEditorTabs";
 import { DioramaTab } from "@/components/village/editor/DioramaTab";
 import { SlotEditorTab } from "@/components/village/editor/SlotEditorTab";
+import { StructuresTab } from "@/components/village/editor/StructuresTab";
+
 
 export const Route = createFileRoute("/villaggio/editor/$biome")({
   component: BiomeEditorPage,
