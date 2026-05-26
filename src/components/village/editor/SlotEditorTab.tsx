@@ -122,7 +122,6 @@ export function SlotEditorTab({ biomeKey }: Props) {
     const slotKey = nextSlotKey(slots, biomeKey, n);
     const payload: SlotInsert = {
       diorama_id: diorama.id,
-      biome_key: biomeKey,
       slot_key: slotKey,
       x: clamp(p.x - 48, 0, diorama.width - 96),
       y: clamp(p.y - 48, 0, diorama.height - 96),
@@ -131,6 +130,7 @@ export function SlotEditorTab({ biomeKey }: Props) {
       rotation: 0,
       allowed_categories: ["base"],
     };
+
     const { data, error } = await supabase
       .from("village_diorama_slots")
       .insert(payload)
