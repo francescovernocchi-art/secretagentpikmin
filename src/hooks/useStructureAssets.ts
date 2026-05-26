@@ -73,13 +73,14 @@ export function useStructureAssets(biomeKey?: string) {
     [assets, biomeKey],
   );
 
-  /** Upsert per (building_type, biome_key, level, variant). */
+  /** Upsert manuale per (building_type, biome_key, level, variant). */
   const upsertAsset = useCallback(async (input: StructureAssetUpsert) => {
+    const variant = input.variant ?? "default";
     const payload = {
       building_type: input.building_type,
       biome_key: input.biome_key,
       level: input.level,
-      variant: input.variant ?? "default",
+      variant,
       asset_url: input.asset_url,
       shadow_url: input.shadow_url ?? null,
       glow_url: input.glow_url ?? null,
@@ -90,14 +91,33 @@ export function useStructureAssets(biomeKey?: string) {
       offset_y: input.offset_y ?? 0,
       idle_anim: input.idle_anim ?? "none",
     };
+    const { data: existing } = await supabase
+      .from("village_structure_assets")
+      .select("id")
+      .eq("building_type", input.building_type)
+      .eq("biome_key", input.biome_key)
+      .eq("level", input.level)
+      .eq("variant", variant)
+      .maybeSingle();
+    if (existing?.id) {
+      const { data, error } = await supabase
+        .from("village_structure_assets")
+        .update(payload)
+        .eq("id", existing.id)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as unknown as StructureAsset;
+    }
     const { data, error } = await supabase
       .from("village_structure_assets")
-      .upsert(payload, { onConflict: "building_type,biome_key,level,variant" })
+      .insert(payload)
       .select("*")
       .single();
     if (error) throw error;
     return data as unknown as StructureAsset;
   }, []);
+
 
   const deleteAsset = useCallback(async (id: string) => {
     const { error } = await supabase.from("village_structure_assets").delete().eq("id", id);
