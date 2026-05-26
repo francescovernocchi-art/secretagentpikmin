@@ -182,12 +182,12 @@ export function SlotEditorTab({ biomeKey }: Props) {
         slot.legacy
           ? {
               ...slot,
-              biome_key: biomeKey,
               width: slot.width || 96,
               height: slot.height || 96,
               legacy: false,
             }
           : slot,
+
       ),
     );
     toast.success("Slot legacy normalizzati");
