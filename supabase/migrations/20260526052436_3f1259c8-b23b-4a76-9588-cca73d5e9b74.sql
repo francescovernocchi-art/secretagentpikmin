@@ -1,0 +1,7 @@
+ALTER TABLE public.village_structure_assets
+  ADD COLUMN IF NOT EXISTS slot_fit_scale numeric NOT NULL DEFAULT 0.9,
+  ADD COLUMN IF NOT EXISTS anchor_x numeric NOT NULL DEFAULT 0.5,
+  ADD COLUMN IF NOT EXISTS anchor_y numeric NOT NULL DEFAULT 1.0,
+  ADD COLUMN IF NOT EXISTS offset_x integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS offset_y integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS idle_anim text NOT NULL DEFAULT 'none';
