@@ -89,7 +89,6 @@ export function SlotEditorTab({ biomeKey }: Props) {
   const persistSlot = async (slot: SlotDraft, successMessage = "Slot salvato") => {
     setSavingId(slot.id);
     const payload: SlotUpdate = {
-      biome_key: biomeKey,
       slot_key: slot.slot_key.trim() || slot.id.slice(0, 8),
       x: Math.round(slot.x),
       y: Math.round(slot.y),
@@ -98,6 +97,7 @@ export function SlotEditorTab({ biomeKey }: Props) {
       rotation: Math.round(slot.rotation || 0),
       allowed_categories: slot.allowed_categories,
     };
+
     const { error } = await supabase
       .from("village_diorama_slots")
       .update(payload)
