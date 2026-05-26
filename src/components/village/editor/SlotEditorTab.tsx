@@ -163,12 +163,12 @@ export function SlotEditorTab({ biomeKey }: Props) {
         supabase
           .from("village_diorama_slots")
           .update({
-            biome_key: biomeKey,
             width: Math.round(slot.width || 96),
             height: Math.round(slot.height || 96),
             rotation: Math.round(slot.rotation || 0),
           } satisfies SlotUpdate)
           .eq("id", slot.id),
+
       ),
     );
     setBusy(false);
