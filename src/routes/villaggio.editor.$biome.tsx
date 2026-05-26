@@ -74,12 +74,8 @@ function BiomeEditorPage() {
         <div className="pt-4">
           {tab === "diorama" && <DioramaTab biomeKey={biome} />}
           {tab === "slots" && <SlotEditorTab biomeKey={biome} />}
-          {tab === "structures" && (
-            <ComingSoon
-              title="Asset Strutture"
-              desc="Upload asset per livello (lv1-lv5) separati per bioma. Arriva nella Fase 3."
-            />
-          )}
+          {tab === "structures" && <StructuresTab biomeKey={biome} />}
+
           {tab === "variants" && (
             <ComingSoon
               title="Varianti visive"
