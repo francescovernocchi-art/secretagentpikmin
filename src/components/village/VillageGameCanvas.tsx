@@ -142,14 +142,19 @@ export function VillageGameCanvas({
   const buildingImageByType = useMemo(() => {
     const map: Record<string, string | null> = {};
     for (const b of buildings) {
-      map[b.type] = pickBuildingImage(imageMap.get(b.type), b.level);
+      // Priority: per-biome custom structure asset → catalog image fallback
+      const biomeAsset = pickStructureAsset(b.type, b.level);
+      map[b.type] = biomeAsset?.asset_url ?? pickBuildingImage(imageMap.get(b.type), b.level);
     }
     if (placement) {
       const owned = buildings.find((bb) => bb.type === placement.key);
-      map[placement.key] = pickBuildingImage(imageMap.get(placement.key), owned?.level ?? 1);
+      const lvl = owned?.level ?? 1;
+      const biomeAsset = pickStructureAsset(placement.key, lvl);
+      map[placement.key] =
+        biomeAsset?.asset_url ?? pickBuildingImage(imageMap.get(placement.key), lvl);
     }
     return map;
-  }, [buildings, imageMap, placement]);
+  }, [buildings, imageMap, placement, pickStructureAsset]);
 
   const buildingEmojiByType = useMemo(() => {
     const map: Record<string, string> = {};
