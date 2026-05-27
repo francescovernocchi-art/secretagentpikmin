@@ -4,6 +4,7 @@ import { resolveBiome } from "@/lib/village/biomes";
 import { useBuildingImages } from "@/hooks/useBuildingImages";
 import { pickBuildingImage } from "@/lib/village/buildingImages";
 import { useActiveDiorama } from "@/hooks/useActiveDiorama";
+import { useStructureAssets } from "@/hooks/useStructureAssets";
 import { usePikminSpecies } from "@/hooks/usePikminSpecies";
 import { useActiveVillageEvents } from "@/hooks/useVillageEvents";
 import type {
