@@ -64,6 +64,7 @@ export function VillageGameCanvas({
   const imageMap = useBuildingImages();
   const biome = resolveBiome(biomeKey).key;
   const { diorama, slots } = useActiveDiorama(biome);
+  const { pick: pickStructureAsset } = useStructureAssets(biome);
   const { species } = usePikminSpecies();
   const { events } = useActiveVillageEvents(biome);
 
