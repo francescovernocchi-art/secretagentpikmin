@@ -375,7 +375,7 @@ function VillaggioPage() {
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-start gap-2 pointer-events-auto">
             <Link
-              to="/"
+              to="/base"
               aria-label="Torna alla home"
               onClick={() => hapticTap()}
               className="panel-strong w-10 h-10 grid place-items-center backdrop-blur-md active:scale-95"
