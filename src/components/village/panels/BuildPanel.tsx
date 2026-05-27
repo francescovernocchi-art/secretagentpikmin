@@ -15,6 +15,13 @@ import { pickBuildingImage } from "@/lib/village/buildingImages";
 import { sfx } from "@/lib/sfx";
 import { hapticTap } from "@/lib/haptic";
 
+interface SelectedSlotInfo {
+  slotKey: string;
+  x: number;
+  y: number;
+  allowedCategories: string[];
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -22,13 +29,14 @@ interface Props {
   coins: number;
   catalog: BuildingCatalog[];
   buildings: BaseBuilding[];
+  selectedSlot?: SelectedSlotInfo | null;
   /** Quando l'utente conferma "Costruisci", parte la modalità placement sulla mappa. */
   onRequestPlacement: (c: BuildingCatalog) => void;
   onRefresh: () => void;
 }
 
 export function BuildPanel({
-  open, onOpenChange, agent, coins, catalog, buildings, onRequestPlacement, onRefresh,
+  open, onOpenChange, agent, coins, catalog, buildings, selectedSlot, onRequestPlacement, onRefresh,
 }: Props) {
   const [tab, setTab] = useState<"catalog" | "active">("catalog");
   const imageMap = useBuildingImages();
@@ -36,21 +44,37 @@ export function BuildPanel({
   const own = (key: string) => buildings.find((b) => b.type === key);
   const active = buildings.filter((b) => b.status !== "idle");
 
+  // Filtra catalogo per le categorie compatibili con lo slot selezionato
+  const filteredCatalog = selectedSlot
+    ? catalog.filter((c) => selectedSlot.allowedCategories.length === 0 || selectedSlot.allowedCategories.includes(c.category ?? "utility"))
+    : catalog;
+
   return (
     <VillagePanelSheet open={open} onOpenChange={onOpenChange}
       title="Costruzione" icon={<Hammer className="h-4 w-4 text-amber-400" />}>
       <div className="grid grid-cols-2 gap-1 mb-3 panel p-1 text-[11px]">
-        {(["catalog", "active"] as const).map((t) => (
+        {((["catalog", "active"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`py-1.5 rounded-md transition ${tab === t ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}>
             {t === "catalog" ? "Catalogo" : `In cantiere (${active.length})`}
           </button>
-        ))}
+        )))}
       </div>
+
+      {selectedSlot && (
+        <div className="panel p-2 mb-3 text-[10px] bg-primary/10 border border-primary/30 rounded-lg">
+          <p className="text-primary font-semibold">Slot: {selectedSlot.slotKey}</p>
+          <p className="text-muted-foreground text-[9px] mt-1">
+            {selectedSlot.allowedCategories.length > 0
+              ? `Categorie: ${selectedSlot.allowedCategories.join(", ")}`
+              : "Tutte le categorie compatibili"}
+          </p>
+        </div>
+      )}
 
       {tab === "catalog" && (
         <div className="grid grid-cols-1 gap-2">
-          {catalog.map((c) => {
+          {filteredCatalog.map((c) => {
             const owned = own(c.key);
             const img = pickBuildingImage(imageMap.get(c.key), owned?.level ?? 1);
             const cost = costForLevel(c, owned ? Math.min(c.max_level, owned.level + 1) : 1);
@@ -100,7 +124,11 @@ export function BuildPanel({
                   ) : (
                     <button
                       disabled={!canAfford}
-                      onClick={() => { hapticTap(); onRequestPlacement(c); onOpenChange(false); }}
+                      onClick={() => {
+                        hapticTap();
+                        onRequestPlacement(c);
+                        onOpenChange(false);
+                      }}
                       className="btn-neon px-3 py-1.5 text-[10px] disabled:opacity-40">
                       {canAfford ? "Costruisci" : "💰 manca"}
                     </button>
