@@ -4,6 +4,7 @@ import { resolveBiome } from "@/lib/village/biomes";
 import { useBuildingImages } from "@/hooks/useBuildingImages";
 import { pickBuildingImage } from "@/lib/village/buildingImages";
 import { useActiveDiorama } from "@/hooks/useActiveDiorama";
+import { useStructureAssets } from "@/hooks/useStructureAssets";
 import { usePikminSpecies } from "@/hooks/usePikminSpecies";
 import { useActiveVillageEvents } from "@/hooks/useVillageEvents";
 import type {
@@ -63,6 +64,7 @@ export function VillageGameCanvas({
   const imageMap = useBuildingImages();
   const biome = resolveBiome(biomeKey).key;
   const { diorama, slots } = useActiveDiorama(biome);
+  const { pick: pickStructureAsset } = useStructureAssets(biome);
   const { species } = usePikminSpecies();
   const { events } = useActiveVillageEvents(biome);
 
@@ -140,14 +142,19 @@ export function VillageGameCanvas({
   const buildingImageByType = useMemo(() => {
     const map: Record<string, string | null> = {};
     for (const b of buildings) {
-      map[b.type] = pickBuildingImage(imageMap.get(b.type), b.level);
+      // Priority: per-biome custom structure asset → catalog image fallback
+      const biomeAsset = pickStructureAsset(b.type, b.level);
+      map[b.type] = biomeAsset?.asset_url ?? pickBuildingImage(imageMap.get(b.type), b.level);
     }
     if (placement) {
       const owned = buildings.find((bb) => bb.type === placement.key);
-      map[placement.key] = pickBuildingImage(imageMap.get(placement.key), owned?.level ?? 1);
+      const lvl = owned?.level ?? 1;
+      const biomeAsset = pickStructureAsset(placement.key, lvl);
+      map[placement.key] =
+        biomeAsset?.asset_url ?? pickBuildingImage(imageMap.get(placement.key), lvl);
     }
     return map;
-  }, [buildings, imageMap, placement]);
+  }, [buildings, imageMap, placement, pickStructureAsset]);
 
   const buildingEmojiByType = useMemo(() => {
     const map: Record<string, string> = {};
@@ -163,13 +170,14 @@ export function VillageGameCanvas({
 
   const placementInfo: PlacementInfo | null = useMemo(() => {
     if (!placement) return null;
+    const biomeAsset = pickStructureAsset(placement.key, 1);
     return {
       key: placement.key,
       emoji: placement.emoji ?? "🏠",
       category: placement.category ?? "utility",
-      imageUrl: pickBuildingImage(imageMap.get(placement.key), 1),
+      imageUrl: biomeAsset?.asset_url ?? pickBuildingImage(imageMap.get(placement.key), 1),
     };
-  }, [placement, imageMap]);
+  }, [placement, imageMap, pickStructureAsset]);
 
   const pikminFull: PikminLayerConfig | null = useMemo(() => {
     if (!pikminConfig) return null;
