@@ -170,13 +170,14 @@ export function VillageGameCanvas({
 
   const placementInfo: PlacementInfo | null = useMemo(() => {
     if (!placement) return null;
+    const biomeAsset = pickStructureAsset(placement.key, 1);
     return {
       key: placement.key,
       emoji: placement.emoji ?? "🏠",
       category: placement.category ?? "utility",
-      imageUrl: pickBuildingImage(imageMap.get(placement.key), 1),
+      imageUrl: biomeAsset?.asset_url ?? pickBuildingImage(imageMap.get(placement.key), 1),
     };
-  }, [placement, imageMap]);
+  }, [placement, imageMap, pickStructureAsset]);
 
   const pikminFull: PikminLayerConfig | null = useMemo(() => {
     if (!pikminConfig) return null;
