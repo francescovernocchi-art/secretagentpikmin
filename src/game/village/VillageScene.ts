@@ -10,6 +10,8 @@ import type { DioramaSlot } from "@/hooks/useActiveDiorama";
 import type { VillageEventRow, ParticleKind } from "@/lib/village/eventTypes";
 
 const BUILD_TEX_PREFIX = "bld:";
+const BUILD_SHADOW_TEX_PREFIX = "bld-shadow:";
+const BUILD_GLOW_TEX_PREFIX = "bld-glow:";
 const DIORAMA_TEX_PREFIX = "diorama:";
 const PIKMIN_TEX_PREFIX = "pkm:";
 const EVENT_TEX_PREFIX = "evt:";
@@ -36,6 +38,13 @@ interface BuildingSprite {
 
 type PikminRole = "wander" | "patrol" | "carry" | "gather" | "sleep";
 type PikminMotion = "walk" | "idle" | "run" | "sleep";
+
+function urlKey(prefix: string, scope: string, url?: string | null) {
+  if (!url) return prefix + scope + ":none";
+  let h = 0;
+  for (let i = 0; i < url.length; i++) h = (Math.imul(31, h) + url.charCodeAt(i)) | 0;
+  return `${prefix}${scope}:${Math.abs(h).toString(36)}`;
+}
 
 interface PikminAgent {
   container: Phaser.GameObjects.Container;
