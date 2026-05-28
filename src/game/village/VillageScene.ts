@@ -407,22 +407,58 @@ export class VillageScene extends Phaser.Scene {
 
   private ensureBuildingTextures() {
     if (!this.state) return;
-    for (const [type, url] of Object.entries(this.state.buildingImageByType)) {
-      const key = BUILD_TEX_PREFIX + type;
-      if (!url || this.textures.exists(key)) continue;
+    const loadUrl = (key: string, url: string | null | undefined) => {
+      if (!url || this.textures.exists(key)) return;
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
         if (!this.textures.exists(key)) this.textures.addImage(key, img);
-        // refresh sprites of this type
-        for (const sp of this.buildingSprites.values()) {
-          if (sp.data.type === type && sp.art instanceof Phaser.GameObjects.Text) {
-            this.refreshBuildingSprite(sp);
-          }
-        }
+        for (const sp of this.buildingSprites.values()) this.refreshBuildingSprite(sp);
+        this.updatePlacementGhost();
       };
       img.src = url;
+    };
+    for (const [type, url] of Object.entries(this.state.buildingImageByType)) {
+      const key = BUILD_TEX_PREFIX + type;
+      loadUrl(key, url);
     }
+    for (const b of this.state.buildings) {
+      const visual = this.visualForBuilding(b);
+      if (!visual) continue;
+      loadUrl(this.textureKeyForBuilding(b), visual.assetUrl);
+      loadUrl(urlKey(BUILD_SHADOW_TEX_PREFIX, b.id, visual.shadowUrl), visual.shadowUrl);
+      loadUrl(urlKey(BUILD_GLOW_TEX_PREFIX, b.id, visual.glowUrl), visual.glowUrl);
+    }
+    const pv = this.state.placement?.visual;
+    if (this.state.placement && pv) {
+      const scope = `placement:${this.state.placement.key}`;
+      loadUrl(urlKey(BUILD_TEX_PREFIX, scope, pv.assetUrl), pv.assetUrl);
+      loadUrl(urlKey(BUILD_SHADOW_TEX_PREFIX, scope, pv.shadowUrl), pv.shadowUrl);
+      loadUrl(urlKey(BUILD_GLOW_TEX_PREFIX, scope, pv.glowUrl), pv.glowUrl);
+    }
+  }
+
+  private visualForBuilding(b: BaseBuilding): StructureVisualConfig | null {
+    return this.state?.structureVisualById?.[b.id] ?? null;
+  }
+
+  private visualSignature(b: BaseBuilding) {
+    const v = this.visualForBuilding(b);
+    return v
+      ? [v.assetUrl, v.shadowUrl, v.glowUrl, v.slotFitScale, v.anchorX, v.anchorY, v.offsetX, v.offsetY, v.idleAnim].join("|")
+      : "fallback";
+  }
+
+  private textureKeyForBuilding(b: BaseBuilding) {
+    const visual = this.visualForBuilding(b);
+    return visual?.assetUrl ? urlKey(BUILD_TEX_PREFIX, b.id, visual.assetUrl) : BUILD_TEX_PREFIX + b.type;
+  }
+
+  private slotForBuilding(b: BaseBuilding): DioramaSlot | null {
+    if (!this.state) return null;
+    if (b.slot_key) return this.state.slots.find((s) => s.slot_key === b.slot_key) ?? null;
+    const pos = this.worldPosForBuilding(b);
+    return this.findNearestSlot(pos.x, pos.y, 120);
   }
 
   private diffBuildings() {
