@@ -662,15 +662,18 @@ export class VillageScene extends Phaser.Scene {
     this.placementGhost = null;
     if (!this.state?.placement) return;
     const p = this.state.placement;
-    const key = BUILD_TEX_PREFIX + p.key;
+    const visual = p.visual ?? null;
+    const scope = `placement:${p.key}`;
+    const key = visual?.assetUrl ? urlKey(BUILD_TEX_PREFIX, scope, visual.assetUrl) : BUILD_TEX_PREFIX + p.key;
     const art = this.textures.exists(key)
-      ? this.add.image(0, 0, key).setOrigin(0.5, 0.85).setAlpha(0.7)
+      ? this.add.image(0, 0, key).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85).setAlpha(0.7)
       : this.add.text(0, 0, p.emoji, { fontSize: "72px" }).setOrigin(0.5, 0.85).setAlpha(0.7);
-    if (art instanceof Phaser.GameObjects.Image) {
-      const s = 130 / (art.height || 130);
-      art.setScale(s);
-    }
-    const c = this.add.container(-9999, -9999, [art]);
+    const shadowKey = visual?.shadowUrl ? urlKey(BUILD_SHADOW_TEX_PREFIX, scope, visual.shadowUrl) : "";
+    const shadow = shadowKey && this.textures.exists(shadowKey)
+      ? this.add.image(0, 0, shadowKey).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85).setAlpha(0.45)
+      : null;
+    this.applyBuildingFit(art, shadow, visual, null);
+    const c = this.add.container(-9999, -9999, shadow ? [shadow, art] : [art]);
     this.layerPlacement.add(c);
     this.placementGhost = c;
   }
