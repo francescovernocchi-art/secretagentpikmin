@@ -328,8 +328,8 @@ function VillaggioPage() {
           setSelectedBuildingId(id);
           setOpenPanel("building" as any);
         }}
-        onSelectSlot={() => {
-          setSelectedSlot(null);
+        onSelectSlot={(info) => {
+          setSelectedSlot(info);
           setOpenPanel("build");
         }}
         onReady={(c) => {
