@@ -478,30 +478,51 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private worldPosForBuilding(b: BaseBuilding) {
+    const visual = this.visualForBuilding(b);
+    const slot = b.slot_key
+      ? this.state?.slots.find((s) => s.slot_key === b.slot_key)
+      : null;
+    if (visual && slot) {
+      const sw = slot.width ?? (slot.size === "large" ? 128 : slot.size === "small" ? 76 : 96);
+      const sh = slot.height ?? (slot.size === "large" ? 128 : slot.size === "small" ? 76 : 96);
+      return {
+        x: slot.x + sw * visual.anchorX + visual.offsetX,
+        y: slot.y + sh * visual.anchorY + visual.offsetY,
+      };
+    }
     return { x: (b.position_x / 100) * this.worldW, y: (b.position_y / 100) * this.worldH };
   }
 
   private createBuildingSprite(b: BaseBuilding) {
     if (!this.state) return;
     const pos = this.worldPosForBuilding(b);
-    const shadow = this.add.ellipse(0, 30, 80, 22, 0x000000, 0.35);
-    const key = BUILD_TEX_PREFIX + b.type;
+    const visual = this.visualForBuilding(b);
+    const slot = this.slotForBuilding(b);
+    const shadowKey = visual?.shadowUrl ? urlKey(BUILD_SHADOW_TEX_PREFIX, b.id, visual.shadowUrl) : "";
+    const shadow = shadowKey && this.textures.exists(shadowKey)
+      ? this.add.image(0, 0, shadowKey).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85).setAlpha(0.68)
+      : this.add.ellipse(0, 30, 80, 22, 0x000000, 0.35);
+    const key = this.textureKeyForBuilding(b);
     const hasTexture = this.textures.exists(key);
     const art: Phaser.GameObjects.Image | Phaser.GameObjects.Text = hasTexture
-      ? this.add.image(0, 0, key).setOrigin(0.5, 0.85)
+      ? this.add.image(0, 0, key).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85)
       : this.add
           .text(0, 0, this.state.buildingEmojiByType[b.type] ?? "🏠", { fontSize: "72px" })
           .setOrigin(0.5, 0.85);
-    if (art instanceof Phaser.GameObjects.Image) {
-      const targetH = 130;
-      const s = targetH / (art.height || 130);
-      art.setScale(s);
-    }
-    const container = this.add.container(pos.x, pos.y, [shadow, art]);
-    container.setSize(120, 130);
+    this.applyBuildingFit(art, shadow, visual, slot);
+    const glowKey = visual?.glowUrl ? urlKey(BUILD_GLOW_TEX_PREFIX, b.id, visual.glowUrl) : "";
+    const glow = glowKey && this.textures.exists(glowKey)
+      ? this.add.image(0, 0, glowKey).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85).setAlpha(0.82).setBlendMode(Phaser.BlendModes.SCREEN)
+      : undefined;
+    if (glow) this.applyBuildingFit(glow, null, visual, slot);
+    const children = glow ? [shadow, art, glow] : [shadow, art];
+    const container = this.add.container(pos.x, pos.y, children);
+    const hitW = Math.max(96, slot?.width ?? 120);
+    const hitH = Math.max(96, slot?.height ?? 130);
+    container.setSize(hitW, hitH);
     container.setDepth(pos.y);
     container.setInteractive(
-      new Phaser.Geom.Rectangle(-60, -130, 120, 160),
+      new Phaser.Geom.Rectangle(-hitW / 2, -hitH, hitW, hitH * 1.25),
       Phaser.Geom.Rectangle.Contains,
     );
     container.on("pointerup", () => {
@@ -511,16 +532,13 @@ export class VillageScene extends Phaser.Scene {
     this.layerBuildings.add(container);
 
     // bobbing leggero
-    this.tweens.add({
-      targets: art,
-      y: { from: 0, to: -4 },
-      duration: 1800 + Math.random() * 600,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.InOut",
-    });
+    if (!visual || visual.idleAnim === "bob") {
+      this.tweens.add({ targets: art, y: { from: 0, to: -4 }, duration: 1800 + Math.random() * 600, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+    } else if (visual.idleAnim === "sway") {
+      this.tweens.add({ targets: art, angle: { from: -1.2, to: 1.2 }, duration: 2200 + Math.random() * 500, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+    }
 
-    const sp: BuildingSprite = { container, shadow, art, data: b, hasTexture };
+    const sp: BuildingSprite = { container, shadow, art, glow, data: b, hasTexture, textureKey: key };
     this.buildingSprites.set(b.id, sp);
     this.syncConstructionOverlay(sp);
   }
