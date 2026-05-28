@@ -9,6 +9,7 @@ import { usePikminSpecies } from "@/hooks/usePikminSpecies";
 import { useActiveVillageEvents } from "@/hooks/useVillageEvents";
 import type {
   PlacementInfo,
+  StructureVisualConfig,
   VillageGameState,
   PikminLayerConfig,
   PikminSpeciesInfo,
@@ -168,6 +169,31 @@ export function VillageGameCanvas({
     return map;
   }, [catalog]);
 
+  const visualFromAsset = (asset: ReturnType<typeof pickStructureAsset>): StructureVisualConfig | null =>
+    asset
+      ? {
+          assetUrl: asset.asset_url,
+          shadowUrl: asset.shadow_url,
+          glowUrl: asset.glow_url,
+          slotFitScale: asset.slot_fit_scale,
+          anchorX: asset.anchor_x,
+          anchorY: asset.anchor_y,
+          offsetX: asset.offset_x,
+          offsetY: asset.offset_y,
+          idleAnim: asset.idle_anim,
+        }
+      : null;
+
+  const structureVisualById = useMemo(() => {
+    const map: Record<string, StructureVisualConfig> = {};
+    for (const b of buildings) {
+      const asset = pickStructureAsset(b.type, Math.max(1, b.level));
+      const visual = visualFromAsset(asset);
+      if (visual) map[b.id] = visual;
+    }
+    return map;
+  }, [buildings, pickStructureAsset]);
+
   const placementInfo: PlacementInfo | null = useMemo(() => {
     if (!placement) return null;
     const biomeAsset = pickStructureAsset(placement.key, 1);
@@ -175,6 +201,7 @@ export function VillageGameCanvas({
       key: placement.key,
       emoji: placement.emoji ?? "🏠",
       category: placement.category ?? "utility",
+      visual: visualFromAsset(biomeAsset),
       imageUrl: biomeAsset?.asset_url ?? pickBuildingImage(imageMap.get(placement.key), 1),
     };
   }, [placement, imageMap, pickStructureAsset]);
@@ -199,6 +226,7 @@ export function VillageGameCanvas({
       slots,
       buildings,
       buildingImageByType,
+      structureVisualById,
       buildingEmojiByType,
       buildingCategoryByType,
       placement: placementInfo,
@@ -215,6 +243,7 @@ export function VillageGameCanvas({
     slots,
     buildings,
     buildingImageByType,
+    structureVisualById,
     buildingEmojiByType,
     buildingCategoryByType,
     placementInfo,
