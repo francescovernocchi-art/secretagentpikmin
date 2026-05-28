@@ -461,6 +461,29 @@ export class VillageScene extends Phaser.Scene {
     return this.findNearestSlot(pos.x, pos.y, 120);
   }
 
+  private applyBuildingFit(
+    art: Phaser.GameObjects.Image | Phaser.GameObjects.Text,
+    shadow: Phaser.GameObjects.Ellipse | Phaser.GameObjects.Image | null,
+    visual: StructureVisualConfig | null,
+    slot: DioramaSlot | null,
+  ) {
+    const sw = slot?.width ?? (slot?.size === "large" ? 128 : slot?.size === "small" ? 76 : 96);
+    const sh = slot?.height ?? (slot?.size === "large" ? 128 : slot?.size === "small" ? 76 : 96);
+    if (art instanceof Phaser.GameObjects.Image) {
+      const targetW = visual && slot ? sw * visual.slotFitScale : 130;
+      const targetH = visual && slot ? sh * visual.slotFitScale : 130;
+      const s = Math.min(targetW / (art.width || targetW), targetH / (art.height || targetH));
+      art.setScale(s);
+    }
+    if (!shadow) return;
+    if (shadow instanceof Phaser.GameObjects.Image) {
+      if (art instanceof Phaser.GameObjects.Image) shadow.setScale(art.scaleX, art.scaleY);
+    } else if (visual && slot) {
+      shadow.setPosition(0, 3);
+      shadow.setSize(Math.max(36, sw * 0.72), Math.max(10, sh * 0.16));
+    }
+  }
+
   private diffBuildings() {
     if (!this.state) return;
     const liveIds = new Set(this.state.buildings.map((b) => b.id));
