@@ -81,6 +81,12 @@ function VillaggioPage() {
   const [nearbyThreats, setNearbyThreats] = useState<NearbyThreat[]>([]);
   const [openPanel, setOpenPanel] = useState<VillageMenuKey | null>(null);
   const [placing, setPlacing] = useState<BuildingCatalog | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{
+    slotKey: string;
+    x: number;
+    y: number;
+    allowedCategories: string[];
+  } | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [pikminPrefs, setPikminPrefs] = useState<PikminLayerPrefs>(() => loadPikminPrefs());
   const cameraCtrlRef = useRef<{
@@ -322,7 +328,8 @@ function VillaggioPage() {
           setSelectedBuildingId(id);
           setOpenPanel("building" as any);
         }}
-        onSelectSlot={() => {
+        onSelectSlot={(info) => {
+          setSelectedSlot(info);
           setOpenPanel("build");
         }}
         onReady={(c) => {
@@ -468,6 +475,7 @@ function VillaggioPage() {
         coins={coins}
         catalog={catalog}
         buildings={buildings}
+        selectedSlot={selectedSlot}
         onRequestPlacement={(c) => setPlacing(c)}
         onRefresh={reload}
       />

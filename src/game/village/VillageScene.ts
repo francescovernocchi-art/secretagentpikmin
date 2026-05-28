@@ -1,10 +1,17 @@
 import Phaser from "phaser";
 import type { BaseBuilding } from "@/lib/base";
-import type { VillageGameState, PlacementInfo, PikminLayerConfig } from "./VillageTypes";
+import type {
+  VillageGameState,
+  PlacementInfo,
+  PikminLayerConfig,
+  StructureVisualConfig,
+} from "./VillageTypes";
 import type { DioramaSlot } from "@/hooks/useActiveDiorama";
 import type { VillageEventRow, ParticleKind } from "@/lib/village/eventTypes";
 
 const BUILD_TEX_PREFIX = "bld:";
+const BUILD_SHADOW_TEX_PREFIX = "bld-shadow:";
+const BUILD_GLOW_TEX_PREFIX = "bld-glow:";
 const DIORAMA_TEX_PREFIX = "diorama:";
 const PIKMIN_TEX_PREFIX = "pkm:";
 const EVENT_TEX_PREFIX = "evt:";
@@ -12,10 +19,13 @@ const PARTICLE_TEX_KEY = "evt-particle-px";
 
 interface BuildingSprite {
   container: Phaser.GameObjects.Container;
-  shadow: Phaser.GameObjects.Ellipse;
+  shadow: Phaser.GameObjects.Ellipse | Phaser.GameObjects.Image;
   art: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+  glow?: Phaser.GameObjects.Image;
   data: BaseBuilding;
   hasTexture: boolean;
+  textureKey: string;
+  visualSignature: string;
   // Construction overlay
   cs?: {
     root: Phaser.GameObjects.Container;
@@ -29,6 +39,13 @@ interface BuildingSprite {
 
 type PikminRole = "wander" | "patrol" | "carry" | "gather" | "sleep";
 type PikminMotion = "walk" | "idle" | "run" | "sleep";
+
+function urlKey(prefix: string, scope: string, url?: string | null) {
+  if (!url) return prefix + scope + ":none";
+  let h = 0;
+  for (let i = 0; i < url.length; i++) h = (Math.imul(31, h) + url.charCodeAt(i)) | 0;
+  return `${prefix}${scope}:${Math.abs(h).toString(36)}`;
+}
 
 interface PikminAgent {
   container: Phaser.GameObjects.Container;
@@ -391,21 +408,80 @@ export class VillageScene extends Phaser.Scene {
 
   private ensureBuildingTextures() {
     if (!this.state) return;
-    for (const [type, url] of Object.entries(this.state.buildingImageByType)) {
-      const key = BUILD_TEX_PREFIX + type;
-      if (!url || this.textures.exists(key)) continue;
+    const loadUrl = (key: string, url: string | null | undefined) => {
+      if (!url || this.textures.exists(key)) return;
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
         if (!this.textures.exists(key)) this.textures.addImage(key, img);
-        // refresh sprites of this type
-        for (const sp of this.buildingSprites.values()) {
-          if (sp.data.type === type && sp.art instanceof Phaser.GameObjects.Text) {
-            this.refreshBuildingSprite(sp);
-          }
-        }
+        for (const sp of [...this.buildingSprites.values()]) this.refreshBuildingSprite(sp);
+        this.updatePlacementGhost();
       };
       img.src = url;
+    };
+    for (const [type, url] of Object.entries(this.state.buildingImageByType)) {
+      const key = BUILD_TEX_PREFIX + type;
+      loadUrl(key, url);
+    }
+    for (const b of this.state.buildings) {
+      const visual = this.visualForBuilding(b);
+      if (!visual) continue;
+      loadUrl(this.textureKeyForBuilding(b), visual.assetUrl);
+      loadUrl(urlKey(BUILD_SHADOW_TEX_PREFIX, b.id, visual.shadowUrl), visual.shadowUrl);
+      loadUrl(urlKey(BUILD_GLOW_TEX_PREFIX, b.id, visual.glowUrl), visual.glowUrl);
+    }
+    const pv = this.state.placement?.visual;
+    if (this.state.placement && pv) {
+      const scope = `placement:${this.state.placement.key}`;
+      loadUrl(urlKey(BUILD_TEX_PREFIX, scope, pv.assetUrl), pv.assetUrl);
+      loadUrl(urlKey(BUILD_SHADOW_TEX_PREFIX, scope, pv.shadowUrl), pv.shadowUrl);
+      loadUrl(urlKey(BUILD_GLOW_TEX_PREFIX, scope, pv.glowUrl), pv.glowUrl);
+    }
+  }
+
+  private visualForBuilding(b: BaseBuilding): StructureVisualConfig | null {
+    return this.state?.structureVisualById?.[b.id] ?? null;
+  }
+
+  private visualSignature(b: BaseBuilding) {
+    const v = this.visualForBuilding(b);
+    return v
+      ? [v.assetUrl, v.shadowUrl, v.glowUrl, v.slotFitScale, v.anchorX, v.anchorY, v.offsetX, v.offsetY, v.idleAnim].join("|")
+      : "fallback";
+  }
+
+  private textureKeyForBuilding(b: BaseBuilding) {
+    const visual = this.visualForBuilding(b);
+    return visual?.assetUrl ? urlKey(BUILD_TEX_PREFIX, b.id, visual.assetUrl) : BUILD_TEX_PREFIX + b.type;
+  }
+
+  private slotForBuilding(b: BaseBuilding): DioramaSlot | null {
+    if (!this.state) return null;
+    if (b.slot_key) return this.state.slots.find((s) => s.slot_key === b.slot_key) ?? null;
+    const pos = this.worldPosForBuilding(b);
+    return this.findNearestSlot(pos.x, pos.y, 120);
+  }
+
+  private applyBuildingFit(
+    art: Phaser.GameObjects.Image | Phaser.GameObjects.Text,
+    shadow: Phaser.GameObjects.Ellipse | Phaser.GameObjects.Image | null,
+    visual: StructureVisualConfig | null,
+    slot: DioramaSlot | null,
+  ) {
+    const sw = slot?.width ?? (slot?.size === "large" ? 128 : slot?.size === "small" ? 76 : 96);
+    const sh = slot?.height ?? (slot?.size === "large" ? 128 : slot?.size === "small" ? 76 : 96);
+    if (art instanceof Phaser.GameObjects.Image) {
+      const targetW = visual && slot ? sw * visual.slotFitScale : 130;
+      const targetH = visual && slot ? sh * visual.slotFitScale : 130;
+      const s = Math.min(targetW / (art.width || targetW), targetH / (art.height || targetH));
+      art.setScale(s);
+    }
+    if (!shadow) return;
+    if (shadow instanceof Phaser.GameObjects.Image) {
+      if (art instanceof Phaser.GameObjects.Image) shadow.setScale(art.scaleX, art.scaleY);
+    } else if (visual && slot) {
+      shadow.setPosition(0, 3);
+      shadow.setSize(Math.max(36, sw * 0.72), Math.max(10, sh * 0.16));
     }
   }
 
@@ -426,30 +502,51 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private worldPosForBuilding(b: BaseBuilding) {
+    const visual = this.visualForBuilding(b);
+    const slot = b.slot_key
+      ? this.state?.slots.find((s) => s.slot_key === b.slot_key)
+      : null;
+    if (visual && slot) {
+      const sw = slot.width ?? (slot.size === "large" ? 128 : slot.size === "small" ? 76 : 96);
+      const sh = slot.height ?? (slot.size === "large" ? 128 : slot.size === "small" ? 76 : 96);
+      return {
+        x: slot.x + sw * visual.anchorX + visual.offsetX,
+        y: slot.y + sh * visual.anchorY + visual.offsetY,
+      };
+    }
     return { x: (b.position_x / 100) * this.worldW, y: (b.position_y / 100) * this.worldH };
   }
 
   private createBuildingSprite(b: BaseBuilding) {
     if (!this.state) return;
     const pos = this.worldPosForBuilding(b);
-    const shadow = this.add.ellipse(0, 30, 80, 22, 0x000000, 0.35);
-    const key = BUILD_TEX_PREFIX + b.type;
+    const visual = this.visualForBuilding(b);
+    const slot = this.slotForBuilding(b);
+    const shadowKey = visual?.shadowUrl ? urlKey(BUILD_SHADOW_TEX_PREFIX, b.id, visual.shadowUrl) : "";
+    const shadow = shadowKey && this.textures.exists(shadowKey)
+      ? this.add.image(0, 0, shadowKey).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85).setAlpha(0.68)
+      : this.add.ellipse(0, 30, 80, 22, 0x000000, 0.35);
+    const key = this.textureKeyForBuilding(b);
     const hasTexture = this.textures.exists(key);
     const art: Phaser.GameObjects.Image | Phaser.GameObjects.Text = hasTexture
-      ? this.add.image(0, 0, key).setOrigin(0.5, 0.85)
+      ? this.add.image(0, 0, key).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85)
       : this.add
           .text(0, 0, this.state.buildingEmojiByType[b.type] ?? "🏠", { fontSize: "72px" })
           .setOrigin(0.5, 0.85);
-    if (art instanceof Phaser.GameObjects.Image) {
-      const targetH = 130;
-      const s = targetH / (art.height || 130);
-      art.setScale(s);
-    }
-    const container = this.add.container(pos.x, pos.y, [shadow, art]);
-    container.setSize(120, 130);
+    this.applyBuildingFit(art, shadow, visual, slot);
+    const glowKey = visual?.glowUrl ? urlKey(BUILD_GLOW_TEX_PREFIX, b.id, visual.glowUrl) : "";
+    const glow = glowKey && this.textures.exists(glowKey)
+      ? this.add.image(0, 0, glowKey).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85).setAlpha(0.82).setBlendMode(Phaser.BlendModes.SCREEN)
+      : undefined;
+    if (glow) this.applyBuildingFit(glow, null, visual, slot);
+    const children = glow ? [shadow, art, glow] : [shadow, art];
+    const container = this.add.container(pos.x, pos.y, children);
+    const hitW = Math.max(96, slot?.width ?? 120);
+    const hitH = Math.max(96, slot?.height ?? 130);
+    container.setSize(hitW, hitH);
     container.setDepth(pos.y);
     container.setInteractive(
-      new Phaser.Geom.Rectangle(-60, -130, 120, 160),
+      new Phaser.Geom.Rectangle(-hitW / 2, -hitH, hitW, hitH * 1.25),
       Phaser.Geom.Rectangle.Contains,
     );
     container.on("pointerup", () => {
@@ -459,31 +556,29 @@ export class VillageScene extends Phaser.Scene {
     this.layerBuildings.add(container);
 
     // bobbing leggero
-    this.tweens.add({
-      targets: art,
-      y: { from: 0, to: -4 },
-      duration: 1800 + Math.random() * 600,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.InOut",
-    });
+    if (!visual || visual.idleAnim === "bob") {
+      this.tweens.add({ targets: art, y: { from: 0, to: -4 }, duration: 1800 + Math.random() * 600, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+    } else if (visual.idleAnim === "sway") {
+      this.tweens.add({ targets: art, angle: { from: -1.2, to: 1.2 }, duration: 2200 + Math.random() * 500, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+    }
 
-    const sp: BuildingSprite = { container, shadow, art, data: b, hasTexture };
+    const sp: BuildingSprite = { container, shadow, art, glow, data: b, hasTexture, textureKey: key, visualSignature: this.visualSignature(b) };
     this.buildingSprites.set(b.id, sp);
     this.syncConstructionOverlay(sp);
   }
 
   private updateBuildingSprite(sp: BuildingSprite, b: BaseBuilding) {
     const levelChanged = sp.data.level !== b.level;
-    const typeKey = BUILD_TEX_PREFIX + b.type;
-    const nowHasTexture = this.textures.exists(typeKey);
+    const nextKey = this.textureKeyForBuilding(b);
+    const nowHasTexture = this.textures.exists(nextKey);
+    const visualChanged = sp.visualSignature !== this.visualSignature(b);
     sp.data = b;
     const pos = this.worldPosForBuilding(b);
     sp.container.x = pos.x;
     sp.container.y = pos.y;
     sp.container.setDepth(pos.y);
     // Se è cambiato il livello (o è apparsa una texture), rigenera lo sprite per cambiare immagine
-    if (levelChanged || (!sp.hasTexture && nowHasTexture)) {
+    if (levelChanged || visualChanged || sp.textureKey !== nextKey || (!sp.hasTexture && nowHasTexture)) {
       this.refreshBuildingSprite(sp);
       return;
     }
@@ -568,15 +663,18 @@ export class VillageScene extends Phaser.Scene {
     this.placementGhost = null;
     if (!this.state?.placement) return;
     const p = this.state.placement;
-    const key = BUILD_TEX_PREFIX + p.key;
+    const visual = p.visual ?? null;
+    const scope = `placement:${p.key}`;
+    const key = visual?.assetUrl ? urlKey(BUILD_TEX_PREFIX, scope, visual.assetUrl) : BUILD_TEX_PREFIX + p.key;
     const art = this.textures.exists(key)
-      ? this.add.image(0, 0, key).setOrigin(0.5, 0.85).setAlpha(0.7)
+      ? this.add.image(0, 0, key).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85).setAlpha(0.7)
       : this.add.text(0, 0, p.emoji, { fontSize: "72px" }).setOrigin(0.5, 0.85).setAlpha(0.7);
-    if (art instanceof Phaser.GameObjects.Image) {
-      const s = 130 / (art.height || 130);
-      art.setScale(s);
-    }
-    const c = this.add.container(-9999, -9999, [art]);
+    const shadowKey = visual?.shadowUrl ? urlKey(BUILD_SHADOW_TEX_PREFIX, scope, visual.shadowUrl) : "";
+    const shadow = shadowKey && this.textures.exists(shadowKey)
+      ? this.add.image(0, 0, shadowKey).setOrigin(visual?.anchorX ?? 0.5, visual?.anchorY ?? 0.85).setAlpha(0.45)
+      : null;
+    this.applyBuildingFit(art, shadow, visual, null);
+    const c = this.add.container(-9999, -9999, shadow ? [shadow, art] : [art]);
     this.layerPlacement.add(c);
     this.placementGhost = c;
   }

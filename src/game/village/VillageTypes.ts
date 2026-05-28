@@ -6,9 +6,22 @@ import type { VillageEventRow } from "@/lib/village/eventTypes";
 export interface PlacementInfo {
   key: string;
   imageUrl?: string | null;
+  visual?: StructureVisualConfig | null;
   emoji: string;
   category?: string;
   size?: number;
+}
+
+export interface StructureVisualConfig {
+  assetUrl: string | null;
+  shadowUrl?: string | null;
+  glowUrl?: string | null;
+  slotFitScale: number;
+  anchorX: number;
+  anchorY: number;
+  offsetX: number;
+  offsetY: number;
+  idleAnim?: string | null;
 }
 
 export interface PikminSpeciesInfo {
@@ -36,6 +49,7 @@ export interface VillageGameState {
   slots: DioramaSlot[];
   buildings: BaseBuilding[];
   buildingImageByType: Record<string, string | null>;
+  structureVisualById?: Record<string, StructureVisualConfig>;
   buildingEmojiByType: Record<string, string>;
   /** opzionale: categoria per ogni building type, per filtro slot. */
   buildingCategoryByType?: Record<string, string>;
