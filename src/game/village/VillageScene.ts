@@ -568,15 +568,16 @@ export class VillageScene extends Phaser.Scene {
 
   private updateBuildingSprite(sp: BuildingSprite, b: BaseBuilding) {
     const levelChanged = sp.data.level !== b.level;
-    const typeKey = BUILD_TEX_PREFIX + b.type;
-    const nowHasTexture = this.textures.exists(typeKey);
+    const nextKey = this.textureKeyForBuilding(b);
+    const nowHasTexture = this.textures.exists(nextKey);
+    const visualChanged = this.visualSignature(sp.data) !== this.visualSignature(b);
     sp.data = b;
     const pos = this.worldPosForBuilding(b);
     sp.container.x = pos.x;
     sp.container.y = pos.y;
     sp.container.setDepth(pos.y);
     // Se è cambiato il livello (o è apparsa una texture), rigenera lo sprite per cambiare immagine
-    if (levelChanged || (!sp.hasTexture && nowHasTexture)) {
+    if (levelChanged || visualChanged || sp.textureKey !== nextKey || (!sp.hasTexture && nowHasTexture)) {
       this.refreshBuildingSprite(sp);
       return;
     }
