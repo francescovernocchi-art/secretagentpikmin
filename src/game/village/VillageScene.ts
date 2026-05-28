@@ -25,6 +25,7 @@ interface BuildingSprite {
   data: BaseBuilding;
   hasTexture: boolean;
   textureKey: string;
+  visualSignature: string;
   // Construction overlay
   cs?: {
     root: Phaser.GameObjects.Container;
@@ -413,7 +414,7 @@ export class VillageScene extends Phaser.Scene {
       img.crossOrigin = "anonymous";
       img.onload = () => {
         if (!this.textures.exists(key)) this.textures.addImage(key, img);
-        for (const sp of this.buildingSprites.values()) this.refreshBuildingSprite(sp);
+        for (const sp of [...this.buildingSprites.values()]) this.refreshBuildingSprite(sp);
         this.updatePlacementGhost();
       };
       img.src = url;
@@ -561,7 +562,7 @@ export class VillageScene extends Phaser.Scene {
       this.tweens.add({ targets: art, angle: { from: -1.2, to: 1.2 }, duration: 2200 + Math.random() * 500, yoyo: true, repeat: -1, ease: "Sine.InOut" });
     }
 
-    const sp: BuildingSprite = { container, shadow, art, glow, data: b, hasTexture, textureKey: key };
+    const sp: BuildingSprite = { container, shadow, art, glow, data: b, hasTexture, textureKey: key, visualSignature: this.visualSignature(b) };
     this.buildingSprites.set(b.id, sp);
     this.syncConstructionOverlay(sp);
   }
@@ -570,7 +571,7 @@ export class VillageScene extends Phaser.Scene {
     const levelChanged = sp.data.level !== b.level;
     const nextKey = this.textureKeyForBuilding(b);
     const nowHasTexture = this.textures.exists(nextKey);
-    const visualChanged = this.visualSignature(sp.data) !== this.visualSignature(b);
+    const visualChanged = sp.visualSignature !== this.visualSignature(b);
     sp.data = b;
     const pos = this.worldPosForBuilding(b);
     sp.container.x = pos.x;
