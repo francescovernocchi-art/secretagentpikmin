@@ -1,6 +1,11 @@
 import Phaser from "phaser";
 import type { BaseBuilding } from "@/lib/base";
-import type { VillageGameState, PlacementInfo, PikminLayerConfig } from "./VillageTypes";
+import type {
+  VillageGameState,
+  PlacementInfo,
+  PikminLayerConfig,
+  StructureVisualConfig,
+} from "./VillageTypes";
 import type { DioramaSlot } from "@/hooks/useActiveDiorama";
 import type { VillageEventRow, ParticleKind } from "@/lib/village/eventTypes";
 
@@ -12,10 +17,12 @@ const PARTICLE_TEX_KEY = "evt-particle-px";
 
 interface BuildingSprite {
   container: Phaser.GameObjects.Container;
-  shadow: Phaser.GameObjects.Ellipse;
+  shadow: Phaser.GameObjects.Ellipse | Phaser.GameObjects.Image;
   art: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+  glow?: Phaser.GameObjects.Image;
   data: BaseBuilding;
   hasTexture: boolean;
+  textureKey: string;
   // Construction overlay
   cs?: {
     root: Phaser.GameObjects.Container;
