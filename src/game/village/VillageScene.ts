@@ -697,6 +697,14 @@ export class VillageScene extends Phaser.Scene {
         this.isPanning = false;
         return;
       }
+      // In placement mode il drag muove il fantasma, non la camera
+      if (this.state?.placement && this.placementGhost) {
+        this.isPanning = false;
+        const w = cam.getWorldPoint(p.x, p.y);
+        this.placementGhost.x = w.x;
+        this.placementGhost.y = w.y;
+        return;
+      }
       this.isPanning = true;
       this.panStart = { x: p.x, y: p.y, scrollX: cam.scrollX, scrollY: cam.scrollY };
     });
@@ -718,11 +726,17 @@ export class VillageScene extends Phaser.Scene {
         this.dragMoved = true;
         return;
       }
-      // ghost follow
+      // ghost follow (anche senza pointer giù, per preview)
       if (this.placementGhost && this.state?.placement) {
         const w = cam.getWorldPoint(p.x, p.y);
         this.placementGhost.x = w.x;
         this.placementGhost.y = w.y;
+        // evidenzia slot più vicino
+        const near = this.findNearestSlot(w.x, w.y, 160);
+        this.slotMarkers.forEach((c, key) => {
+          c.setAlpha(near && near.slot_key === key ? 1 : 0.75);
+        });
+        return; // in placement mode non panniamo
       }
       // pan
       if (this.isPanning && p.isDown) {
@@ -737,23 +751,24 @@ export class VillageScene extends Phaser.Scene {
       const wasDrag = this.dragMoved;
       this.isPanning = false;
       this.pinchPrevDist = 0;
-      // tap su terreno (no drag, no slot)
-      if (!wasDrag && this.state) {
+      if (!this.state) return;
+      // In placement mode: rilascio = piazza sullo slot più vicino (tap o drag, indifferente)
+      if (this.state.placement) {
         const w = cam.getWorldPoint(p.x, p.y);
-        // se in modalità placement e clicca su slot → gestito già da slot marker
-        if (this.state.placement) {
-          // tap libero su terreno = tenta piazzamento nello slot più vicino
-          const slot = this.findNearestSlot(w.x, w.y, 120);
-          if (slot) {
-            this.events.emit("placePosition", {
-              x: (this.slotCenter(slot).x / this.worldW) * 100,
-              y: (this.slotCenter(slot).y / this.worldH) * 100,
-              slotKey: slot.slot_key,
-            });
-          }
-        } else {
-          this.events.emit("tapGround");
+        const slot = this.findNearestSlot(w.x, w.y, 220);
+        if (slot) {
+          const center = this.slotCenter(slot);
+          this.events.emit("placePosition", {
+            x: (center.x / this.worldW) * 100,
+            y: (center.y / this.worldH) * 100,
+            slotKey: slot.slot_key,
+          });
         }
+        return;
+      }
+      // tap su terreno (no drag, no slot)
+      if (!wasDrag) {
+        this.events.emit("tapGround");
       }
     });
 
