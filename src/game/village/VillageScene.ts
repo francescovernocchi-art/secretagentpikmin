@@ -351,7 +351,9 @@ export class VillageScene extends Phaser.Scene {
       c.on("pointerup", (p: Phaser.Input.Pointer) => {
         if (this.dragMoved) return;
         if (p.event && (p.event as any).stopPropagation) (p.event as any).stopPropagation();
-        if (inBuildMode && compatible) {
+        // In placement mode il piazzamento è gestito dal pointerup globale
+        // per evitare doppia emissione di "placePosition".
+        if (inBuildMode && compatible && !this.state?.placement) {
           this.events.emit("placePosition", {
             x: (center.x / this.worldW) * 100,
             y: (center.y / this.worldH) * 100,

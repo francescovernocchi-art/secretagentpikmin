@@ -283,10 +283,14 @@ function VillaggioPage() {
   const status = { ...baseStatus, defenseRating: baseStatus.defenseRating + wallBonus };
   const threatActive = nearbyThreats.length > 0 || events.some((e) => !e.resolved_at);
 
+  const placingLockRef = useRef(false);
   const onPlace = async (pct: { x: number; y: number; slotKey?: string }) => {
     if (!placing) return;
+    if (placingLockRef.current) return;
+    placingLockRef.current = true;
+    const target = placing;
     try {
-      await startBuilding(agent, placing, {
+      await startBuilding(agent, target, {
         x: pct.x,
         y: pct.y,
         slotKey: pct.slotKey,
@@ -294,10 +298,13 @@ function VillaggioPage() {
       });
       sfx.build();
       setPlacing(null);
-      reload();
+      await reload();
     } catch (e: any) {
-      alert(e.message);
+      console.error("[villaggio] startBuilding failed", e);
+      alert(e?.message ?? "Impossibile avviare la costruzione.");
       setPlacing(null);
+    } finally {
+      placingLockRef.current = false;
     }
   };
 
