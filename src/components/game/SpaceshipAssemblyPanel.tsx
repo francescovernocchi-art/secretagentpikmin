@@ -36,7 +36,7 @@ export function SpaceshipAssemblyPanel({ compact = false }: SpaceshipAssemblyPan
           </p>
         </div>
         <div className="h-14 w-14 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 grid place-items-center animate-pulse-slow p-1">
-          <ShipPreviewSvg className="w-full h-full" />
+          <ShipPreviewSvg percent={pct} size={48} />
         </div>
       </div>
 
