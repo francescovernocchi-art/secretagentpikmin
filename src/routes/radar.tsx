@@ -11,6 +11,7 @@ import { ScanLine, Sparkles, FlaskConical, Radio, Camera } from "lucide-react";
 import { RadarScannerPanel } from "@/components/game/RadarScannerPanel";
 import { BiomeMapPanel } from "@/components/game/BiomeMapPanel";
 import { processEnergyScannerCatch } from "@/lib/game/scanner";
+import { isSupabaseConfigured } from "@/lib/game/db";
 import { grantIngredients, rollIngredients } from "@/lib/ingredients";
 import { addPikmin } from "@/lib/pikmin";
 import { supabase } from "@/integrations/supabase/client";
