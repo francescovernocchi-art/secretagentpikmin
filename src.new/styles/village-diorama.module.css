@@ -1,0 +1,583 @@
+/* ─── Village Diorama WOW — isometric 2.5D ─── */
+
+.dioramaRoot {
+  position: relative;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 2px solid oklch(0.55 0.12 145 / 0.35);
+  box-shadow:
+    0 0 0 1px oklch(0.3 0.05 250 / 0.5),
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  max-width: 100%;
+}
+
+.dioramaHeader {
+  position: relative;
+  z-index: 20;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, transparent 100%);
+}
+
+.dioramaScene {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  aspect-ratio: 16 / 11;
+  max-height: 420px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+@media (min-width: 640px) {
+  .dioramaScene {
+    min-height: 320px;
+    aspect-ratio: 16 / 10;
+  }
+}
+
+.compact .dioramaScene {
+  min-height: 180px;
+  max-height: 220px;
+}
+
+.terrainWrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.sunGlow {
+  position: absolute;
+  top: 8%;
+  right: 15%;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fef08a 0%, transparent 70%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.isoStage {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%) perspective(800px) rotateX(58deg) rotateZ(-45deg);
+  transform-style: preserve-3d;
+  width: 88%;
+  max-width: 420px;
+  height: 55%;
+}
+
+.groundPlate {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 1.5rem;
+  border: 3px solid;
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    inset 0 2px 20px rgba(255, 255, 255, 0.08);
+  transform-style: preserve-3d;
+}
+
+.pathSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.waterPond {
+  position: absolute;
+  left: 8%;
+  bottom: 15%;
+  width: 22%;
+  height: 18%;
+  border-radius: 50% 50% 40% 60%;
+  animation: waterShimmer 4s ease-in-out infinite;
+}
+
+@keyframes waterShimmer {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.03); }
+}
+
+.rock {
+  position: absolute;
+  width: 14px;
+  height: 10px;
+  background: linear-gradient(135deg, #6b7280, #374151);
+  border-radius: 40% 60% 50% 50%;
+  box-shadow: 2px 3px 4px rgba(0, 0, 0, 0.4);
+}
+
+.decorItem {
+  position: absolute;
+  font-size: 1.25rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  animation: decorSway 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes decorSway {
+  0%, 100% { transform: rotate(-3deg) translateY(0); }
+  50% { transform: rotate(3deg) translateY(-3px); }
+}
+
+/* Buildings */
+.buildingHit {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  min-width: 52px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.buildingHit:focus-visible {
+  outline: 2px solid rgba(132, 255, 159, 0.75);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.building {
+  position: relative;
+  cursor: pointer;
+}
+
+.buildingShadow {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 8px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.45) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.buildingBody {
+  position: relative;
+  width: 48px;
+  height: 52px;
+}
+
+.buildingRoof {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 18px;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.buildingWall {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 32px;
+  border-radius: 4px 4px 2px 2px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.buildingBase {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 46px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 2px;
+}
+
+.buildingEmoji {
+  font-size: 1.25rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.buildingLabel {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.buildingName {
+  display: block;
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.buildingLevel {
+  display: block;
+  font-size: 7px;
+  color: var(--bld-color, #86efac);
+  font-weight: 700;
+}
+
+.buildingTooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  background: rgba(10, 14, 20, 0.92);
+  border: 1px solid rgba(132, 255, 159, 0.3);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 10px;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.building:hover .buildingTooltip,
+.buildingHit:hover .buildingTooltip,
+.buildingHit:focus-visible .buildingTooltip {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+@media (hover: hover) {
+  .buildingHit:active .buildingTooltip {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@media (hover: none) {
+  .buildingHit:focus-within .buildingTooltip {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.buildingSpark {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  font-size: 12px;
+  animation: sparkPulse 1s ease-in-out infinite;
+}
+
+@keyframes sparkPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+.buildingLocked {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+/* Pikmin */
+.pikminActor {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: default;
+  max-width: 80px;
+}
+
+.pikminShadow {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 6px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.35) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.pikminBadge {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  pointer-events: none;
+}
+
+.pikminSpecBadge {
+  font-size: 7px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.35);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  color: #fef3c7;
+  white-space: nowrap;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pikminRole {
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.pikminTooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  background: rgba(10, 14, 20, 0.9);
+  border: 1px solid rgba(132, 255, 159, 0.25);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 9px;
+  white-space: nowrap;
+  z-index: 90;
+}
+
+.pikminActor:hover .pikminTooltip,
+.pikminActor:focus-within .pikminTooltip {
+  opacity: 1;
+}
+
+/* Ship hangar */
+.shipHangar {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  touch-action: manipulation;
+}
+
+.shipHangar:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.7);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.shipModel {
+  position: relative;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+}
+
+.shipGlow {
+  filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.6)) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+}
+
+.shipSvg {
+  width: 64px;
+  height: 48px;
+}
+
+.compact .shipSvg {
+  width: 48px;
+  height: 36px;
+}
+
+.shipPartsRow {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.shipPartDot {
+  font-size: 10px;
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+.shipPartOn {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.8));
+}
+
+.shipPartOff {
+  opacity: 0.25;
+  filter: grayscale(1);
+}
+
+.shipProgressBar {
+  width: 56px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.shipProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+  border-radius: 999px;
+}
+
+.shipProgressLabel {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Context strip */
+.contextStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+  position: relative;
+  z-index: 15;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.contextStrip::-webkit-scrollbar {
+  display: none;
+}
+
+.contextChip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(132, 255, 159, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.contextChipActive {
+  border-color: rgba(132, 255, 159, 0.55);
+  color: #86efac;
+}
+
+.contextChipWarn {
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fde68a;
+}
+
+/* Game HUD */
+.gameHud {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: linear-gradient(180deg, rgba(8, 12, 18, 0.95) 0%, rgba(8, 12, 18, 0.75) 100%);
+  border-bottom: 1px solid rgba(132, 255, 159, 0.15);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .gameHud {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .gameHud {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+.hudStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0.4rem 0.25rem;
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 0;
+}
+
+.hudIcon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.hudValue {
+  font-family: var(--font-display, inherit);
+  font-size: 13px;
+  font-weight: 700;
+  color: #86efac;
+  text-shadow: 0 0 8px rgba(132, 255, 159, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.hudLabel {
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.hudBar {
+  width: 100%;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.hudBarFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.hudStatLink:focus-visible {
+  outline: 2px solid rgba(132, 255, 159, 0.6);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
