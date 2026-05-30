@@ -1,0 +1,325 @@
+/* ─── Fase 6 Art Direction ─── */
+
+:root {
+  --ad-nature: #4ade80;
+  --ad-nature-deep: #3d7a4a;
+  --ad-alien: #a78bfa;
+  --ad-alien-deep: #6366f1;
+  --ad-mission: #fbbf24;
+  --ad-mission-deep: #f59e0b;
+  --ad-danger: #fb923c;
+  --ad-danger-deep: #ef4444;
+  --ad-ship: #94a3b8;
+  --ad-ship-glow: #38bdf8;
+}
+
+/* Section themes */
+.section-theme-home {
+  --section-accent: var(--ad-nature);
+  --section-glow: rgba(74, 222, 128, 0.2);
+}
+.section-theme-village {
+  --section-accent: var(--ad-nature);
+  --section-glow: rgba(61, 122, 74, 0.25);
+}
+.section-theme-mission {
+  --section-accent: var(--ad-mission);
+  --section-glow: rgba(251, 191, 36, 0.2);
+}
+.section-theme-map {
+  --section-accent: var(--ad-alien);
+  --section-glow: rgba(167, 139, 250, 0.2);
+}
+.section-theme-market {
+  --section-accent: var(--ad-mission);
+  --section-glow: rgba(245, 158, 11, 0.18);
+}
+.section-theme-chat {
+  --section-accent: var(--ad-alien);
+  --section-glow: rgba(99, 102, 241, 0.22);
+}
+.section-theme-bestiary {
+  --section-accent: var(--ad-danger);
+  --section-glow: rgba(251, 146, 60, 0.18);
+}
+
+.section-theme-home header h1,
+.section-theme-village header h1,
+.section-theme-mission header h1,
+.section-theme-map header h1,
+.section-theme-market header h1,
+.section-theme-chat header h1,
+.section-theme-bestiary header h1 {
+  text-shadow: 0 0 16px var(--section-glow), 0 0 32px var(--section-glow);
+}
+
+.section-theme-home header .h-px,
+.section-theme-village header .h-px,
+.section-theme-mission header .h-px,
+.section-theme-map header .h-px,
+.section-theme-market header .h-px,
+.section-theme-chat header .h-px,
+.section-theme-bestiary header .h-px {
+  background: linear-gradient(90deg, transparent, var(--section-accent), transparent) !important;
+}
+
+/* Bridge panels (home) */
+.bridge-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--section-accent, var(--ad-nature)) 35%, transparent);
+  background: linear-gradient(145deg, oklch(0.18 0.05 252 / 0.92), oklch(0.12 0.04 250 / 0.88));
+}
+
+.bridge-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 0%, var(--section-glow, rgba(74, 222, 128, 0.15)), transparent 55%);
+  pointer-events: none;
+}
+
+/* Progress bars */
+.progress-mission {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.progress-mission-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ad-mission-deep), var(--ad-mission), #fde047);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+  transition: width 0.6s ease;
+}
+
+.progress-planet-fill {
+  background: linear-gradient(90deg, var(--ad-nature-deep), var(--ad-nature));
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.35);
+}
+
+.progress-mission-fill.progress-ship-fill {
+  background: linear-gradient(90deg, var(--ad-ship), var(--ad-ship-glow));
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+/* Bestiary creature card */
+.creature-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--card-rarity, var(--ad-danger)) 40%, transparent);
+  background: linear-gradient(160deg, oklch(0.2 0.05 280 / 0.95) 0%, oklch(0.14 0.04 260 / 0.9) 100%);
+}
+
+.creature-card-portrait {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 30% 20%, var(--portrait-glow, rgba(251, 146, 60, 0.3)), transparent 70%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+/* Market cards (Fase 6.1) */
+.market-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--card-rarity, var(--ad-mission)) 35%, transparent);
+  background: linear-gradient(160deg, oklch(0.19 0.04 280 / 0.95) 0%, oklch(0.13 0.03 260 / 0.92) 100%);
+}
+
+.market-card-icon {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.market-card-emoji {
+  position: absolute;
+  font-size: 1.25rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.market-debt-flash {
+  animation: market-debt-pulse 1.1s ease-out;
+  border-color: color-mix(in srgb, var(--ad-nature) 55%, transparent) !important;
+}
+
+@keyframes market-debt-pulse {
+  0%, 100% { box-shadow: none; }
+  40% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.35); }
+}
+
+.market-tab {
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--ad-mission) 18%, transparent);
+  background: color-mix(in srgb, var(--ad-night) 55%, transparent);
+  color: var(--muted-foreground);
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.market-tab-active {
+  border-color: color-mix(in srgb, var(--ad-mission) 55%, transparent);
+  background: color-mix(in srgb, var(--ad-mission) 12%, transparent);
+  color: var(--foreground);
+}
+
+.transform-card {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--ad-ship-glow) 25%, transparent);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--ad-night) 80%, transparent),
+    color-mix(in srgb, var(--ad-ship-glow) 6%, transparent)
+  );
+}
+
+.transform-preview-arrow {
+  color: var(--ad-alien);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ad-alien) 40%, transparent));
+}
+
+/* Mission cards (Fase 6.1) */
+.mission-card {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--ad-mission) 30%, transparent);
+}
+
+.mission-card-complete {
+  border-color: color-mix(in srgb, var(--ad-nature) 45%, transparent);
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.15);
+}
+
+/* ─── Particle effects (CSS only) ─── */
+.fx-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.fx-energy .fx-dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ad-alien);
+  box-shadow: 0 0 6px var(--ad-alien);
+  animation: fx-spark 2.5s ease-in-out infinite;
+}
+
+.fx-dust .fx-dot {
+  position: absolute;
+  width: 4px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(196, 165, 116, 0.5);
+  animation: fx-dust-drift 4s ease-in-out infinite;
+}
+
+.fx-ship-glow::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, transparent 65%);
+  animation: fx-pulse-glow 3s ease-in-out infinite;
+}
+
+.fx-pickup .fx-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ad-mission);
+  animation: fx-rise 1.2s ease-out infinite;
+}
+
+.fx-mission .fx-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ad-mission);
+  box-shadow: 0 0 8px var(--ad-mission);
+  animation: fx-burst 1.8s ease-out infinite;
+}
+
+.fx-chat .fx-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ad-alien);
+  animation: fx-chat-ping 2s ease-out infinite;
+}
+
+.fx-radar .fx-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40%;
+  height: 40%;
+  margin: -20% 0 0 -20%;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  border-radius: 50%;
+  animation: fx-radar-ring 2.4s ease-out infinite;
+}
+
+@keyframes fx-spark {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
+  50% { opacity: 1; transform: translateY(-12px) scale(1); }
+}
+
+@keyframes fx-dust-drift {
+  0%, 100% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.7; transform: translate(8px, -4px); }
+}
+
+@keyframes fx-pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(0.95); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+@keyframes fx-rise {
+  0% { opacity: 0.9; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-24px) scale(0.3); }
+}
+
+@keyframes fx-burst {
+  0% { opacity: 0; transform: scale(0.4); }
+  40% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+
+@keyframes fx-chat-ping {
+  0% { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.5); }
+}
+
+@keyframes fx-radar-ring {
+  0% { opacity: 0.6; transform: scale(0.6); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-layer,
+  .fx-layer * {
+    animation: none !important;
+  }
+}

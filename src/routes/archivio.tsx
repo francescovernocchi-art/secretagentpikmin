@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/PageShell";
 import { WikiImage } from "@/components/WikiImage";
 import { getSession } from "@/lib/session";
+import { PikminSpecializationPanel } from "@/components/game/PikminSpecializationPanel";
+import { GAME_IDENTITY } from "@/data/secretPikminWorld";
 import { Search, ExternalLink, BookOpen, Pencil, Save } from "lucide-react";
 import {
   Dialog,
@@ -112,8 +114,8 @@ function ArchivioPage() {
 
   return (
     <PageShell
-      title="Archivio Pikmin"
-      subtitle={`Enciclopedia · ${items.length} specie · Fonte: Pikipedia`}
+      title="Pikmin"
+      subtitle={`${GAME_IDENTITY.subtitle} · Archivio specie e squadra`}
       action={<BookOpen className="h-5 w-5 text-primary text-glow" />}
     >
       <div className="relative">
@@ -264,6 +266,8 @@ function ArchivioPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <PikminSpecializationPanel showTypes />
     </PageShell>
   );
 }

@@ -1,15 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { PageShell } from "@/components/PageShell";
 import { Radar } from "@/components/Radar";
 import { EnergyScanner, type EnergyDiscovery } from "@/components/EnergyScanner";
-import { supabase } from "@/integrations/supabase/client";
-import { grantIngredients, rollIngredients } from "@/lib/ingredients";
-import { addPikmin } from "@/lib/pikmin";
 import { getSession } from "@/lib/session";
 import { PikminCounter } from "@/components/PikminCounter";
-import { ScanLine, Sparkles, FlaskConical, Radio } from "lucide-react";
+import { ScanLine, Sparkles, FlaskConical, Radio, Camera } from "lucide-react";
+import { RadarScannerPanel } from "@/components/game/RadarScannerPanel";
+import { BiomeMapPanel } from "@/components/game/BiomeMapPanel";
+import { processEnergyScannerCatch } from "@/lib/game/scanner";
+import { isSupabaseConfigured } from "@/lib/game/db";
+import { grantIngredients, rollIngredients } from "@/lib/ingredients";
+import { addPikmin } from "@/lib/pikmin";
+import { supabase } from "@/integrations/supabase/client";
+import { ParticleEffect } from "@/components/fx/ParticleEffect";
 
 export const Route = createFileRoute("/radar")({
   component: RadarPage,
@@ -18,55 +24,67 @@ export const Route = createFileRoute("/radar")({
 function RadarPage() {
   const [scanOpen, setScanOpen] = useState(false);
   const [last, setLast] = useState<EnergyDiscovery | null>(null);
+  const [lastEffects, setLastEffects] = useState<string[]>([]);
+  const [lastLabel, setLastLabel] = useState<string>("");
   const [drops, setDrops] = useState<string[]>([]);
 
   const onCaught = async (d: EnergyDiscovery) => {
     setScanOpen(false);
     setLast(d);
     const session = getSession();
-    const newDrops = rollIngredients("radar");
+    const agent = session?.role ?? "lorenzo";
+
     try {
-      await Promise.all([
-        addPikmin(1, "radar", session?.name ?? "lorenzo", { type: d.type }),
-        grantIngredients(session?.name ?? "lorenzo", newDrops),
-        supabase.from("memories").insert({
-          title: `Pikmin ${d.type} catturato`,
-          content: "Rilevato tramite scanner energetico.",
-        }),
-      ]);
-    } catch {}
-    setDrops(newDrops);
+      const { discovery, effects } = await processEnergyScannerCatch(d.type);
+      setLastLabel(discovery.label);
+      setLastEffects(effects);
+
+      const newDrops = rollIngredients("radar");
+      if (isSupabaseConfigured()) {
+        await Promise.all([
+          addPikmin(1, "radar", session?.name ?? agent, { type: d.type }),
+          grantIngredients(session?.name ?? agent, newDrops),
+          supabase.from("memories").insert({
+            title: discovery.label,
+            content: `Rilevato tramite scanner · ${effects.join(", ")}`,
+          }),
+        ]);
+      }
+      setDrops(newDrops);
+      toast.success(effects.join(" · ") || "Ritrovamento salvato");
+    } catch {
+      setLastLabel(`Pikmin ${d.type}`);
+      setLastEffects(["Salvato in locale"]);
+    }
   };
 
   return (
     <PageShell
-      title="Scanner energetico"
-      subtitle="Rilevatore di prossimità Pikmin"
+      title="Radar e Scanner"
+      subtitle="Geolocalizzazione · fotocamera · oggetti rari · Pikmin selvatici"
+      theme="map"
       action={<PikminCounter compact />}
     >
       <div className="panel-strong scanline relative overflow-hidden p-6 flex flex-col items-center gap-4">
+        <ParticleEffect variant="radar" />
         <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">// Energia ambientale</p>
         <Radar size={240} />
         <p className="text-xs text-muted-foreground text-center max-w-[260px]">
-          Apri lo scanner e muovi il telefono nello spazio. Il segnale aumenta quando
-          ti avvicini a una traccia energetica.
+          Apri lo scanner e muovi il telefono nello spazio. Il segnale aumenta quando ti avvicini a una traccia energetica.
         </p>
-        <button
-          onClick={() => setScanOpen(true)}
-          className="btn-neon px-6 py-3 text-sm flex items-center gap-2"
-        >
-          <ScanLine className="h-4 w-4" /> Avvia scanner
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button onClick={() => setScanOpen(true)} className="btn-neon px-6 py-3 text-sm flex items-center gap-2">
+            <ScanLine className="h-4 w-4" /> Avvia scanner
+          </button>
+          <button onClick={() => setScanOpen(true)} className="panel-strong px-6 py-3 text-sm flex items-center gap-2">
+            <Camera className="h-4 w-4 text-primary" /> Scansiona area
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
         {last && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="panel p-4 space-y-3"
-          >
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="panel p-4 space-y-3">
             <p className="text-[10px] uppercase tracking-widest text-primary/80 flex items-center gap-1">
               <Sparkles className="h-3 w-3" /> Ultima cattura
             </p>
@@ -81,9 +99,9 @@ function RadarPage() {
                 🌱
               </div>
               <div>
-                <p className="font-display text-lg text-glow">Pikmin {last.type.toUpperCase()}</p>
+                <p className="font-display text-lg text-glow">{lastLabel || `Pikmin ${last.type.toUpperCase()}`}</p>
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Aggiunto alla squadra
+                  {lastEffects.join(" · ") || "Aggiunto alla squadra"}
                 </p>
               </div>
             </div>
@@ -99,13 +117,17 @@ function RadarPage() {
         )}
       </AnimatePresence>
 
+      <RadarScannerPanel biomeScan onScanComplete={(r) => toast.success(`${r.emoji} ${r.label} — ${r.effects.join(", ")}`)} />
+
+      <BiomeMapPanel showActions={false} />
+
       <div className="panel p-4 text-xs text-muted-foreground space-y-1">
         <p className="text-[10px] uppercase tracking-widest text-primary/80 flex items-center gap-1">
           <Radio className="h-3 w-3" /> Come funziona
         </p>
         <p>1. Apri lo scanner e dai i permessi camera/movimento.</p>
         <p>2. Muoviti lentamente cercando il segnale più alto.</p>
-        <p>3. Quando arrivi al 100% il Pikmin si materializza.</p>
+        <p>3. Ritrovamento coerente col bioma → inventario / bestiario / squadra / navicella.</p>
       </div>
 
       <EnergyScanner open={scanOpen} onClose={() => setScanOpen(false)} onCaught={onCaught} />

@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "./styles/art-direction.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -178,6 +179,7 @@
 .animate-radar-sweep { animation: radar-sweep 4s linear infinite; }
 .animate-radar-ping { animation: radar-ping 2.4s ease-out infinite; }
 .animate-float-slow { animation: float-slow 4s ease-in-out infinite; }
+.animate-pulse-slow { animation: flicker 3s ease-in-out infinite; }
 .animate-flicker { animation: flicker 2s ease-in-out infinite; }
 
 @keyframes intro-glitch {

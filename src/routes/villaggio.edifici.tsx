@@ -19,6 +19,8 @@ import {
   startBuilding,
   startUpgrade,
 } from "@/lib/base";
+import { VillageDiorama } from "@/components/game/VillageDiorama";
+import { VILLAGE_BUILDINGS } from "@/data/secretPikminWorld";
 import { ArrowLeft, ArrowUpRight, Hammer, Lock, Sparkles, Star } from "lucide-react";
 
 export const Route = createFileRoute("/villaggio/edifici")({
@@ -104,6 +106,20 @@ function EdificiPage() {
         </div>
       }
     >
+      <VillageDiorama buildingCount={buildings.length} pikminCount={12} />
+
+      <section className="panel p-3 space-y-2">
+        <p className="text-[10px] uppercase tracking-widest text-primary/80">Edifici base — Missione Famiglia</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {VILLAGE_BUILDINGS.map((b) => (
+            <div key={b.key} className="rounded-xl border border-primary/20 bg-night/50 p-2 text-center">
+              <span className="text-xl">{b.emoji}</span>
+              <p className="text-[10px] font-display text-glow mt-1">{b.name}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Filtri categoria */}
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
         {categories.map((c) => {

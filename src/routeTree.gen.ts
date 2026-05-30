@@ -17,6 +17,7 @@ import { Route as RicetteRouteImport } from './routes/ricette'
 import { Route as RadarRouteImport } from './routes/radar'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PremiRouteImport } from './routes/premi'
+import { Route as PikminRouteImport } from './routes/pikmin'
 import { Route as NemiciRouteImport } from './routes/nemici'
 import { Route as NavicellaRouteImport } from './routes/navicella'
 import { Route as MissioniRouteImport } from './routes/missioni'
@@ -32,6 +33,7 @@ import { Route as AgentiRouteImport } from './routes/agenti'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VillaggioScambiRouteImport } from './routes/villaggio.scambi'
+import { Route as VillaggioPhaserRouteImport } from './routes/villaggio.phaser'
 import { Route as VillaggioEdificiRouteImport } from './routes/villaggio.edifici'
 import { Route as VillaggioAgentRouteImport } from './routes/villaggio.$agent'
 import { Route as SpedizioniKeyRouteImport } from './routes/spedizioni.$key'
@@ -75,6 +77,11 @@ const ProfiloRoute = ProfiloRouteImport.update({
 const PremiRoute = PremiRouteImport.update({
   id: '/premi',
   path: '/premi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PikminRoute = PikminRouteImport.update({
+  id: '/pikmin',
+  path: '/pikmin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NemiciRoute = NemiciRouteImport.update({
@@ -152,6 +159,11 @@ const VillaggioScambiRoute = VillaggioScambiRouteImport.update({
   path: '/scambi',
   getParentRoute: () => VillaggioRoute,
 } as any)
+const VillaggioPhaserRoute = VillaggioPhaserRouteImport.update({
+  id: '/phaser',
+  path: '/phaser',
+  getParentRoute: () => VillaggioRoute,
+} as any)
 const VillaggioEdificiRoute = VillaggioEdificiRouteImport.update({
   id: '/edifici',
   path: '/edifici',
@@ -189,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
   '/nemici': typeof NemiciRoute
+  '/pikmin': typeof PikminRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -199,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/spedizioni/$key': typeof SpedizioniKeyRoute
   '/villaggio/$agent': typeof VillaggioAgentRoute
   '/villaggio/edifici': typeof VillaggioEdificiRoute
+  '/villaggio/phaser': typeof VillaggioPhaserRoute
   '/villaggio/scambi': typeof VillaggioScambiRoute
   '/villaggio/editor/$biome': typeof VillaggioEditorBiomeRoute
 }
@@ -218,6 +232,7 @@ export interface FileRoutesByTo {
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
   '/nemici': typeof NemiciRoute
+  '/pikmin': typeof PikminRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -228,6 +243,7 @@ export interface FileRoutesByTo {
   '/spedizioni/$key': typeof SpedizioniKeyRoute
   '/villaggio/$agent': typeof VillaggioAgentRoute
   '/villaggio/edifici': typeof VillaggioEdificiRoute
+  '/villaggio/phaser': typeof VillaggioPhaserRoute
   '/villaggio/scambi': typeof VillaggioScambiRoute
   '/villaggio/editor/$biome': typeof VillaggioEditorBiomeRoute
 }
@@ -248,6 +264,7 @@ export interface FileRoutesById {
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
   '/nemici': typeof NemiciRoute
+  '/pikmin': typeof PikminRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -258,6 +275,7 @@ export interface FileRoutesById {
   '/spedizioni/$key': typeof SpedizioniKeyRoute
   '/villaggio/$agent': typeof VillaggioAgentRoute
   '/villaggio/edifici': typeof VillaggioEdificiRoute
+  '/villaggio/phaser': typeof VillaggioPhaserRoute
   '/villaggio/scambi': typeof VillaggioScambiRoute
   '/villaggio/editor/$biome': typeof VillaggioEditorBiomeRoute
 }
@@ -279,6 +297,7 @@ export interface FileRouteTypes {
     | '/missioni'
     | '/navicella'
     | '/nemici'
+    | '/pikmin'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -289,6 +308,7 @@ export interface FileRouteTypes {
     | '/spedizioni/$key'
     | '/villaggio/$agent'
     | '/villaggio/edifici'
+    | '/villaggio/phaser'
     | '/villaggio/scambi'
     | '/villaggio/editor/$biome'
   fileRoutesByTo: FileRoutesByTo
@@ -308,6 +328,7 @@ export interface FileRouteTypes {
     | '/missioni'
     | '/navicella'
     | '/nemici'
+    | '/pikmin'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -318,6 +339,7 @@ export interface FileRouteTypes {
     | '/spedizioni/$key'
     | '/villaggio/$agent'
     | '/villaggio/edifici'
+    | '/villaggio/phaser'
     | '/villaggio/scambi'
     | '/villaggio/editor/$biome'
   id:
@@ -337,6 +359,7 @@ export interface FileRouteTypes {
     | '/missioni'
     | '/navicella'
     | '/nemici'
+    | '/pikmin'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -347,6 +370,7 @@ export interface FileRouteTypes {
     | '/spedizioni/$key'
     | '/villaggio/$agent'
     | '/villaggio/edifici'
+    | '/villaggio/phaser'
     | '/villaggio/scambi'
     | '/villaggio/editor/$biome'
   fileRoutesById: FileRoutesById
@@ -367,6 +391,7 @@ export interface RootRouteChildren {
   MissioniRoute: typeof MissioniRoute
   NavicellaRoute: typeof NavicellaRoute
   NemiciRoute: typeof NemiciRoute
+  PikminRoute: typeof PikminRoute
   PremiRoute: typeof PremiRoute
   ProfiloRoute: typeof ProfiloRoute
   RadarRoute: typeof RadarRoute
@@ -432,6 +457,13 @@ declare module '@tanstack/react-router' {
       path: '/premi'
       fullPath: '/premi'
       preLoaderRoute: typeof PremiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pikmin': {
+      id: '/pikmin'
+      path: '/pikmin'
+      fullPath: '/pikmin'
+      preLoaderRoute: typeof PikminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/nemici': {
@@ -539,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VillaggioScambiRouteImport
       parentRoute: typeof VillaggioRoute
     }
+    '/villaggio/phaser': {
+      id: '/villaggio/phaser'
+      path: '/phaser'
+      fullPath: '/villaggio/phaser'
+      preLoaderRoute: typeof VillaggioPhaserRouteImport
+      parentRoute: typeof VillaggioRoute
+    }
     '/villaggio/edifici': {
       id: '/villaggio/edifici'
       path: '/edifici'
@@ -585,6 +624,7 @@ const SpedizioniRouteWithChildren = SpedizioniRoute._addFileChildren(
 interface VillaggioRouteChildren {
   VillaggioAgentRoute: typeof VillaggioAgentRoute
   VillaggioEdificiRoute: typeof VillaggioEdificiRoute
+  VillaggioPhaserRoute: typeof VillaggioPhaserRoute
   VillaggioScambiRoute: typeof VillaggioScambiRoute
   VillaggioEditorBiomeRoute: typeof VillaggioEditorBiomeRoute
 }
@@ -592,6 +632,7 @@ interface VillaggioRouteChildren {
 const VillaggioRouteChildren: VillaggioRouteChildren = {
   VillaggioAgentRoute: VillaggioAgentRoute,
   VillaggioEdificiRoute: VillaggioEdificiRoute,
+  VillaggioPhaserRoute: VillaggioPhaserRoute,
   VillaggioScambiRoute: VillaggioScambiRoute,
   VillaggioEditorBiomeRoute: VillaggioEditorBiomeRoute,
 }
@@ -616,6 +657,7 @@ const rootRouteChildren: RootRouteChildren = {
   MissioniRoute: MissioniRoute,
   NavicellaRoute: NavicellaRoute,
   NemiciRoute: NemiciRoute,
+  PikminRoute: PikminRoute,
   PremiRoute: PremiRoute,
   ProfiloRoute: ProfiloRoute,
   RadarRoute: RadarRoute,

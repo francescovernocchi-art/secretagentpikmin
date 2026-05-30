@@ -340,6 +340,108 @@ export type Database = {
           },
         ]
       }
+      bestiary_entries: {
+        Row: {
+          biome_key: string | null
+          created_at: string
+          creature_key: string
+          danger_level: number
+          data_points: number
+          discovered_by: string | null
+          emoji: string | null
+          id: string
+          name: string
+          rarity: string
+          rewards: Json
+          scan_count: number
+          study_status: string
+          updated_at: string
+          weakness: string | null
+          weakness_unlocked: boolean
+        }
+        Insert: {
+          biome_key?: string | null
+          created_at?: string
+          creature_key: string
+          danger_level?: number
+          data_points?: number
+          discovered_by?: string | null
+          emoji?: string | null
+          id?: string
+          name: string
+          rarity?: string
+          rewards?: Json
+          scan_count?: number
+          study_status?: string
+          updated_at?: string
+          weakness?: string | null
+          weakness_unlocked?: boolean
+        }
+        Update: {
+          biome_key?: string | null
+          created_at?: string
+          creature_key?: string
+          danger_level?: number
+          data_points?: number
+          discovered_by?: string | null
+          emoji?: string | null
+          id?: string
+          name?: string
+          rarity?: string
+          rewards?: Json
+          scan_count?: number
+          study_status?: string
+          updated_at?: string
+          weakness?: string | null
+          weakness_unlocked?: boolean
+        }
+        Relationships: []
+      }
+      biome_zones: {
+        Row: {
+          bonus: string | null
+          emoji: string
+          events: Json
+          frequent_monsters: Json
+          frequent_pikmin: Json
+          ingredients: Json
+          key: string
+          label: string
+          malus: string | null
+          rarity: string
+          resources: Json
+          theme: string | null
+        }
+        Insert: {
+          bonus?: string | null
+          emoji: string
+          events?: Json
+          frequent_monsters?: Json
+          frequent_pikmin?: Json
+          ingredients?: Json
+          key: string
+          label: string
+          malus?: string | null
+          rarity?: string
+          resources?: Json
+          theme?: string | null
+        }
+        Update: {
+          bonus?: string | null
+          emoji?: string
+          events?: Json
+          frequent_monsters?: Json
+          frequent_pikmin?: Json
+          ingredients?: Json
+          key?: string
+          label?: string
+          malus?: string | null
+          rarity?: string
+          resources?: Json
+          theme?: string | null
+        }
+        Relationships: []
+      }
       building_catalog: {
         Row: {
           base_cost_coins: number
@@ -759,6 +861,235 @@ export type Database = {
         }
         Relationships: []
       }
+      family_chat_messages: {
+        Row: {
+          channel: string
+          content: string
+          created_at: string
+          id: string
+          message_type: string
+          sender_agent: string
+        }
+        Insert: {
+          channel?: string
+          content: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          sender_agent: string
+        }
+        Update: {
+          channel?: string
+          content?: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          sender_agent?: string
+        }
+        Relationships: []
+      }
+      family_members: {
+        Row: {
+          agent_key: string
+          created_at: string
+          display_name: string
+          emoji: string
+          id: string
+          last_seen_at: string
+          online: boolean
+          rank: string
+          role: string
+        }
+        Insert: {
+          agent_key: string
+          created_at?: string
+          display_name: string
+          emoji?: string
+          id?: string
+          last_seen_at?: string
+          online?: boolean
+          rank?: string
+          role?: string
+        }
+        Update: {
+          agent_key?: string
+          created_at?: string
+          display_name?: string
+          emoji?: string
+          id?: string
+          last_seen_at?: string
+          online?: boolean
+          rank?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      family_trade_history: {
+        Row: {
+          action: string
+          created_at: string
+          from_agent: string
+          id: string
+          offer_id: string
+          snapshot: Json
+          to_agent: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          from_agent: string
+          id?: string
+          offer_id: string
+          snapshot?: Json
+          to_agent: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          from_agent?: string
+          id?: string
+          offer_id?: string
+          snapshot?: Json
+          to_agent?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_trade_history_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "family_trade_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_trade_items: {
+        Row: {
+          agent_key: string
+          category: string
+          emoji: string
+          id: string
+          item_key: string
+          item_name: string
+          offer_id: string
+          quantity: number
+          sell_price: number
+          side: string
+        }
+        Insert: {
+          agent_key: string
+          category?: string
+          emoji?: string
+          id?: string
+          item_key: string
+          item_name: string
+          offer_id: string
+          quantity?: number
+          sell_price?: number
+          side: string
+        }
+        Update: {
+          agent_key?: string
+          category?: string
+          emoji?: string
+          id?: string
+          item_key?: string
+          item_name?: string
+          offer_id?: string
+          quantity?: number
+          sell_price?: number
+          side?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_trade_items_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "family_trade_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_trade_offers: {
+        Row: {
+          created_at: string
+          from_agent: string
+          id: string
+          message: string | null
+          resolved_at: string | null
+          status: string
+          to_agent: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_agent: string
+          id?: string
+          message?: string | null
+          resolved_at?: string | null
+          status?: string
+          to_agent: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_agent?: string
+          id?: string
+          message?: string | null
+          resolved_at?: string | null
+          status?: string
+          to_agent?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_trade_offers_from_agent_fkey"
+            columns: ["from_agent"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "family_trade_offers_to_agent_fkey"
+            columns: ["to_agent"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["agent_key"]
+          },
+        ]
+      }
+      game_notifications: {
+        Row: {
+          agent_key: string
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          read_at: string | null
+          title: string
+        }
+        Insert: {
+          agent_key: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          read_at?: string | null
+          title: string
+        }
+        Update: {
+          agent_key?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          read_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           color: string | null
@@ -943,6 +1274,39 @@ export type Database = {
         }
         Relationships: []
       }
+      market_transactions: {
+        Row: {
+          agent_key: string
+          created_at: string
+          id: string
+          item_key: string
+          item_name: string
+          price: number
+          quantity: number
+          transaction_type: string
+        }
+        Insert: {
+          agent_key: string
+          created_at?: string
+          id?: string
+          item_key: string
+          item_name: string
+          price?: number
+          quantity?: number
+          transaction_type: string
+        }
+        Update: {
+          agent_key?: string
+          created_at?: string
+          id?: string
+          item_key?: string
+          item_name?: string
+          price?: number
+          quantity?: number
+          transaction_type?: string
+        }
+        Relationships: []
+      }
       memories: {
         Row: {
           content: string | null
@@ -1111,6 +1475,36 @@ export type Database = {
         }
         Relationships: []
       }
+      pikmin_activity_log: {
+        Row: {
+          created_at: string
+          id: string
+          meta: Json
+          owner_agent: string
+          pikmin_id: string
+          reason: string
+          xp_amount: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meta?: Json
+          owner_agent: string
+          pikmin_id: string
+          reason: string
+          xp_amount?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meta?: Json
+          owner_agent?: string
+          pikmin_id?: string
+          reason?: string
+          xp_amount?: number
+        }
+        Relationships: []
+      }
       pikmin_events: {
         Row: {
           agent: string
@@ -1135,6 +1529,57 @@ export type Database = {
           id?: string
           meta?: Json | null
           reason?: string
+        }
+        Relationships: []
+      }
+      pikmin_expedition_units: {
+        Row: {
+          created_at: string
+          expedition_id: string
+          id: string
+          owner_agent: string
+          pikmin_unit_id: string
+        }
+        Insert: {
+          created_at?: string
+          expedition_id: string
+          id?: string
+          owner_agent: string
+          pikmin_unit_id: string
+        }
+        Update: {
+          created_at?: string
+          expedition_id?: string
+          id?: string
+          owner_agent?: string
+          pikmin_unit_id?: string
+        }
+        Relationships: []
+      }
+      pikmin_specializations: {
+        Row: {
+          best_types: Json
+          bonuses: Json
+          duties: Json
+          emoji: string
+          key: string
+          title: string
+        }
+        Insert: {
+          best_types?: Json
+          bonuses?: Json
+          duties?: Json
+          emoji?: string
+          key: string
+          title: string
+        }
+        Update: {
+          best_types?: Json
+          bonuses?: Json
+          duties?: Json
+          emoji?: string
+          key?: string
+          title?: string
         }
         Relationships: []
       }
@@ -1230,6 +1675,218 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pikmin_units: {
+        Row: {
+          created_at: string
+          experience: number
+          experience_to_next: number
+          id: string
+          level: number
+          name: string
+          owner_agent: string
+          preferred_biome: string
+          spec_badge: string | null
+          specialization_key: string | null
+          stats: Json
+          status: string
+          story: string | null
+          total_xp_earned: number
+          type_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          experience?: number
+          experience_to_next?: number
+          id?: string
+          level?: number
+          name: string
+          owner_agent: string
+          preferred_biome?: string
+          spec_badge?: string | null
+          specialization_key?: string | null
+          stats?: Json
+          status?: string
+          story?: string | null
+          total_xp_earned?: number
+          type_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          experience?: number
+          experience_to_next?: number
+          id?: string
+          level?: number
+          name?: string
+          owner_agent?: string
+          preferred_biome?: string
+          spec_badge?: string | null
+          specialization_key?: string | null
+          stats?: Json
+          status?: string
+          story?: string | null
+          total_xp_earned?: number
+          type_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pikmin_units_owner_agent_fkey"
+            columns: ["owner_agent"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["agent_key"]
+          },
+          {
+            foreignKeyName: "pikmin_units_specialization_key_fkey"
+            columns: ["specialization_key"]
+            isOneToOne: false
+            referencedRelation: "pikmin_specializations"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      planet_status: {
+        Row: {
+          bestiary_count: number
+          bestiary_total: number
+          debt_paid: number
+          debt_total: number
+          energy: number
+          food: number
+          id: string
+          morale: number
+          updated_at: string
+        }
+        Insert: {
+          bestiary_count?: number
+          bestiary_total?: number
+          debt_paid?: number
+          debt_total?: number
+          energy?: number
+          food?: number
+          id?: string
+          morale?: number
+          updated_at?: string
+        }
+        Update: {
+          bestiary_count?: number
+          bestiary_total?: number
+          debt_paid?: number
+          debt_total?: number
+          energy?: number
+          food?: number
+          id?: string
+          morale?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      player_inventory: {
+        Row: {
+          agent_key: string
+          category: string
+          emoji: string
+          id: string
+          item_key: string
+          item_name: string
+          metadata: Json
+          quantity: number
+          sell_price: number
+          updated_at: string
+        }
+        Insert: {
+          agent_key: string
+          category?: string
+          emoji?: string
+          id?: string
+          item_key: string
+          item_name: string
+          metadata?: Json
+          quantity?: number
+          sell_price?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_key?: string
+          category?: string
+          emoji?: string
+          id?: string
+          item_key?: string
+          item_name?: string
+          metadata?: Json
+          quantity?: number
+          sell_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_inventory_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["agent_key"]
+          },
+        ]
+      }
+      player_profiles: {
+        Row: {
+          active_village_id: string | null
+          agent_key: string
+          coins: number
+          current_biome: string
+          id: string
+          lat: number | null
+          level: number
+          lng: number | null
+          updated_at: string
+          user_id: string | null
+          xp: number
+        }
+        Insert: {
+          active_village_id?: string | null
+          agent_key: string
+          coins?: number
+          current_biome?: string
+          id?: string
+          lat?: number | null
+          level?: number
+          lng?: number | null
+          updated_at?: string
+          user_id?: string | null
+          xp?: number
+        }
+        Update: {
+          active_village_id?: string | null
+          agent_key?: string
+          coins?: number
+          current_biome?: string
+          id?: string
+          lat?: number | null
+          level?: number
+          lng?: number | null
+          updated_at?: string
+          user_id?: string | null
+          xp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_profiles_active_village_id_fkey"
+            columns: ["active_village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_profiles_agent_key_fkey"
+            columns: ["agent_key"]
+            isOneToOne: true
+            referencedRelation: "family_members"
+            referencedColumns: ["agent_key"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1366,6 +2023,42 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_results: {
+        Row: {
+          agent_key: string
+          biome_key: string
+          created_at: string
+          emoji: string | null
+          id: string
+          label: string
+          payload: Json
+          processed: boolean
+          target_type: string
+        }
+        Insert: {
+          agent_key: string
+          biome_key: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          label: string
+          payload?: Json
+          processed?: boolean
+          target_type: string
+        }
+        Update: {
+          agent_key?: string
+          biome_key?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          label?: string
+          payload?: Json
+          processed?: boolean
+          target_type?: string
+        }
+        Relationships: []
+      }
       scouting_missions: {
         Row: {
           agent: string
@@ -1481,6 +2174,39 @@ export type Database = {
             referencedColumns: ["key"]
           },
         ]
+      }
+      spaceship_parts: {
+        Row: {
+          collected: boolean
+          collected_at: string | null
+          collected_by: string | null
+          emoji: string
+          key: string
+          location_hint: string | null
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          collected?: boolean
+          collected_at?: string | null
+          collected_by?: string | null
+          emoji: string
+          key: string
+          location_hint?: string | null
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          collected?: boolean
+          collected_at?: string | null
+          collected_by?: string | null
+          emoji?: string
+          key?: string
+          location_hint?: string | null
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       sprite_assets: {
         Row: {
@@ -1598,6 +2324,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      village_buildings: {
+        Row: {
+          building_key: string
+          emoji: string
+          id: string
+          level: number
+          max_level: number
+          name: string
+          status: string
+          village_id: string
+        }
+        Insert: {
+          building_key: string
+          emoji?: string
+          id?: string
+          level?: number
+          max_level?: number
+          name: string
+          status?: string
+          village_id: string
+        }
+        Update: {
+          building_key?: string
+          emoji?: string
+          id?: string
+          level?: number
+          max_level?: number
+          name?: string
+          status?: string
+          village_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "village_buildings_village_id_fkey"
+            columns: ["village_id"]
+            isOneToOne: false
+            referencedRelation: "villages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       village_diorama_events: {
         Row: {
@@ -1891,6 +2658,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      villages: {
+        Row: {
+          action_radius_m: number
+          biome_key: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          lat: number | null
+          level: number
+          lng: number | null
+          name: string
+          owner_agent: string
+          updated_at: string
+        }
+        Insert: {
+          action_radius_m?: number
+          biome_key?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          lat?: number | null
+          level?: number
+          lng?: number | null
+          name: string
+          owner_agent: string
+          updated_at?: string
+        }
+        Update: {
+          action_radius_m?: number
+          biome_key?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          lat?: number | null
+          level?: number
+          lng?: number | null
+          name?: string
+          owner_agent?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "villages_owner_agent_fkey"
+            columns: ["owner_agent"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["agent_key"]
+          },
+        ]
       }
     }
     Views: {

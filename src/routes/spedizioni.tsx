@@ -16,6 +16,7 @@ import {
   type MissionTemplate,
   type Expedition,
 } from "@/lib/expeditions";
+import { ExpeditionLaunchPanel } from "@/components/game/ExpeditionLaunchPanel";
 import { Rocket, Clock, Users, AlertTriangle, ChevronRight, Sparkles, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/spedizioni")({
@@ -125,7 +126,12 @@ function SpedizioniPage() {
         ))}
       </div>
 
-      {tab === "disponibili" && <AvailableList templates={templates} />}
+      {tab === "disponibili" && (
+        <>
+          <ExpeditionLaunchPanel />
+          <AvailableList templates={templates} />
+        </>
+      )}
       {tab === "in_corso" && <ActiveList expeditions={active} agent={agent} />}
       {tab === "storico" && <HistoryList expeditions={history} />}
     </PageShell>

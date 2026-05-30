@@ -1,222 +1,193 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Gamepad2,
   Home,
-  Package,
-  Palette,
-  User,
   Map as MapIcon,
   Target,
-  Send,
   Skull,
-  Radio,
-  MessageSquare,
-  Building2,
-  Handshake,
-  FlaskConical,
-  BookOpen,
-  Rocket,
   ShoppingBag,
-  Trophy,
+  MessageSquare,
+  User,
+  Sprout,
+  ChevronUp,
   Wrench,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { hapticTap } from "@/lib/haptic";
 import { getSession } from "@/lib/session";
+import { HIDDEN_ROUTES, MAIN_NAV } from "@/data/secretPikminWorld";
+import { useGameNotifications, useHomeDashboard } from "@/hooks/useGameData";
 
-type NavLink = { to: string; icon: LucideIcon; label: string; admin?: boolean };
-type NavGroup = { key: string; icon: LucideIcon; label: string; links: NavLink[]; primary?: string };
+type NavItem = { to: string; icon: LucideIcon | "emoji"; label: string; emoji?: string; admin?: boolean; badgeKey?: "notif" | "mission" | "trade" };
 
-const GROUPS: NavGroup[] = [
-  {
-    key: "gioco",
-    icon: Gamepad2,
-    label: "Gioco",
-    primary: "/mappa",
-    links: [
-      { to: "/mappa", icon: MapIcon, label: "Mappa" },
-      { to: "/missioni", icon: Target, label: "Missioni" },
-      { to: "/spedizioni", icon: Send, label: "Spedizioni" },
-      { to: "/nemici", icon: Skull, label: "Bestiario" },
-      { to: "/radar", icon: Radio, label: "Radar Pikmin" },
-      { to: "/chat", icon: MessageSquare, label: "Chat" },
-    ],
-  },
-  {
-    key: "villaggio",
-    icon: Home,
-    label: "Villaggio",
-    primary: "/villaggio",
-    links: [
-      { to: "/villaggio", icon: Home, label: "Il mio villaggio" },
-      { to: "/villaggio/edifici", icon: Building2, label: "Edifici" },
-      { to: "/villaggio/scambi", icon: Handshake, label: "Scambi" },
-      { to: "/base", icon: Radio, label: "Campo Base" },
-    ],
-  },
-  {
-    key: "inventario",
-    icon: Package,
-    label: "Risorse",
-    primary: "/inventario",
-    links: [
-      { to: "/inventario", icon: Package, label: "Inventario" },
-      { to: "/lab", icon: FlaskConical, label: "Laboratorio" },
-      { to: "/ricette", icon: BookOpen, label: "Ricette" },
-      { to: "/navicella", icon: Rocket, label: "Navicella" },
-      { to: "/mercato", icon: ShoppingBag, label: "Mercato" },
-      { to: "/premi", icon: Trophy, label: "Premi" },
-      { to: "/archivio", icon: BookOpen, label: "Archivio" },
-    ],
-  },
-  {
-    key: "personalizza",
-    icon: Palette,
-    label: "Stile",
-    primary: "/admin",
-    links: [
-      { to: "/admin", icon: Wrench, label: "Admin Customizer", admin: true },
-      { to: "/atelier", icon: Palette, label: "Atelier icone", admin: true },
-      { to: "/villaggio", icon: Home, label: "Estetica villaggio" },
-      { to: "/profilo", icon: User, label: "Skin agente" },
-    ],
-  },
-  {
-    key: "profilo",
-    icon: User,
-    label: "Profilo",
-    primary: "/profilo",
-    links: [
-      { to: "/profilo", icon: User, label: "Profilo agente" },
-      { to: "/agenti", icon: Users, label: "Famiglia" },
-      { to: "/admin", icon: Wrench, label: "Pannello Admin", admin: true },
-    ],
-  },
+const PRIMARY_NAV: NavItem[] = [
+  { to: "/base", icon: Home, label: "Home", badgeKey: "notif" },
+  { to: "/villaggio", icon: "emoji", label: "Villaggio", emoji: "🏘️" },
+  { to: "/mappa", icon: MapIcon, label: "Mappa" },
+  { to: "/archivio", icon: Sprout, label: "Pikmin" },
+  { to: "/missioni", icon: Target, label: "Missioni", badgeKey: "mission" },
+  { to: "/nemici", icon: Skull, label: "Bestiario" },
+  { to: "/mercato", icon: ShoppingBag, label: "Market", badgeKey: "trade" },
+  { to: "/chat", icon: MessageSquare, label: "Chat" },
+  { to: "/profilo", icon: User, label: "Profilo" },
 ];
 
+const ADMIN_LINKS = HIDDEN_ROUTES.filter((r) => "admin" in r && r.admin);
+
+function NavIcon({ item }: { item: NavItem }) {
+  if (item.icon === "emoji") return <span className="text-xl leading-none drop-shadow-[0_0_6px_rgba(132,255,159,0.35)]">{item.emoji}</span>;
+  const Icon = item.icon;
+  return <Icon className="h-6 w-6" strokeWidth={2.2} />;
+}
 
 export function BottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const session = typeof window !== "undefined" ? getSession() : null;
   const isAdmin = session?.role === "papa";
-  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
+  const { unread } = useGameNotifications();
+  const { data } = useHomeDashboard();
 
-  const activeGroup = GROUPS.find((g) =>
-    g.links.some((l) => path === l.to || (l.to !== "/" && path.startsWith(l.to + "/")) || path === l.to),
-  )?.key;
+  const missionCount = (data?.expeditions.length ?? 0) + (data?.activeMissionCount ?? 0);
+  const familyOnline = (data?.family ?? []).filter((a) => a.online || Date.now() - new Date(a.last_seen_at).getTime() < 300000).length;
+
+  const badgeFor = (key?: NavItem["badgeKey"]) => {
+    if (key === "notif" && unread > 0) return unread;
+    if (key === "mission" && missionCount > 0) return missionCount;
+    return 0;
+  };
+
+  const isActive = (to: string) =>
+    path === to || (to !== "/" && path.startsWith(to + "/"));
+
+  const activePrimary = PRIMARY_NAV.find((l) => isActive(l.to))?.to;
+  const hiddenActive = HIDDEN_ROUTES.some((r) => isActive(r.to));
 
   return (
     <>
       <AnimatePresence>
-        {openGroup && (
+        {showMore && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-              onClick={() => setOpenGroup(null)}
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+              onClick={() => setShowMore(false)}
             />
             <motion.div
               initial={{ y: 200, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 200, opacity: 0 }}
               transition={{ type: "spring", stiffness: 360, damping: 32 }}
-              className="fixed inset-x-2 bottom-[5.5rem] z-50 panel-strong p-3 safe-bottom"
+              className="fixed inset-x-2 bottom-[5.75rem] z-50 panel-strong p-4 safe-bottom max-h-[55vh] overflow-y-auto border border-primary/25"
             >
-              {(() => {
-                const g = GROUPS.find((x) => x.key === openGroup)!;
-                const links = g.links.filter((l) => !l.admin || isAdmin);
-                return (
-                  <>
-                    <div className="flex items-center gap-2 mb-2 px-1">
-                      <g.icon className="h-4 w-4 text-primary" />
-                      <p className="text-[11px] uppercase tracking-widest text-primary">
-                        {g.label}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {links.map((l) => {
-                        const active = path === l.to;
-                        return (
-                          <Link
-                            key={l.to + l.label}
-                            to={l.to}
-                            onClick={() => {
-                              hapticTap();
-                              setOpenGroup(null);
-                            }}
-                            className={`panel p-3 flex flex-col items-center gap-1 active:scale-95 transition ${
-                              active ? "ring-1 ring-primary/60 bg-primary/10" : ""
-                            }`}
-                          >
-                            <l.icon className="h-5 w-5 text-primary" />
-                            <span className="text-[10px] text-center leading-tight">
-                              {l.label}
-                            </span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </>
-                );
-              })()}
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] uppercase tracking-widest text-primary font-display">Collegamenti rapidi</p>
+                {familyOnline > 0 && (
+                  <span className="text-[9px] text-emerald-400 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {familyOnline} online
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {HIDDEN_ROUTES.filter((r) => !("admin" in r) || !r.admin || isAdmin).map((r) => (
+                  <Link
+                    key={r.to}
+                    to={r.to}
+                    onClick={() => {
+                      hapticTap();
+                      setShowMore(false);
+                    }}
+                    className={`panel p-3 text-center text-[10px] uppercase tracking-wide min-h-[56px] flex items-center justify-center ${isActive(r.to) ? "ring-1 ring-primary/60 bg-primary/10" : ""}`}
+                  >
+                    {r.label}
+                  </Link>
+                ))}
+                {isAdmin &&
+                  ADMIN_LINKS.map((r) => (
+                    <Link
+                      key={r.to}
+                      to={r.to}
+                      onClick={() => {
+                        hapticTap();
+                        setShowMore(false);
+                      }}
+                      className="panel p-3 text-center text-[10px] flex flex-col items-center justify-center gap-1 min-h-[56px]"
+                    >
+                      <Wrench className="h-5 w-5 text-primary" />
+                      {r.label}
+                    </Link>
+                  ))}
+              </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 safe-bottom">
-        <div className="relative mx-2 mb-2 panel-strong px-2 py-2 overflow-hidden">
+        <div className="relative mx-1 mb-2 panel-strong px-1 py-2 overflow-hidden border border-primary/20 bg-[linear-gradient(180deg,rgba(8,14,20,0.97)_0%,rgba(4,8,12,0.99)_100%)]">
           <span className="hud-corner tl" />
           <span className="hud-corner tr" />
           <span className="hud-corner bl" />
           <span className="hud-corner br" />
-          <ul className="relative flex justify-around gap-1">
-            {GROUPS.map((g) => {
-              const active = activeGroup === g.key && !openGroup;
-              const Icon = g.icon;
+          <ul className="relative flex gap-0.5 overflow-x-auto no-scrollbar">
+            {PRIMARY_NAV.map((l) => {
+              const active = activePrimary === l.to;
+              const badge = badgeFor(l.badgeKey);
               return (
-                <li key={g.key} className="flex-1">
-                  <button
-                    onClick={() => {
-                      hapticTap();
-                      setOpenGroup(openGroup === g.key ? null : g.key);
-                    }}
-                    className="relative flex flex-col items-center justify-center w-full rounded-xl px-1 py-2 text-[10px] font-medium text-muted-foreground"
+                <li key={l.to} className="shrink-0 flex-1 min-w-[54px]">
+                  <Link
+                    to={l.to}
+                    onClick={hapticTap}
+                    className="relative flex flex-col items-center justify-center w-full rounded-xl px-0.5 py-2 text-[9px] font-semibold"
                   >
-                    {(active || openGroup === g.key) && (
+                    {active && (
                       <motion.span
-                        layoutId="navpill"
-                        className="absolute inset-0 rounded-xl bg-primary/15 ring-1 ring-primary/50"
+                        layoutId="navpill-main"
+                        className="absolute inset-0 rounded-xl bg-primary/18 ring-1 ring-primary/55 shadow-[0_0_12px_rgba(132,255,159,0.15)]"
                         transition={{ type: "spring", stiffness: 500, damping: 35 }}
                       />
                     )}
-                    <Icon
-                      className={`relative z-10 h-5 w-5 transition-transform ${
-                        active || openGroup === g.key
-                          ? "text-primary text-glow scale-110"
-                          : ""
-                      }`}
-                      strokeWidth={active ? 2.5 : 2}
-                    />
-                    <span
-                      className={`relative z-10 mt-0.5 tracking-wider uppercase ${
-                        active || openGroup === g.key ? "text-primary" : ""
-                      }`}
-                    >
-                      {g.label}
+                    <span className={`relative z-10 ${active ? "text-primary scale-110" : "text-muted-foreground"}`}>
+                      <NavIcon item={l} />
+                      {badge > 0 && (
+                        <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] px-0.5 rounded-full bg-rose-500 text-[8px] font-bold text-white grid place-items-center leading-none">
+                          {badge > 9 ? "9+" : badge}
+                        </span>
+                      )}
                     </span>
-                  </button>
+                    <span className={`relative z-10 mt-1 tracking-wide uppercase leading-tight text-center ${active ? "text-primary text-glow" : "text-muted-foreground"}`}>
+                      {l.label.split(" ")[0]}
+                    </span>
+                  </Link>
                 </li>
               );
             })}
+            <li className="shrink-0 min-w-[48px]">
+              <button
+                onClick={() => {
+                  hapticTap();
+                  setShowMore((v) => !v);
+                }}
+                className={`relative flex flex-col items-center justify-center w-full rounded-xl px-1 py-2 text-[9px] ${
+                  hiddenActive || showMore ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {(hiddenActive || showMore) && (
+                  <span className="absolute inset-0 rounded-xl bg-primary/12 ring-1 ring-primary/45" />
+                )}
+                <ChevronUp className={`relative z-10 h-6 w-6 ${showMore ? "rotate-180" : ""} transition`} />
+                <span className="relative z-10 mt-1 uppercase font-semibold">Altro</span>
+              </button>
+            </li>
           </ul>
         </div>
       </nav>
     </>
   );
 }
+
+export { MAIN_NAV, PRIMARY_NAV };

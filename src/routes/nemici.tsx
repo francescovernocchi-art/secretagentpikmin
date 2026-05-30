@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/PageShell";
 import { WikiImage } from "@/components/WikiImage";
 import { getSession } from "@/lib/session";
+import { BestiaryGamePanel } from "@/components/game/BestiaryGamePanel";
 import { Search, ExternalLink, Skull, Pencil, Save, ScrollText } from "lucide-react";
 import {
   Dialog,
@@ -104,12 +105,15 @@ function NemiciPage() {
     <PageShell
       title="Nemici"
       subtitle={`Bestiario · ${items.length} creature · Fonte: Pikipedia`}
+      theme="bestiary"
       action={
         <button onClick={() => setShowLogs(true)} className="panel px-3 py-2 text-xs flex items-center gap-1 text-muted-foreground">
           <ScrollText className="h-3.5 w-3.5" /> Log
         </button>
       }
     >
+      <BestiaryGamePanel />
+
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input
