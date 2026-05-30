@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Mail, Lock, LogIn, Loader2, User } from "lucide-react";
+import { Mail, Lock, LogIn, Loader2, User, Sparkles } from "lucide-react";
 import {
   getSession,
   refreshSession,
@@ -10,6 +10,8 @@ import {
   signInWithUsername,
 } from "@/lib/session";
 import { IntroSequence } from "@/components/IntroSequence";
+import { enterDemoSession, shouldOfferDemoEntry, DEMO_AGENTS, isDemoModeActive } from "@/lib/demo-mode";
+import { isSupabaseConfigured } from "@/lib/game/db";
 
 export const Route = createFileRoute("/")({
   component: LoginPage,
@@ -22,9 +24,18 @@ function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
+
+  useEffect(() => {
+    setShowDemo(shouldOfferDemoEntry());
+  }, []);
 
   useEffect(() => {
     (async () => {
+      if (getSession() && isDemoModeActive()) {
+        navigate({ to: "/base" });
+        return;
+      }
       const s = await refreshSession().catch(() => null);
       if (s) {
         navigate({ to: "/base" });
@@ -64,6 +75,12 @@ function LoginPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const startDemo = (role: "papa" | "lorenzo") => {
+    const s = enterDemoSession(role);
+    toast.success(`Demo: benvenuto ${s.emoji ?? ""} ${s.name}`);
+    navigate({ to: "/base" });
   };
 
   if (intro) return <IntroSequence onEnter={finishIntro} />;
@@ -147,6 +164,40 @@ function LoginPage() {
       <p className="text-xs text-muted-foreground/70 text-center max-w-xs">
         Famiglia Pikmin · accesso solo su invito del Comandante
       </p>
+
+      {showDemo && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm market-card p-4 border-primary/30"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <p className="text-[10px] uppercase tracking-widest text-primary/80">Demo giocabile</p>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            {!isSupabaseConfigured()
+              ? "Supabase non configurato — prova il gioco in locale con Francesco o Lorenzo."
+              : "Entra in demo locale per mostrare scanner, market, villaggio e chat."}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => startDemo("papa")}
+              className="btn-neon py-2.5 text-[10px] uppercase tracking-wider"
+            >
+              {DEMO_AGENTS.papa.emoji} Francesco
+            </button>
+            <button
+              type="button"
+              onClick={() => startDemo("lorenzo")}
+              className="btn-neon py-2.5 text-[10px] uppercase tracking-wider"
+            >
+              {DEMO_AGENTS.lorenzo.emoji} Lorenzo
+            </button>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

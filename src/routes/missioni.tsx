@@ -5,10 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { CameraCapture } from "@/components/CameraCapture";
+import { MissionProgressPanel } from "@/components/game/MissionProgressPanel";
+import { SpaceshipAssemblyPanel } from "@/components/game/SpaceshipAssemblyPanel";
+import { ResourceTransformPanel } from "@/components/game/ResourceTransformPanel";
+import { PikminSpecializationPanel } from "@/components/game/PikminSpecializationPanel";
 import { grantIngredients, rollIngredients } from "@/lib/ingredients";
 import { collectShipPart } from "@/lib/ship";
 import { addCoins } from "@/lib/coins";
 import { Plus, Check, Trophy, Sparkles, X, Camera, Rocket, Coins, Trash2 } from "lucide-react";
+import { triggerGameFx } from "@/lib/game-event-fx";
+import { MissionIconSvg } from "@/components/game/assets/GameIcons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,6 +93,10 @@ function MissioniPage() {
 
   const update = async (id: string, patch: Partial<Mission>) => {
     await supabase.from("missions").update(patch).eq("id", id);
+    if (patch.status === "completata" || patch.status === "approvata") {
+      triggerGameFx("mission_complete");
+    }
+    await load();
   };
 
   const partByKey = (key: string | null) =>
@@ -101,7 +111,8 @@ function MissioniPage() {
   return (
     <PageShell
       title="Missioni"
-      subtitle="Operazioni in corso"
+      subtitle="Missioni famiglia · navicella · debito · pianeta · bestiario"
+      theme="mission"
       action={
         isAdmin && (
           <button onClick={() => setShowNew(true)} className="btn-neon px-3 py-2 text-xs flex items-center gap-1">
@@ -110,6 +121,14 @@ function MissioniPage() {
         )
       }
     >
+      <MissionProgressPanel />
+
+      <SpaceshipAssemblyPanel />
+
+      <ResourceTransformPanel />
+
+      <PikminSpecializationPanel showTypes={false} />
+
       <div className="flex gap-2">
         {(["all", "attive", "completate"] as const).map((f) => (
           <button
@@ -165,10 +184,13 @@ function MissioniPage() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="dossier p-4"
+              className="mission-card dossier p-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
+                <div className="h-12 w-12 rounded-xl border border-primary/30 bg-night/60 grid place-items-center shrink-0">
+                  <MissionIconSvg size={32} />
+                </div>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <DiffBadge d={m.difficulty} />
                     <StatusBadge s={m.status} />
@@ -241,6 +263,7 @@ function MissioniPage() {
                             source: "mission",
                             missionId: m.id,
                           });
+                          triggerGameFx("ship_part");
                         } catch {}
                       }
                     }}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Radio, Zap, Compass, Sparkles } from "lucide-react";
-import { hapticScan, hapticSuccess, haptic } from "@/lib/haptic";
+import { hapticScan, haptic } from "@/lib/haptic";
 
 export interface EnergyDiscovery {
   type: string;
@@ -164,7 +164,7 @@ export function EnergyScanner({ open, onClose, onCaught }: Props) {
     if (signal >= 96 && phase === "scan") {
       // discovery!
       setPhase("flash");
-      hapticSuccess();
+      haptic([20, 40, 60]);
       const d = PIKMIN_POOL[Math.floor(Math.random() * PIKMIN_POOL.length)];
       setDiscovery(d);
       setTimeout(() => setPhase("reveal"), 450);

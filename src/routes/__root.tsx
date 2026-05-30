@@ -14,6 +14,11 @@ import { BottomNav } from "@/components/BottomNav";
 import { BuzzButton } from "@/components/BuzzButton";
 import { TacticalBackground } from "@/components/TacticalBackground";
 import { GlobalAudioPlayer } from "@/components/GlobalAudioPlayer";
+import { AudioToggle } from "@/components/game/AudioToggle";
+import { EventFxLayer } from "@/components/fx/EventFxLayer";
+import { DemoModeBanner } from "@/components/game/DemoModeBanner";
+import { ensureDemoSeed, isDemoModeActive } from "@/lib/demo-mode";
+import { isSupabaseConfigured } from "@/lib/game/db";
 import { getSession, refreshSession, clearStoredSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -134,15 +139,15 @@ function RootComponent() {
   const router = useRouter();
   const isLoginRoute = pathname === "/" || pathname === "/index";
   const isApp = !isLoginRoute;
-  // Il villaggio è fullscreen: niente BottomNav per non rubare spazio al menu modulare.
-  const hideBottomNav = pathname === "/villaggio";
+  // Phaser RTS è fullscreen: nascondi BottomNav solo lì.
+  const hideBottomNav = pathname === "/villaggio/phaser";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
       if (session) {
         void refreshSession();
-      } else {
+      } else if (!isDemoModeActive()) {
         clearStoredSession();
         if (window.location.pathname !== "/" && window.location.pathname !== "/index") {
           router.navigate({ to: "/" });
@@ -154,6 +159,12 @@ function RootComponent() {
     return () => subscription.unsubscribe();
   }, [router, queryClient]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (getSession() && (isDemoModeActive() || !isSupabaseConfigured())) {
+      ensureDemoSeed();
+    }
+  }, []);
 
   useEffect(() => {
     if (isApp && typeof window !== "undefined" && !getSession()) {
@@ -170,7 +181,12 @@ function RootComponent() {
             <Outlet />
             <BuzzButton />
             <GlobalAudioPlayer />
+            <EventFxLayer />
+            <div className="fixed top-3 right-3 z-50 safe-top" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+              <AudioToggle compact />
+            </div>
             {!hideBottomNav && <BottomNav />}
+            <DemoModeBanner />
           </div>
 
         </div>

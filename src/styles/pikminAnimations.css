@@ -80,6 +80,35 @@
 .pikmin-anim-sleep     { animation: pikminSleep     var(--pikmin-anim-dur, 2.4s) ease-in-out infinite; }
 .pikmin-anim-celebrate { animation: pikminCelebrate var(--pikmin-anim-dur, 0.5s) ease-in-out infinite; }
 
+@keyframes pikminExpeditionReturn {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  25% { transform: translate3d(-2px, -4px, 0) scale(1.02); }
+  75% { transform: translate3d(2px, -2px, 0) scale(1.01); }
+}
+
+.pikmin-anim-study {
+  animation: pikminWork var(--pikmin-anim-dur, 0.55s) ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.35));
+}
+
+.pikmin-anim-expedition-return {
+  animation: pikminExpeditionReturn var(--pikmin-anim-dur, 0.85s) ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pikmin-anim-idle,
+  .pikmin-anim-walk,
+  .pikmin-anim-run,
+  .pikmin-anim-carry,
+  .pikmin-anim-work,
+  .pikmin-anim-sleep,
+  .pikmin-anim-celebrate,
+  .pikmin-anim-study,
+  .pikmin-anim-expedition-return {
+    animation: pikminIdleBob 2s ease-in-out infinite;
+  }
+}
+
 /* Particelle generiche (festa) */
 @keyframes pikminParticleUp {
   0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }

@@ -5,9 +5,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
-import { ResultIcon } from "@/components/ResultIcon";
 import { addCoins, getCoins, spendCoins } from "@/lib/coins";
 import { grantIngredients } from "@/lib/ingredients";
+import { MarketPanel } from "@/components/game/MarketPanel";
+import { GAME_IDENTITY } from "@/data/secretPikminWorld";
+import { isSupabaseConfigured } from "@/lib/game/db";
+import { DEMO_INGREDIENTS, DEMO_RECIPES, isDemoModeActive, isDemoEligible } from "@/lib/demo-mode";
+import { triggerGameFx } from "@/lib/game-event-fx";
+import { MarketGameCard, rarityFromString } from "@/components/game/market/MarketGameCard";
 import { Coins, ShoppingBag, FlaskConical, Lock, Pencil, Check, X } from "lucide-react";
 
 export const Route = createFileRoute("/mercato")({ component: MercatoPage });
@@ -43,6 +48,13 @@ function MercatoPage() {
   const [editing, setEditing] = useState<{ kind: "ing" | "rec"; id: string } | null>(null);
 
   const load = async () => {
+    if (!isSupabaseConfigured() || isDemoModeActive()) {
+      setIngredients(DEMO_INGREDIENTS as Ingredient[]);
+      setRecipes(DEMO_RECIPES as Recipe[]);
+      setUnlocked(new Set());
+      setCoinsState(agent === "papa" ? 120 : 80);
+      return;
+    }
     const [{ data: ing }, { data: rec }, { data: unl }] = await Promise.all([
       supabase.from("ingredients").select("key, name, emoji, rarity, price_coins").order("rarity"),
       supabase.from("recipes").select("id, result_name, result_emoji, description, xp, price_coins, locked").order("created_at", { ascending: false }),
@@ -56,6 +68,7 @@ function MercatoPage() {
 
   useEffect(() => {
     load();
+    if (!isSupabaseConfigured() || isDemoModeActive()) return;
     const ch = supabase
       .channel("market-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "agent_coins" }, () => getCoins(agent).then(setCoinsState))
@@ -75,12 +88,22 @@ function MercatoPage() {
     if (busy) return;
     setBusy(ing.key);
     try {
-      const ok = await spendCoins(agent, price, "buy_ingredient", { key: ing.key });
-      if (!ok) {
-        toast.error("Monete insufficienti");
-        return;
+      if (isDemoEligible()) {
+        if (coins < price) {
+          toast.error("Monete insufficienti");
+          return;
+        }
+        setCoinsState((c) => c - price);
+      } else {
+        const ok = await spendCoins(agent, price, "buy_ingredient", { key: ing.key });
+        if (!ok) {
+          toast.error("Monete insufficienti");
+          return;
+        }
+        await grantIngredients(agent, [ing.key]);
+        setCoinsState(await getCoins(agent));
       }
-      await grantIngredients(agent, [ing.key]);
+      triggerGameFx("pickup");
       toast.success(`Comprato: ${ing.emoji} ${ing.name}`);
     } finally {
       setBusy(null);
@@ -94,12 +117,23 @@ function MercatoPage() {
     if (busy) return;
     setBusy(r.id);
     try {
-      const ok = await spendCoins(agent, price, "buy_recipe", { recipe_id: r.id });
-      if (!ok) {
-        toast.error("Monete insufficienti");
-        return;
+      if (isDemoEligible()) {
+        if (coins < price) {
+          toast.error("Monete insufficienti");
+          return;
+        }
+        setCoinsState((c) => c - price);
+      } else {
+        const ok = await spendCoins(agent, price, "buy_recipe", { recipe_id: r.id });
+        if (!ok) {
+          toast.error("Monete insufficienti");
+          return;
+        }
+        await supabase.from("recipe_unlocks").insert({ agent, recipe_id: r.id });
+        setCoinsState(await getCoins(agent));
       }
-      await supabase.from("recipe_unlocks").insert({ agent, recipe_id: r.id });
+      setUnlocked((u) => new Set([...u, r.id]));
+      triggerGameFx("mission_complete");
       toast.success(`Ricetta sbloccata: ${r.result_name}`);
     } finally {
       setBusy(null);
@@ -117,8 +151,9 @@ function MercatoPage() {
 
   return (
     <PageShell
-      title="Mercato"
-      subtitle="Spendi monete per ingredienti e ricette"
+      title="Market"
+      subtitle={`${GAME_IDENTITY.subtitle} · Mercato Galattico e scambi famiglia`}
+      theme="market"
       action={
         <div className="panel px-3 py-2 text-xs flex items-center gap-1.5 text-amber-300">
           <Coins className="h-3.5 w-3.5" />
@@ -126,10 +161,18 @@ function MercatoPage() {
         </div>
       }
     >
+      <MarketPanel compact />
+
       {isPapa && (
         <button
           onClick={async () => {
+            if (isDemoEligible()) {
+              setCoinsState((c) => c + 50);
+              toast.success("+50 monete demo");
+              return;
+            }
             await addCoins(agent, 50, "admin_grant");
+            setCoinsState(await getCoins(agent));
           }}
           className="panel w-full py-2 text-[11px] text-muted-foreground"
         >
@@ -137,20 +180,16 @@ function MercatoPage() {
         </button>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 market-tabs">
         <button
           onClick={() => setTab("ingredients")}
-          className={`rounded-lg py-2 text-xs flex items-center justify-center gap-1.5 border transition-colors ${
-            tab === "ingredients" ? "border-primary bg-primary/15 text-foreground" : "border-primary/15 bg-night/40 text-muted-foreground"
-          }`}
+          className={`market-tab py-2 text-xs flex items-center justify-center gap-1.5 ${tab === "ingredients" ? "market-tab-active" : ""}`}
         >
           <ShoppingBag className="h-3.5 w-3.5" /> Ingredienti
         </button>
         <button
           onClick={() => setTab("recipes")}
-          className={`rounded-lg py-2 text-xs flex items-center justify-center gap-1.5 border transition-colors ${
-            tab === "recipes" ? "border-primary bg-primary/15 text-foreground" : "border-primary/15 bg-night/40 text-muted-foreground"
-          }`}
+          className={`market-tab py-2 text-xs flex items-center justify-center gap-1.5 ${tab === "recipes" ? "market-tab-active" : ""}`}
         >
           <FlaskConical className="h-3.5 w-3.5" /> Ricette
         </button>
@@ -160,41 +199,45 @@ function MercatoPage() {
         ingredientsForSale.length === 0 ? (
           <p className="text-center text-xs text-muted-foreground py-10">Nessun ingrediente in vendita.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {ingredientsForSale.map((ing) => {
               const price = ing.price_coins ?? 0;
               const can = coins >= price && price > 0;
+              const rarity = rarityFromString(ing.rarity);
               return (
-                <div key={ing.key} className="panel p-3 flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-xl border border-primary/30 bg-night/60 flex items-center justify-center text-2xl">
-                    {ing.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{ing.name}</p>
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{ing.rarity}</p>
-                  </div>
-                  <div className="text-right flex flex-col items-end gap-1">
+                <MarketGameCard
+                  key={ing.key}
+                  emoji={ing.emoji}
+                  name={ing.name}
+                  rarity={rarity}
+                  subtitle="Bottega galattica"
+                  iconKind="berry"
+                  value={
                     <span className="text-amber-300 text-xs flex items-center gap-1">
                       <Coins className="h-3 w-3" /> {price || "—"}
                     </span>
-                    <button
-                      onClick={() => buyIngredient(ing)}
-                      disabled={!can || busy === ing.key}
-                      className="btn-neon px-3 py-1 text-[11px] disabled:opacity-40"
-                    >
-                      {busy === ing.key ? "…" : "Compra"}
-                    </button>
-                  </div>
-                  {isPapa && (
-                    <button
-                      onClick={() => setEditing({ kind: "ing", id: ing.key })}
-                      className="panel h-7 w-7 flex items-center justify-center text-primary"
-                      aria-label="Modifica prezzo"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
+                  }
+                  footer={
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => buyIngredient(ing)}
+                        disabled={!can || busy === ing.key}
+                        className="btn-neon px-3 py-1 text-[11px] disabled:opacity-40"
+                      >
+                        {busy === ing.key ? "…" : "Compra"}
+                      </button>
+                      {isPapa && (
+                        <button
+                          onClick={() => setEditing({ kind: "ing", id: ing.key })}
+                          className="panel h-7 w-7 flex items-center justify-center text-primary"
+                          aria-label="Modifica prezzo"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  }
+                />
               );
             })}
           </div>
@@ -202,50 +245,54 @@ function MercatoPage() {
       ) : recipesForSale.length === 0 ? (
         <p className="text-center text-xs text-muted-foreground py-10">Nessuna ricetta in vendita.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {recipesForSale.map((r) => {
             const price = r.price_coins ?? 0;
             const owned = unlocked.has(r.id);
             const can = !owned && coins >= price && price > 0;
+            const rarity = { label: "Ricetta", level: 3 };
             return (
-              <div key={r.id} className="panel p-3 flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl border border-primary/30 bg-night/60 flex items-center justify-center overflow-hidden">
-                  <ResultIcon value={r.result_emoji} className="text-3xl" alt={r.result_name} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate font-display text-glow">{r.result_name}</p>
-                  {r.description && <p className="text-[11px] text-muted-foreground line-clamp-2">{r.description}</p>}
-                  <p className="text-[10px] text-primary mt-0.5">+{r.xp} XP</p>
-                </div>
-                <div className="text-right flex flex-col items-end gap-1">
+              <MarketGameCard
+                key={r.id}
+                emoji={r.result_emoji}
+                name={r.result_name}
+                rarity={rarity}
+                subtitle={r.description ?? `+${r.xp} XP`}
+                iconKind="crystal"
+                badge={owned ? <Check className="h-3 w-3 text-primary" /> : <Lock className="h-3 w-3 text-muted-foreground" />}
+                value={
                   <span className="text-amber-300 text-xs flex items-center gap-1">
                     <Coins className="h-3 w-3" /> {price || "—"}
                   </span>
-                  {owned ? (
-                    <span className="text-[10px] text-primary flex items-center gap-1">
-                      <Check className="h-3 w-3" /> Sbloccata
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => buyRecipe(r)}
-                      disabled={!can || busy === r.id}
-                      className="btn-neon px-3 py-1 text-[11px] disabled:opacity-40 flex items-center gap-1"
-                    >
-                      <Lock className="h-3 w-3" />
-                      {busy === r.id ? "…" : "Sblocca"}
-                    </button>
-                  )}
-                </div>
-                {isPapa && (
-                  <button
-                    onClick={() => setEditing({ kind: "rec", id: r.id })}
-                    className="panel h-7 w-7 flex items-center justify-center text-primary"
-                    aria-label="Modifica"
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
+                }
+                footer={
+                  <div className="flex items-center justify-end gap-2">
+                    {owned ? (
+                      <span className="text-[10px] text-primary flex items-center gap-1">
+                        <Check className="h-3 w-3" /> Sbloccata
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => buyRecipe(r)}
+                        disabled={!can || busy === r.id}
+                        className="btn-neon px-3 py-1 text-[11px] disabled:opacity-40 flex items-center gap-1"
+                      >
+                        <Lock className="h-3 w-3" />
+                        {busy === r.id ? "…" : "Sblocca"}
+                      </button>
+                    )}
+                    {isPapa && (
+                      <button
+                        onClick={() => setEditing({ kind: "rec", id: r.id })}
+                        className="panel h-7 w-7 flex items-center justify-center text-primary"
+                        aria-label="Modifica"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                }
+              />
             );
           })}
         </div>

@@ -17,6 +17,7 @@ import { Route as RicetteRouteImport } from './routes/ricette'
 import { Route as RadarRouteImport } from './routes/radar'
 import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PremiRouteImport } from './routes/premi'
+import { Route as PikminRouteImport } from './routes/pikmin'
 import { Route as NemiciRouteImport } from './routes/nemici'
 import { Route as NavicellaRouteImport } from './routes/navicella'
 import { Route as MissioniRouteImport } from './routes/missioni'
@@ -75,6 +76,11 @@ const ProfiloRoute = ProfiloRouteImport.update({
 const PremiRoute = PremiRouteImport.update({
   id: '/premi',
   path: '/premi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PikminRoute = PikminRouteImport.update({
+  id: '/pikmin',
+  path: '/pikmin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NemiciRoute = NemiciRouteImport.update({
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
   '/nemici': typeof NemiciRoute
+  '/pikmin': typeof PikminRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
   '/nemici': typeof NemiciRoute
+  '/pikmin': typeof PikminRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/missioni': typeof MissioniRoute
   '/navicella': typeof NavicellaRoute
   '/nemici': typeof NemiciRoute
+  '/pikmin': typeof PikminRoute
   '/premi': typeof PremiRoute
   '/profilo': typeof ProfiloRoute
   '/radar': typeof RadarRoute
@@ -279,6 +288,7 @@ export interface FileRouteTypes {
     | '/missioni'
     | '/navicella'
     | '/nemici'
+    | '/pikmin'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/missioni'
     | '/navicella'
     | '/nemici'
+    | '/pikmin'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/missioni'
     | '/navicella'
     | '/nemici'
+    | '/pikmin'
     | '/premi'
     | '/profilo'
     | '/radar'
@@ -367,6 +379,7 @@ export interface RootRouteChildren {
   MissioniRoute: typeof MissioniRoute
   NavicellaRoute: typeof NavicellaRoute
   NemiciRoute: typeof NemiciRoute
+  PikminRoute: typeof PikminRoute
   PremiRoute: typeof PremiRoute
   ProfiloRoute: typeof ProfiloRoute
   RadarRoute: typeof RadarRoute
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       path: '/premi'
       fullPath: '/premi'
       preLoaderRoute: typeof PremiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pikmin': {
+      id: '/pikmin'
+      path: '/pikmin'
+      fullPath: '/pikmin'
+      preLoaderRoute: typeof PikminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/nemici': {
@@ -616,6 +636,7 @@ const rootRouteChildren: RootRouteChildren = {
   MissioniRoute: MissioniRoute,
   NavicellaRoute: NavicellaRoute,
   NemiciRoute: NemiciRoute,
+  PikminRoute: PikminRoute,
   PremiRoute: PremiRoute,
   ProfiloRoute: ProfiloRoute,
   RadarRoute: RadarRoute,

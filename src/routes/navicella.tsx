@@ -6,8 +6,11 @@ import { getSession } from "@/lib/session";
 import { PageShell } from "@/components/PageShell";
 import { PikminCounter } from "@/components/PikminCounter";
 import { pikminCostFor, RARITY_LABEL, RARITY_COLOR } from "@/lib/pikmin";
+import { SpaceshipAssemblyPanel } from "@/components/game/SpaceshipAssemblyPanel";
+import { syncLegacyCollectedToSpaceship } from "@/lib/game/ship-bridge";
 import { Rocket, Plus, Pencil, Trash2, X, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { triggerGameFx } from "@/lib/game-event-fx";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +62,7 @@ function ShipPage() {
   };
 
   useEffect(() => {
+    syncLegacyCollectedToSpaceship().catch(() => {});
     load();
     const ch = supabase
       .channel("navicella-rt")
@@ -75,10 +79,6 @@ function ShipPage() {
   }, []);
 
   const collectedKeys = useMemo(() => new Set(collected.map((c) => c.part_key)), [collected]);
-  const total = parts.length;
-  const have = parts.filter((p) => collectedKeys.has(p.key)).length;
-  const pct = total === 0 ? 0 : Math.round((have / total) * 100);
-  const ready = total > 0 && have === total;
 
   return (
     <PageShell
@@ -98,45 +98,13 @@ function ShipPage() {
         </div>
       }
     >
-      {/* Stato navicella */}
-      <div className="panel-strong scanline relative overflow-hidden p-4 space-y-3">
-        <div className="flex items-center gap-3">
-          <motion.div
-            animate={ready ? { y: [0, -4, 0] } : { rotate: [0, -2, 2, 0] }}
-            transition={{ duration: ready ? 1.2 : 3, repeat: Infinity }}
-            className={`h-14 w-14 rounded-2xl border flex items-center justify-center text-3xl ${
-              ready
-                ? "border-primary bg-primary/15 glow-soft"
-                : "border-primary/30 bg-night/60"
-            }`}
-          >
-            🚀
-          </motion.div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.4em] text-primary/80">
-              // Stato riparazione
-            </p>
-            <p className="font-display text-xl text-glow">
-              {have}/{total} pezzi
-            </p>
-            <div className="mt-2 h-2 rounded-full bg-night/80 border border-primary/20 overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ type: "spring", stiffness: 80, damping: 20 }}
-                className="h-full bg-primary"
-              />
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              {ready
-                ? "Navicella pronta al decollo. 🛰️"
-                : `Mancano ${total - have} pezzi al decollo.`}
-            </p>
-          </div>
-        </div>
-      </div>
+      <SpaceshipAssemblyPanel />
 
-      {/* Griglia pezzi */}
+      {isPapa && (
+        <>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground px-1">
+            Catalogo admin legacy (ship_parts)
+          </p>
       {parts.length === 0 ? (
         <div className="panel p-6 text-center text-xs text-muted-foreground space-y-2">
           <Rocket className="h-5 w-5 text-primary mx-auto opacity-70" />
@@ -225,6 +193,8 @@ function ShipPage() {
           />
         )}
       </AnimatePresence>
+        </>
+      )}
     </PageShell>
   );
 }
@@ -289,6 +259,7 @@ function PartEditor({
       return;
     }
     toast.success(isNew ? "Pezzo aggiunto" : "Pezzo aggiornato");
+    triggerGameFx("ship_part");
     onSaved();
   };
 
