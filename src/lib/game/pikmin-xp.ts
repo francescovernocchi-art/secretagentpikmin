@@ -1,8 +1,7 @@
 import { gameTable, isSupabaseConfigured } from "@/lib/game/db";
 import { localStore } from "@/lib/game/local-store";
 import type { DbPikminUnit } from "@/types/phase2-db";
-import type { DbPikminActivityLog } from "@/types/phase3-db";
-import type { PikminXpReason } from "@/types/phase3-db";
+import type { DbPikminActivityLog, PikminXpReason } from "@/types/phase3-db";
 import { SPEC_BADGES } from "@/types/phase3-db";
 import type { PikminSpecializationKey } from "@/types/secretPikmin";
 

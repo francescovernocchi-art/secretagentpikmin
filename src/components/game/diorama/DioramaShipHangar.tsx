@@ -9,27 +9,40 @@ interface DioramaShipHangarProps {
   percent: number;
   onClick?: () => void;
   compact?: boolean;
+  damaged?: boolean;
 }
 
-export function DioramaShipHangar({ parts, percent, onClick, compact }: DioramaShipHangarProps) {
+export function DioramaShipHangar({ parts, percent, onClick, compact, damaged = true }: DioramaShipHangarProps) {
   const uid = useId().replace(/:/g, "");
   const hullId = `shipHull-${uid}`;
   const darkId = `shipDark-${uid}`;
   const collected = parts.filter((p) => p.collected);
   const glow = percent >= 50;
+  const hangarState = damaged ? "Area Hangar danneggiata" : "Hangar operativo";
 
   return (
     <button
       type="button"
-      className={`${styles.shipHangar} relative`}
+      className={`${styles.shipHangar} ${damaged ? styles.shipHangarDamaged : ""} relative`}
       onClick={onClick}
-      aria-label={`Hangar navicella, ${percent}% completata, ${collected.length} di ${parts.length} pezzi`}
+      aria-label={`${hangarState}, ${percent}% completata, ${collected.length} di ${parts.length} pezzi`}
     >
-      <ParticleEffect variant="ship-glow" />
+      <ParticleEffect variant="ship-glow" className="opacity-35" />
+      <div className={styles.hangarGround} aria-hidden>
+        <span className={styles.hangarCrack} />
+        <span className={styles.hangarCrack} />
+        <span className={styles.hangarDebris} />
+        <span className={styles.hangarDebris} />
+      </div>
+      <div className={styles.hangarFrame} aria-hidden>
+        <span />
+        <span />
+        <span />
+      </div>
       <motion.div
         className={`${styles.shipModel} ${glow ? styles.shipGlow : ""}`}
-        animate={{ y: [0, -4, 0] }}
-        transition={{ repeat: Infinity, duration: 2.8, ease: "easeInOut" }}
+        animate={{ y: damaged ? [0, -1, 0] : [0, -4, 0], rotate: damaged ? [-1, 1, -1] : 0 }}
+        transition={{ repeat: Infinity, duration: 3.4, ease: "easeInOut" }}
         aria-hidden
       >
         <svg viewBox="0 0 80 60" className={styles.shipSvg} aria-hidden>
@@ -43,12 +56,18 @@ export function DioramaShipHangar({ parts, percent, onClick, compact }: DioramaS
               <stop offset="100%" stopColor="#0c1929" />
             </linearGradient>
           </defs>
-          <ellipse cx="40" cy="48" rx="28" ry="8" fill="#00000044" />
-          <path d="M 40 8 L 62 42 L 40 52 L 18 42 Z" fill={`url(#${hullId})`} stroke="#7dd3fc" strokeWidth="1.5" />
-          <path d="M 40 18 L 52 40 L 40 46 L 28 40 Z" fill={`url(#${darkId})`} opacity="0.6" />
-          <ellipse cx="40" cy="28" rx="6" ry="8" fill="#bae6fd" opacity="0.8" />
-          <path d="M 18 38 L 8 44 L 18 42 Z" fill="#0284c7" />
-          <path d="M 62 38 L 72 44 L 62 42 Z" fill="#0284c7" />
+          <ellipse cx="40" cy="50" rx="30" ry="7" fill="#00000055" />
+          <path d="M 40 10 L 60 42 L 40 51 L 20 42 Z" fill={damaged ? "none" : `url(#${hullId})`} stroke="#7dd3fc" strokeWidth="2" strokeDasharray={damaged ? "4 3" : undefined} opacity={damaged ? "0.7" : "1"} />
+          <path d="M 41 18 L 51 39 L 40 45 L 30 39 Z" fill={`url(#${darkId})`} opacity={damaged ? "0.32" : "0.6"} />
+          <ellipse cx="40" cy="29" rx="6" ry="8" fill="#bae6fd" opacity={damaged ? "0.45" : "0.8"} />
+          <path d="M 20 39 L 10 44 L 20 43 Z" fill="#0284c7" opacity={damaged ? "0.35" : "1"} />
+          <path d="M 60 39 L 70 44 L 60 43 Z" fill="#0284c7" opacity={damaged ? "0.35" : "1"} />
+          {damaged && (
+            <>
+              <path d="M 26 43 L 20 51 M 54 42 L 60 50" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="55" cy="18" r="2" fill="#f97316" opacity="0.8" />
+            </>
+          )}
         </svg>
 
         {!compact && (
@@ -76,7 +95,7 @@ export function DioramaShipHangar({ parts, percent, onClick, compact }: DioramaS
         />
       </div>
       <p className={styles.shipProgressLabel} aria-hidden>
-        {percent}% · {collected.length}/{parts.length}
+        {damaged ? "Hangar danneggiato" : "Hangar"} · {percent}% · {collected.length}/{parts.length}
       </p>
     </button>
   );
