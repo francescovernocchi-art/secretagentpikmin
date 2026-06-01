@@ -222,7 +222,7 @@ export async function canRemoteControlVillage(
     return { allowed: false, reason: "Fuori raggio — serve Centro di Controllo", tier, inRange: false };
   }
 
-  if (action === "base" && tier !== "none") {
+  if (action === "base") {
     return { allowed: true, reason: `Controllo remoto Lv${ccLevel} (comandi base)`, tier, inRange: false };
   }
   if (action === "expeditions" && (tier === "expeditions" || tier === "full")) {
