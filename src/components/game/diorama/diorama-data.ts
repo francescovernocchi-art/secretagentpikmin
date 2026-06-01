@@ -13,6 +13,7 @@ export interface DioramaBuildingDef {
   name: string;
   emoji: string;
   role: string;
+  requirement: string;
   /** % position on isometric plane */
   x: number;
   y: number;
@@ -23,12 +24,12 @@ export interface DioramaBuildingDef {
 }
 
 export const DIORAMA_BUILDINGS: DioramaBuildingDef[] = [
-  { key: "centro_controllo", name: "Centro Controllo", emoji: "🎛️", role: "Comando remoto", x: 48, y: 28, z: 40, route: "/base", color: "#4ade80" },
-  { key: "hangar", name: "Hangar Navicella", emoji: "🚀", role: "Costruzione", x: 72, y: 52, z: 35, action: "ship", color: "#38bdf8" },
-  { key: "accademia", name: "Accademia Pikmin", emoji: "🎓", role: "Specializzazioni", x: 22, y: 38, z: 30, route: "/archivio", color: "#fbbf24" },
-  { key: "magazzino", name: "Magazzino", emoji: "📦", role: "Risorse", x: 30, y: 62, z: 25, route: "/inventario", color: "#a78bfa" },
-  { key: "laboratorio", name: "Laboratorio", emoji: "🔬", role: "Trasformazioni", x: 58, y: 68, z: 28, route: "/lab", color: "#f472b6" },
-  { key: "mercato", name: "Mercato", emoji: "🏪", role: "Scambi", x: 78, y: 28, z: 32, route: "/villaggio/scambi", color: "#fb923c" },
+  { key: "hangar", name: "Hangar Navicella", emoji: "🚀", role: "Area riparazioni", requirement: "Recupera pezzi navicella", x: 50, y: 20, z: 28, action: "ship", color: "#38bdf8" },
+  { key: "laboratorio", name: "Laboratorio", emoji: "🔬", role: "Ricerca e analisi", requirement: "Centro Controllo Lv2", x: 28, y: 42, z: 40, route: "/lab", color: "#f472b6" },
+  { key: "centro_controllo", name: "Centro di Controllo", emoji: "🎛️", role: "Capsula comando", requirement: "Base iniziale", x: 50, y: 46, z: 52, route: "/base", color: "#4ade80" },
+  { key: "mercato", name: "Mercato", emoji: "🏪", role: "Scambi locali", requirement: "Magazzino Lv2", x: 72, y: 42, z: 42, route: "/villaggio/scambi", color: "#fb923c" },
+  { key: "magazzino", name: "Magazzino", emoji: "📦", role: "Deposito provvisorio", requirement: "Materiali base", x: 30, y: 68, z: 62, route: "/inventario", color: "#a78bfa" },
+  { key: "accademia", name: "Accademia Pikmin", emoji: "🎓", role: "Addestramento", requirement: "Colonia stabile", x: 70, y: 68, z: 64, route: "/archivio", color: "#fbbf24" },
 ];
 
 export interface BiomeTheme {

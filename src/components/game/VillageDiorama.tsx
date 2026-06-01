@@ -9,10 +9,10 @@ import { shipProgressPercent } from "@/lib/game/spaceship";
 import { getBiomeByKey } from "@/data/secretPikminWorld";
 import { SpaceshipAssemblyPanel } from "@/components/game/SpaceshipAssemblyPanel";
 import { DioramaTerrain } from "@/components/game/diorama/DioramaTerrain";
-import { DioramaBuilding } from "@/components/game/diorama/DioramaBuilding";
+import { DioramaBuilding, type DioramaVisualState } from "@/components/game/diorama/DioramaBuilding";
 import { DioramaPikminActor } from "@/components/game/diorama/DioramaPikminActor";
 import { DioramaShipHangar } from "@/components/game/diorama/DioramaShipHangar";
-import { DIORAMA_BUILDINGS, BIOME_DIORAMA_THEMES } from "@/components/game/diorama/diorama-data";
+import { DIORAMA_BUILDINGS, BIOME_DIORAMA_THEMES, type BuildingKey } from "@/components/game/diorama/diorama-data";
 import styles from "@/styles/village-diorama.module.css";
 import type { BiomeKey } from "@/types/secretPikmin";
 
@@ -23,6 +23,45 @@ interface VillageDioramaProps {
   ownerAgent?: string;
   showFooter?: boolean;
   fullScreen?: boolean;
+}
+
+const MODERN_BUILDING_STATES: DioramaVisualState[] = [
+  "locked",
+  "buildable",
+  "under_construction",
+  "level_1",
+  "level_2",
+  "level_3",
+  "level_4",
+  "level_5",
+];
+
+const LEGACY_CONSTRUCTION_STATES = new Set(["upgrading", "building", "constructing", "in_progress"]);
+
+function clampVisualLevel(level: number) {
+  return Math.min(5, Math.max(1, Math.round(level || 1)));
+}
+
+function initialColonyState(key: BuildingKey): DioramaVisualState {
+  if (key === "centro_controllo" || key === "magazzino") return "level_1";
+  if (key === "hangar") return "under_construction";
+  return "buildable";
+}
+
+function resolveBuildingVisualState(key: BuildingKey, status: string | undefined, level: number, hasModernStates: boolean): DioramaVisualState {
+  const normalized = status?.toLowerCase();
+  if (normalized && MODERN_BUILDING_STATES.includes(normalized as DioramaVisualState)) return normalized as DioramaVisualState;
+  if (normalized && LEGACY_CONSTRUCTION_STATES.has(normalized)) return "under_construction";
+  if (normalized === "locked") return "locked";
+
+  // Legacy rows only know "active": keep the village as a founded colony, not a finished dashboard.
+  if (!hasModernStates) return initialColonyState(key);
+
+  if (normalized === "active" || normalized === "idle" || normalized === "complete" || normalized === "completed") {
+    return `level_${clampVisualLevel(level)}` as DioramaVisualState;
+  }
+
+  return initialColonyState(key);
 }
 
 /** Diorama isometrico 2.5D — vista principale del villaggio */
@@ -56,20 +95,19 @@ export function VillageDiorama({
   const biomeDef = getBiomeByKey(biome);
 
   const levelMap = new Map(buildings.map((b) => [b.building_key, b.level]));
-  const statusMap = new Map(buildings.map((b) => [b.building_key, b.status as "active" | "upgrading" | "locked"]));
+  const statusMap = new Map(buildings.map((b) => [b.building_key, b.status]));
+  const hasModernStates = buildings.some((b) => MODERN_BUILDING_STATES.includes(b.status?.toLowerCase() as DioramaVisualState));
 
-  const displayBuildings =
-    buildings.length > 0
-      ? DIORAMA_BUILDINGS.map((def) => ({
-          def,
-          level: levelMap.get(def.key) ?? 1,
-          status: statusMap.get(def.key) ?? "active",
-        }))
-      : DIORAMA_BUILDINGS.slice(0, (buildingCount ?? 3) + 3).map((def, i) => ({
-          def,
-          level: VILLAGE_BUILDINGS.find((b) => b.key === def.key)?.level ?? i + 1,
-          status: "active" as const,
-        }));
+  const displayBuildings = DIORAMA_BUILDINGS.map((def) => {
+    const level = levelMap.get(def.key) ?? VILLAGE_BUILDINGS.find((b) => b.key === def.key)?.level ?? 1;
+    const status = statusMap.get(def.key);
+    return {
+      def,
+      level,
+      status,
+      visualState: resolveBuildingVisualState(def.key, status, level, hasModernStates),
+    };
+  });
 
   const visiblePikmin = squad.length > 0 ? squad.slice(0, compact ? 3 : 6) : [];
   const onMission = squad.filter((p) => p.status === "in_spedizione" || p.status === "in_missione");
@@ -97,12 +135,13 @@ export function VillageDiorama({
       <div className={styles.dioramaScene} role="img" aria-label={`Villaggio ${villageName || ""} nel bioma ${biomeDef?.label ?? biome}`}>
         <DioramaTerrain theme={theme} />
 
-        {sceneBuildings.map(({ def, level, status }) => (
+        {sceneBuildings.map(({ def, level, status, visualState }) => (
           <DioramaBuilding
             key={def.key}
             def={def}
             level={level}
             status={status}
+            visualState={visualState}
             compact={compact}
             onShipClick={() => setShipOpen(true)}
           />
@@ -113,6 +152,7 @@ export function VillageDiorama({
             parts={parts}
             percent={shipPct}
             compact={compact}
+            damaged={shipPct < 100}
             onClick={() => { hapticTap(); setShipOpen(true); }}
           />
         </div>

@@ -170,7 +170,7 @@ function seedDemoChat(): void {
     },
     {
       id: "demo-chat-3",
-      channel: "comandante",
+      channel: "radar",
       sender_agent: "papa",
       content: "Segnale forte a nord-est — aprite /radar e scansionate.",
       message_type: "text",

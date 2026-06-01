@@ -20,7 +20,7 @@ const BASE_WEIGHTS: WeightRow[] = [
   { type: "anomalia", base: 3 },
 ];
 
-const BIOME_MODIFIERS: Partial<Record<string, Partial<Record<string, number>>>> = {
+const BIOME_MODIFIERS: Partial<Record<BiomeKey, Partial<Record<string, number>>>> = {
   industriale: { materiale: 1.8, pezzo_navicella: 1.6, ingrediente: 0.7 },
   deserto: { ingrediente: 1.4, mostro: 1.3, materiale: 1.2 },
   palude: { mostro: 1.5, pikmin_selvatico: 1.2, ingrediente: 1.1 },

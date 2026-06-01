@@ -32,33 +32,33 @@ function VillaggioDioramaPage() {
     <div className="min-h-[100dvh] pb-24 overflow-x-hidden section-theme-village bg-[linear-gradient(180deg,oklch(0.12_0.04_250)_0%,oklch(0.08_0.03_280)_100%)]">
       {/* Top bar */}
       <header
-        className="sticky top-0 z-30 border-b border-primary/15 bg-night/90 backdrop-blur-md"
+        className="sticky top-0 z-30 border-b border-primary/10 bg-night/75 backdrop-blur-md"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="flex items-center justify-between px-3 py-2 gap-2">
-          <Link to="/base" onClick={hapticTap} className="panel p-2 shrink-0" aria-label="Torna al centro comando">
+        <div className="flex items-center justify-between px-3 py-1.5 gap-2">
+          <Link to="/base" onClick={hapticTap} className="panel p-1.5 shrink-0" aria-label="Torna al centro comando">
             <Home className="h-4 w-4" />
           </Link>
           <div className="flex-1 min-w-0 text-center">
-            <p className="text-[9px] uppercase tracking-[0.35em] text-primary/70">{GAME_IDENTITY.title}</p>
-            <h1 className="font-display text-base text-glow truncate">{loading ? "…" : villageName || "Villaggio"}</h1>
+            <p className="text-[8px] uppercase tracking-[0.35em] text-primary/60">{GAME_IDENTITY.title}</p>
+            <h1 className="font-display text-sm text-glow truncate">{loading ? "…" : villageName || "Villaggio"}</h1>
           </div>
-          <Link to="/mappa" onClick={hapticTap} className="panel p-2 shrink-0" aria-label="Apri mappa biomi">
+          <Link to="/mappa" onClick={hapticTap} className="panel p-1.5 shrink-0" aria-label="Apri mappa biomi">
             <Map className="h-4 w-4" />
           </Link>
         </div>
         <VillageGameHUD biomeLabel={biomeDef?.label} biomeEmoji={biomeDef?.emoji} compactExtras />
       </header>
 
-      <main className="px-2 pt-3 space-y-3 max-w-2xl mx-auto">
+      <main className="px-2 pt-2 space-y-2 max-w-5xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
           <VillageDiorama fullScreen showFooter ownerAgent={agent} />
         </motion.div>
 
         <VillageContextStrip />
 
-        {/* Quick actions — game style */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* Quick actions compatte: il focus visivo resta sul luogo fisico. */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
           <QuickTile to="/villaggio/edifici" emoji="🏗️" label="Edifici" />
           <QuickTile to="/villaggio/scambi" emoji="🤝" label="Scambi" />
           <QuickTile to="/navicella" emoji="🚀" label="Navicella" />
@@ -88,11 +88,11 @@ function QuickTile({
     <Link
       to={to}
       onClick={hapticTap}
-      className="panel-strong p-3 flex flex-col items-center gap-1.5 active:scale-95 transition-transform hover:ring-1 hover:ring-primary/40"
+      className="panel px-2.5 py-1.5 flex items-center gap-1.5 active:scale-95 transition-transform hover:ring-1 hover:ring-primary/30 shrink-0"
     >
-      <span className="text-2xl">{emoji}</span>
+      <span className="text-sm">{emoji}</span>
       {icon}
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="text-[9px] uppercase tracking-widest text-muted-foreground">{label}</span>
     </Link>
   );
 }

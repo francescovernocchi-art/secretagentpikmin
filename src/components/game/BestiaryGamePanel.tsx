@@ -69,7 +69,7 @@ function CreatureCard({ entry: e, compact }: { entry: DbBestiaryEntry; compact?:
       style={{ ["--card-rarity" as string]: rarity }}
     >
       <div className="flex gap-3">
-        <CreaturePortraitSvg emoji={e.emoji ?? undefined} dangerLevel={e.danger_level ?? 1} size={compact ? 52 : 64} />
+        <CreaturePortraitSvg emoji={e.emoji} dangerLevel={e.danger_level ?? 1} size={compact ? 52 : 64} />
 
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-start justify-between gap-2">
