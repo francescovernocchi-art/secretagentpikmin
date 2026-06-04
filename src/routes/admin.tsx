@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { getSession } from "@/lib/session";
+import { useEffect, useState } from "react";
+import { refreshSession } from "@/lib/session";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { PikminEditor } from "@/components/admin/PikminEditor";
 import { CardsEditor } from "@/components/admin/CardsEditor";
@@ -14,10 +14,30 @@ import { Crown } from "lucide-react";
 
 function AdminPage() {
   const navigate = useNavigate();
+  const [verified, setVerified] = useState(false);
   useEffect(() => {
-    const s = getSession();
-    if (s?.role !== "papa") navigate({ to: "/" });
+    let cancelled = false;
+    // Verify role server-side via Supabase (don't trust localStorage).
+    refreshSession()
+      .then((s) => {
+        if (cancelled) return;
+        if (s?.role !== "papa") navigate({ to: "/" });
+        else setVerified(true);
+      })
+      .catch(() => {
+        if (!cancelled) navigate({ to: "/" });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
+  if (!verified) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        Verifica permessi Comandante…
+      </div>
+    );
+  }
   return (
     <div className="p-3 pb-28 max-w-3xl mx-auto flex flex-col gap-3">
       <header className="panel-strong p-3 flex items-center gap-2">
