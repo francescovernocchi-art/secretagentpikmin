@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText, Output } from "ai";
 import { createLovableAiGatewayProvider } from "./ai-gateway";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
 
 const IngredientSchema = z.object({
   key: z.string().min(1).max(60),
@@ -18,6 +20,7 @@ const Schema = z.object({
  * Supporta da 2 a 6 ingredienti combinati insieme.
  */
 export const inventDiscovery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => Schema.parse(input))
   .handler(async ({ data }) => {
     const list = data.ingredients.map((i) => `- ${i.emoji} ${i.name}`).join("\n");
