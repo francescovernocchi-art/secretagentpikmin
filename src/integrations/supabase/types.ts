@@ -2101,6 +2101,42 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_logs: {
+        Row: {
+          action: string | null
+          actor_agent: string | null
+          actor_user_id: string | null
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action?: string | null
+          actor_agent?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action?: string | null
+          actor_agent?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: []
+      }
       ship_parts: {
         Row: {
           created_at: string
@@ -2736,6 +2772,15 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       is_family_member: { Args: never; Returns: boolean }
+      log_admin_action: {
+        Args: {
+          _action: string
+          _details?: Json
+          _target_id?: string
+          _target_table?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "papa" | "lorenzo"
