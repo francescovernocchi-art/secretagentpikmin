@@ -48,6 +48,13 @@ export const createFamilyMember = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
+    await supabase.rpc("log_admin_action", {
+      _action: "create_family_member",
+      _target_table: "auth.users",
+      _target_id: created.user?.id ?? null,
+      _details: { username: data.username, role: data.role, name: data.name },
+    });
+
     return {
       userId: created.user?.id ?? null,
       username: data.username,
